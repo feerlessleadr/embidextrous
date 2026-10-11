@@ -2,6 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Optional Watching Eye alerts (off by default): a foreground service holds the live connection and shows notifications. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name=".App"
@@ -37,6 +42,39 @@
         <receiver
             android:name=".RefreshReceiver"
             android:exported="false" />
+
+        <service
+            android:name=".watching.AlertService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Keeps a live connection to the user's own Emby server open so a notification can appear the moment someone reaches their watch-time limit. Enabled by the user in settings." />
+        </service>
+
+        <receiver
+            android:name=".watching.ActionReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".watching.WatchingWidget"
+            android:exported="true"
+            android:label="@string/watching_widget_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/watching_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".watching.BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
         <service
             android:name=".RefreshTileService"

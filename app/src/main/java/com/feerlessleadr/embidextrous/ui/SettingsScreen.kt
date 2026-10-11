@@ -206,5 +206,46 @@ private fun WatchingEyeKeySection(container: AppContainer) {
             androidx.compose.material3.Button(onClick = { container.setPluginKey(text); text = "" }, enabled = text.isNotBlank()) { Text("Save key") }
             if (key != null) OutlinedButton(onClick = { container.setPluginKey("") }) { Text("Remove key") }
         }
+
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val alerts by container.settings.alertsEnabled.collectAsStateWithLifecycle()
+        val hideNames by container.settings.widgetHideNames.collectAsStateWithLifecycle()
+        var permissionDenied by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+        // Android 13 and later ask before an app may show notifications; alerts only turn on once that is granted.
+        val askPermission = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { granted ->
+            permissionDenied = !granted
+            container.setAlertsEnabled(granted)
+        }
+        SettingRow(
+            title = "Background alerts",
+            subtitle = if (permissionDenied) "Notifications are blocked for this app, so alerts cannot be turned on."
+            else "Keep a live connection open and notify when someone reaches their limit, with buttons to add time. Shows a small ongoing notification.",
+            checked = alerts,
+            onChange = { on ->
+                if (on && !com.feerlessleadr.embidextrous.watching.AlertService.canNotify(context)) {
+                    askPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    permissionDenied = false
+                    container.setAlertsEnabled(on)
+                }
+            },
+        )
+        SettingRow(
+            title = "Hide names on the widget",
+            subtitle = "The home-screen widget shows \"User 1\", \"User 2\" instead of names, in case others can see your home screen.",
+            checked = hideNames,
+            onChange = container.settings::setWidgetHideNames,
+        )
+    }
+}
+
+@Composable
+private fun SettingRow(title: String, subtitle: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable { onChange(!checked) }, verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Switch(checked = checked, onCheckedChange = onChange)
     }
 }

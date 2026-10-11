@@ -104,7 +104,6 @@ fun ListsScreen(
     onNew: () -> Unit,
     onEdit: (String) -> Unit,
     onDuplicate: (String) -> Unit,
-    onSettings: () -> Unit,
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
     val density by container.settings.density.collectAsStateWithLifecycle()
@@ -128,7 +127,7 @@ fun ListsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Embidextrous") },
+                title = { Text("Smart Lists") },
                 actions = {
                     IconButton(onClick = {
                         searching = !searching
@@ -138,9 +137,6 @@ fun ListsScreen(
                     }
                     IconButton(onClick = vm::refreshAll, enabled = state.lists.isNotEmpty()) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh all lists")
-                    }
-                    IconButton(onClick = onSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
                 },
             )

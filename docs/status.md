@@ -17,3 +17,11 @@
   - Regular account: only Watching Eye and Settings tabs; key entry, live card and data worked. No crash in logcat.
 - Not verified: Undo and the other actions (time-out, resume, reset, stop stream), playback (now playing, countdown while watching), live reconnect after network loss, rotation, dark theme, the SmartLists overview with real lists, signing out, a real phone, and the Smart Lists tab's "not available" state.
 - Minor to fix: the Smart Lists tab has its own gear icon and the title "Embidextrous", which duplicates the Settings tab.
+
+## 2026-10-10: phase 3 (alerts, widget, name hiding, settings)
+
+- Built: optional background alerts (foreground service holding the live connection; notification when someone reaches a limit, with +15/+30/+60 buttons that need the phone unlocked, and a generic lock-screen version); the Watching Eye home-screen widget (live while the app or the service runs, otherwise its own 30-minute refresh, cleared on sign-out); "hide names" for the widget; settings switches for both; restart of the alerts at boot; the Smart Lists tab no longer repeats a gear icon. 9 new unit tests (limit-alert rules, widget text).
+- Smoke test on a private emulator (Android 37, debug build, test server, throw-away users since deleted, plugin reset):
+  - Alerts: the notification permission prompt appears when the switch is turned on; the service runs as a foreground service; with the app in the background, a user going over a 1-minute limit (real playback reports) produced the notification with its three buttons; "+15 min" gave the user 900 s of credit and the notification went away.
+  - Widget: placed from the launcher, showed "embi_reg — 13 min left, Live"; with "hide names" on it showed "User 1"; after sign-out it showed "Signed out" and the service was gone.
+- Not verified: lock-screen behaviour of the notification (hidden text, buttons needing unlock), reboot restart, the widget's own 30-minute refresh with the app closed, notification permission denied path, Android 13-, a real phone, rotation. The widget picker shows the app icon as its preview (a proper preview is not made yet).

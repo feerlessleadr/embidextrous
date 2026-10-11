@@ -73,6 +73,26 @@ class AppSettings(private val prefs: SharedPreferences) {
     /** The colour a list was marked with, by list id. Kept on this phone only: the plugin has no field for it. */
     val listColors: StateFlow<Map<String, Swatch>> = _listColors.asStateFlow()
 
+    private val _alertsEnabled = MutableStateFlow(prefs.getBoolean(KEY_ALERTS, false))
+
+    /** Watching Eye: keep a live connection in the background and notify when someone reaches their limit. */
+    val alertsEnabled: StateFlow<Boolean> = _alertsEnabled.asStateFlow()
+
+    private val _widgetHideNames = MutableStateFlow(prefs.getBoolean(KEY_WIDGET_HIDE_NAMES, false))
+
+    /** Watching Eye: the home-screen widget shows "User 1", "User 2" instead of names. */
+    val widgetHideNames: StateFlow<Boolean> = _widgetHideNames.asStateFlow()
+
+    fun setAlertsEnabled(on: Boolean) {
+        prefs.edit().putBoolean(KEY_ALERTS, on).apply()
+        _alertsEnabled.value = on
+    }
+
+    fun setWidgetHideNames(on: Boolean) {
+        prefs.edit().putBoolean(KEY_WIDGET_HIDE_NAMES, on).apply()
+        _widgetHideNames.value = on
+    }
+
     fun setThemeMode(mode: ThemeMode) {
         prefs.edit().putString(KEY_THEME, mode.name).apply()
         _themeMode.value = mode
@@ -116,5 +136,7 @@ class AppSettings(private val prefs: SharedPreferences) {
         const val KEY_DYNAMIC = "dynamic_color"
         const val KEY_DENSITY = "density"
         const val KEY_LIST_COLORS = "list_colors"
+        const val KEY_ALERTS = "watching_alerts"
+        const val KEY_WIDGET_HIDE_NAMES = "watching_widget_hide_names"
     }
 }

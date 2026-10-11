@@ -51,6 +51,7 @@ import com.feerlessleadr.embidextrous.ui.SignInViewModel
 import com.feerlessleadr.embidextrous.ui.editor.EditorScreen
 import com.feerlessleadr.embidextrous.ui.editor.EditorViewModel
 import com.feerlessleadr.embidextrous.ui.useDarkTheme
+import com.feerlessleadr.embidextrous.watching.AlertService
 import com.feerlessleadr.embidextrous.watching.WatchingEyeScreen
 import com.feerlessleadr.embidextrous.watching.WatchingEyeViewModel
 import kotlinx.coroutines.launch
@@ -59,6 +60,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val container = (application as App).container
+        // Start (or stop) the optional background alerts to match the setting; the app is in front here, so Android allows it.
+        AlertService.sync(this)
         setContent {
             val mode by container.settings.themeMode.collectAsStateWithLifecycle()
             val accent by container.settings.accent.collectAsStateWithLifecycle()
@@ -154,7 +157,6 @@ private fun SignedIn(container: AppContainer, session: Session) {
                             onNew = { nav.navigate("editor/new") },
                             onEdit = { id -> nav.navigate("editor/$id") },
                             onDuplicate = { id -> nav.navigate("editor/copy-$id") },
-                            onSettings = { nav.navigate(ROUTE_SETTINGS) },
                         )
                     }
                 }
