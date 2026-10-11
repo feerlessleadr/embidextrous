@@ -38,6 +38,9 @@ class WatchingEyeViewModel(private val container: AppContainer) : ViewModel() {
 
     fun savePluginKey(key: String) = container.setPluginKey(key)
 
+    /** The poster of what is being watched, or null when it has none (or it cannot be loaded). */
+    suspend fun poster(itemId: String): android.graphics.Bitmap? = container.api()?.let { container.covers.load(it, itemId, null) }
+
     /** The user's profile picture, or null when they have none (or it cannot be loaded). */
     suspend fun avatar(userId: String): android.graphics.Bitmap? = container.api()?.let { container.avatars.load(it, userId) }
 

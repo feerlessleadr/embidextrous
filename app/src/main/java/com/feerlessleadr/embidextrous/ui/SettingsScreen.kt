@@ -230,6 +230,22 @@ private fun WatchingEyeKeySection(container: AppContainer) {
                 }
             },
         )
+        if (alerts) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    "Some phones stop background apps to save battery. If alerts stop arriving, allow Embidextrous to run without battery restrictions.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                androidx.compose.material3.TextButton(onClick = {
+                    try {
+                        context.startActivity(android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+                    } catch (e: android.content.ActivityNotFoundException) {
+                        // This phone has no such screen; the text above still tells what to look for.
+                    }
+                }) { Text("Open battery settings") }
+            }
+        }
         SettingRow(
             title = "Hide names on the widget",
             subtitle = "The home-screen widget shows \"User 1\", \"User 2\" instead of names, in case others can see your home screen.",

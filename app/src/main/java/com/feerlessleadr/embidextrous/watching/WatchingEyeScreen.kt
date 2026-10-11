@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -146,6 +148,7 @@ private fun WatchingEyeContent(vm: WatchingEyeViewModel) {
                                         card = card,
                                         nowMs = now,
                                         loadAvatar = vm::avatar,
+                                        loadPoster = vm::poster,
                                         onAdd = { minutes -> vm.extend(card.status, minutes) },
                                         onAddOther = { dialog = WatchDialog.AddOther(card.status) },
                                         onTimeOut = { dialog = WatchDialog.TimeOut(card.status) },
@@ -202,6 +205,7 @@ private fun subtitle(state: WatchState, nowMs: Long): String = when (state.link)
     Link.LIVE -> "● Live"
     Link.CONNECTING -> "Connecting…"
     Link.NEEDS_KEY -> "Needs the Watching Eye key"
+    Link.KEY_REFUSED -> "Key refused by the plugin"
     else -> if (state.lastDataMs <= 0) "No data yet" else {
         val seconds = maxOf(0, (nowMs - state.lastDataMs) / 1000)
         "Updated " + (if (seconds < 60) "$seconds s" else "${seconds / 60} min") + " ago"
@@ -213,6 +217,7 @@ private fun ConnectionBanner(state: WatchState) {
     when (state.link) {
         Link.POLLING -> Banner("Live updates are not connected, so the app checks every 20 seconds. ${state.detail}", MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer)
         Link.OFFLINE -> Banner((state.detail.ifEmpty { "Can't reach the server." }) + " Retrying…", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer)
+        Link.KEY_REFUSED -> Banner(state.detail, MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer)
         else -> Unit
     }
 }
@@ -262,6 +267,7 @@ private fun UserCardView(
     card: UserCard,
     nowMs: Long,
     loadAvatar: suspend (String) -> Bitmap?,
+    loadPoster: suspend (String) -> Bitmap?,
     onAdd: (Int) -> Unit,
     onAddOther: () -> Unit,
     onTimeOut: () -> Unit,
@@ -341,14 +347,17 @@ private fun UserCardView(
             // What they are watching.
             status.nowPlaying?.let { np ->
                 val position = card.positionTicksNow(nowMs).let { if (np.runTimeTicks > 0) minOf(it, np.runTimeTicks) else it }
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(np.itemName.ifEmpty { "Playing" }, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                    Text(
-                        WatchText.clock(position) + (if (np.runTimeTicks > 0) " / " + WatchText.clock(np.runTimeTicks) else "") + (if (np.isPaused) "  (paused)" else ""),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    if (np.runTimeTicks > 0) LinearProgressIndicator(progress = { (position.toFloat() / np.runTimeTicks).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
-                    Text("${np.client.ifEmpty { "Unknown" }} · ${np.deviceName.ifEmpty { "Device" }}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Poster(np.itemId, np.itemName, loadPoster)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(np.itemName.ifEmpty { "Playing" }, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                        Text(
+                            WatchText.clock(position) + (if (np.runTimeTicks > 0) " / " + WatchText.clock(np.runTimeTicks) else "") + (if (np.isPaused) "  (paused)" else ""),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        if (np.runTimeTicks > 0) LinearProgressIndicator(progress = { (position.toFloat() / np.runTimeTicks).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
+                        Text("${np.client.ifEmpty { "Unknown" }} · ${np.deviceName.ifEmpty { "Device" }}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
 
@@ -384,6 +393,20 @@ private fun Avatar(userId: String, name: String, load: suspend (String) -> Bitma
             }
         }
     }
+}
+
+/** The poster of what is being watched; nothing is drawn (and no space taken) when the item has no picture. */
+@Composable
+private fun Poster(itemId: String, name: String, load: suspend (String) -> Bitmap?) {
+    if (itemId.isEmpty()) return
+    val picture by produceState<Bitmap?>(null, itemId) { value = load(itemId) }
+    val bitmap = picture ?: return
+    Image(
+        bitmap = bitmap.asImageBitmap(),
+        contentDescription = "Poster of $name",
+        contentScale = ContentScale.Crop,
+        modifier = Modifier.size(width = 56.dp, height = 84.dp).clip(RoundedCornerShape(8.dp)),
+    )
 }
 
 /** A small dialog asking for a number of minutes (1 to 43200). */

@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 
 /** What the connection looks like to the person using the screen. */
-enum class Link { CONNECTING, LIVE, POLLING, OFFLINE, NEEDS_KEY }
+enum class Link { CONNECTING, LIVE, POLLING, OFFLINE, NEEDS_KEY, KEY_REFUSED }
 
 data class WatchState(
     val cards: List<UserCard> = emptyList(),
@@ -47,6 +47,7 @@ class WatchingEyeRepository(
     val state: StateFlow<WatchState> = _state.asStateFlow()
 
     private val lock = Any()
+    private val keyGuard = KeyGuard()
     private var clients = 0
     private var job: Job? = null
 
@@ -88,6 +89,7 @@ class WatchingEyeRepository(
                     key == null -> _state.value = WatchState(link = Link.NEEDS_KEY)
                     else -> {
                         credentials = session to key
+                        keyGuard.reset() // a new key (or sign-in) deserves a fresh try
                         synchronized(lock) {
                             liveState = LiveState.CONNECTING
                             liveDetail = ""
@@ -121,6 +123,7 @@ class WatchingEyeRepository(
     }
 
     override fun onState(state: LiveState, detail: String) {
+        if (state == LiveState.REFUSED) keyGuard.refused(System.currentTimeMillis())
         synchronized(lock) {
             liveState = state
             liveDetail = detail
@@ -132,6 +135,10 @@ class WatchingEyeRepository(
 
     private suspend fun fetchRest() {
         val (session, key) = credentials ?: return
+        if (keyGuard.isBlocked(System.currentTimeMillis())) {
+            _state.value = compute() // no request while the key is being held back; just show why
+            return
+        }
         try {
             val users = WatchingEyeClient(session.serverUrl, session.token, key, http).status()
             val now = System.currentTimeMillis()
@@ -143,6 +150,7 @@ class WatchingEyeRepository(
             // Do not overwrite fresher live data with this answer.
             _state.value = if (isLive && _state.value.loaded) compute(lastData = now) else compute(users.map { UserCard(it, now) }, now)
         } catch (e: ApiException) {
+            if (e.status == 403) keyGuard.refused(System.currentTimeMillis())
             synchronized(lock) { restProblem = e.message.orEmpty() }
             _state.value = compute()
         } catch (e: Exception) {
@@ -162,6 +170,7 @@ class WatchingEyeRepository(
             val why = liveDetail.ifEmpty { "Live updates are not connected yet." }
             when {
                 liveState == LiveState.LIVE -> Link.LIVE to ""
+                keyGuard.isBlocked(now) -> Link.KEY_REFUSED to (KeyGuard.MESSAGE + if (liveDetail.isNotEmpty()) " The plugin said: $liveDetail" else "")
                 restFresh -> Link.POLLING to why
                 !loaded && restProblem.isEmpty() && liveState == LiveState.CONNECTING -> Link.CONNECTING to ""
                 else -> Link.OFFLINE to (restProblem.ifEmpty { why })
@@ -175,7 +184,13 @@ class WatchingEyeRepository(
     /** Runs one plugin call and, when the live connection is not up to bring the change, asks the server so the screen is not stale. */
     suspend fun act(call: suspend WatchingEyeClient.() -> Unit) {
         val (session, key) = credentials ?: throw ApiException(0, "Enter the Watching Eye key in Settings first.")
-        WatchingEyeClient(session.serverUrl, session.token, key, http).call()
+        if (keyGuard.isBlocked(System.currentTimeMillis())) throw ApiException(403, KeyGuard.MESSAGE)
+        try {
+            WatchingEyeClient(session.serverUrl, session.token, key, http).call()
+        } catch (e: ApiException) {
+            if (e.status == 403) keyGuard.refused(System.currentTimeMillis())
+            throw e
+        }
         val isLive = synchronized(lock) { liveState == LiveState.LIVE }
         if (!isLive) fetchRest()
     }

@@ -82,6 +82,37 @@ class WatchingExtrasTest {
         assertEquals("Alex — 1 h 00 min left", expired)
     }
 
+    // ---- protecting the plugin from its own lockout ---------------------------------------------------------
+
+    @Test fun keyGuardHoldsBackForFiveMinutesAfterARefusal() {
+        val guard = com.feerlessleadr.embidextrous.watching.KeyGuard()
+        val t0 = 1_000_000L
+        assertTrue(!guard.isBlocked(t0))
+        guard.refused(t0)
+        assertTrue(guard.isBlocked(t0 + 1))
+        assertTrue(guard.isBlocked(t0 + 299_999))
+        assertTrue(!guard.isBlocked(t0 + 300_000))
+    }
+
+    @Test fun keyGuardResetsWhenANewKeyIsSaved() {
+        val guard = com.feerlessleadr.embidextrous.watching.KeyGuard()
+        guard.refused(0L)
+        guard.reset()
+        assertTrue(!guard.isBlocked(1L))
+    }
+
+    @Test fun keyGuardSaysHowManyMinutesAreLeft() {
+        val guard = com.feerlessleadr.embidextrous.watching.KeyGuard()
+        guard.refused(0L)
+        assertEquals(5L, guard.minutesLeft(1L))
+        assertEquals(1L, guard.minutesLeft(299_000L))
+    }
+
+    @Test fun anAttemptEveryFiveMinutesNeverReachesThePluginsLockoutOfFiveInFive() {
+        // The plugin locks after 5 wrong keys within 5 minutes; with the guard a wrong key is retried at most once per BLOCK_MS.
+        assertTrue(com.feerlessleadr.embidextrous.watching.KeyGuard.BLOCK_MS >= 5 * 60_000L)
+    }
+
     @Test fun widgetRowCanHideTheName() {
         assertEquals("User 2 — 1 h 00 min left", WidgetText.row(user(name = "Secret"), now, zone, Locale.US, "User 2"))
     }

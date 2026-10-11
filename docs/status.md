@@ -57,3 +57,13 @@
 - Reported: sign-in works and both tabs load; the accent colour tints everything on the Watching Eye tab, and the users' profile pictures were missing.
 - Changed: the Watching Eye tab (and the bottom bar while it is open) now uses neutral greys for the background, cards and tonal buttons, in light and dark; the accent only colours the progress bar, the main button and links. The Smart Lists tab keeps the full accent look. Users' profile pictures are loaded from the server (`/Users/{id}/Images/Primary`, 96 px, kept in memory) with the first letter as the fallback.
 - Checked on an emulator (violet accent, light and dark): neutral cards, picture shown for a user who has one, initial for one who has none. Not checked: a real phone, a very large picture, a regular account's access to other users' pictures (it falls back to the initial if refused).
+
+## 2026-10-11: gaps against the old apps closed
+
+Compared the old Watching Eye app with this one and fixed what was missing:
+- **Wrong-key protection** (`KeyGuard`): the plugin locks its public API for 5 minutes after 5 wrong keys in 5 minutes. After the plugin refuses the key (HTTP 403 or a refused live connection) the app now makes no key-protected request for 5 minutes (live reconnect waits as long as well), shows a clear banner, and starts afresh as soon as a new key is saved. Before, the 20-second fallback would have tripped the lockout by itself.
+- **Poster** of what is being watched on the card (from `/Items/{id}/Images/Primary`, in-memory cache).
+- **Battery hint** under the alerts switch, with a button that opens Android's battery settings.
+- Not ported on purpose: support for plugins older than 1.9 (now-playing from Emby sessions, the admin status route); README says 1.9 or newer.
+- Emulator check (light theme): a wrong key showed the banner and no lockout (about 2 minutes later the plugin still accepted the correct key from this PC); saving the correct key recovered at once; a stream by the limited user showed the poster slot, title, position and client; the battery hint and button appear when alerts are on. Not checked: a real phone, a real poster image, the battery settings screen itself opening, the 5-minute retry actually happening (only the unit test covers the timing).
+- 5 new unit tests (key guard).

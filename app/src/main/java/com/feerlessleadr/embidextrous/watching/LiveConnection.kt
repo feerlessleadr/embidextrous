@@ -224,7 +224,8 @@ class LiveConnection(
         /** The plugin pushes at least every 30 s; this long with nothing at all means the connection is dead. */
         const val SILENCE_LIMIT_MS = 75_000L
         private const val WATCHDOG_MS = 15_000L
-        private const val REFUSED_RETRY_MS = 60_000L
+        // After a refusal (usually a wrong key) wait as long as the plugin's lockout window, so retrying can never trip the lockout.
+        private const val REFUSED_RETRY_MS = KeyGuard.BLOCK_MS
         private val BACKOFF_MS = longArrayOf(1_000, 2_000, 4_000, 8_000, 15_000, 30_000, 60_000)
     }
 }
