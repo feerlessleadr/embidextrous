@@ -118,7 +118,7 @@ jobs:
         if: github.ref_type == 'tag'
         env:
           # SHA-256 of the release certificate (public information). A different key means the wrong secret was used.
-          EXPECTED_CERT_SHA256: A64E87F109CD6F8E59E429B5CC1BAEE792826C74C75E4F2A2365EBB893E086F0
+          EXPECTED_CERT_SHA256: D22EEFBC82B6E185886BCDFA5F5C570469F47294EAA95C72939B9803C99952E7
         run: |
           APKSIGNER="$(ls -d "${ANDROID_HOME:-$ANDROID_SDK_ROOT}"/build-tools/*/apksigner | sort -V | tail -n 1)"
           "$APKSIGNER" verify --verbose --print-certs artifacts/*.apk | tee "$RUNNER_TEMP/certs.txt"
