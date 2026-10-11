@@ -46,3 +46,8 @@
 - The release workflow now fails unless the APK is signed with the expected key: the SHA-256 of the release certificate (public information) is pinned in `release.yml`. The first key was replaced before any release existed, because its keystore text had been pasted into a chat; the pinned value belongs to the second key.
 - CodeQL: GitHub's default setup failed at its automatic build (Android needs Java 21 and the SDK licenses). `.github/workflows/codeql.yml` builds the app like CI and scans Kotlin and the workflow files. The default setup must be OFF in the repository settings, otherwise GitHub refuses the results of this workflow.
 - Still to do before 0.1.0: the owner adds the `SIGNING_*` secrets, the `release` environment (Tag rule `v*`), immutable releases, rulesets, secret scanning and push protection; release notes in `docs/releases/v0.1.0.md`; then "publish it".
+
+## 2026-10-11: first release attempt
+
+- Tag `v0.1.0` was pushed first. Its release run failed at the unit-test step (`./gradlew: Permission denied`, the wrapper had no executable bit and the release workflow, unlike ci.yml, did not chmod it). Nothing was built or published. The tag cannot be moved (tag ruleset), so the first release is `v0.1.1`. Fixed in `dcd8b1e`.
+- The steps after the build (pinned-key check, attestation, release creation) had not run in a real release before 0.1.1.
