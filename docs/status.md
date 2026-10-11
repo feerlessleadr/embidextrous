@@ -67,3 +67,8 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 - Not ported on purpose: support for plugins older than 1.9 (now-playing from Emby sessions, the admin status route); README says 1.9 or newer.
 - Emulator check (light theme): a wrong key showed the banner and no lockout (about 2 minutes later the plugin still accepted the correct key from this PC); saving the correct key recovered at once; a stream by the limited user showed the poster slot, title, position and client; the battery hint and button appear when alerts are on. Not checked: a real phone, a real poster image, the battery settings screen itself opening, the 5-minute retry actually happening (only the unit test covers the timing).
 - 5 new unit tests (key guard).
+
+## 2026-10-11: Gradle 9.8.1 and Android Gradle Plugin 9.4.1
+
+- Merged the two Dependabot upgrades. The new `gradle-wrapper.jar` was checked against the SHA-256 Gradle publishes for 9.8.1 (`3b8a2577...e68e98`, match). The AGP PR had failed CI on its own with Gradle 9.5.1; together with Gradle 9.8.1 it builds.
+- Verified locally before merging: `test assembleDebug`, `assembleRelease` (2.14 MB, same size as before), the release APK starts without a crash and shows the HTTPS-only sign-in, and the debug build still signs in, shows the Watching Eye cards live and the Smart Lists tab (emulator). Not verified: the release APK against a server (release builds refuse plain http, so the test server cannot be used), a real phone. These upgrades are not in the 0.1.2 release; they ship with the next one.
