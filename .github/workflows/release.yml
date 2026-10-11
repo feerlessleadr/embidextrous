@@ -114,6 +114,21 @@ jobs:
           cp app/build/outputs/apk/release/*.apk "artifacts/Embidextrous-${{ steps.version.outputs.version }}.apk"
           ls -l artifacts
 
+      - name: Check the APK is signed with the Embidextrous release key (real releases only)
+        if: github.ref_type == 'tag'
+        env:
+          # SHA-256 of the release certificate (public information). A different key means the wrong secret was used.
+          EXPECTED_CERT_SHA256: A64E87F109CD6F8E59E429B5CC1BAEE792826C74C75E4F2A2365EBB893E086F0
+        run: |
+          APKSIGNER="$(ls -d "${ANDROID_HOME:-$ANDROID_SDK_ROOT}"/build-tools/*/apksigner | sort -V | tail -n 1)"
+          "$APKSIGNER" verify --verbose --print-certs artifacts/*.apk | tee "$RUNNER_TEMP/certs.txt"
+          actual="$(grep -m1 'certificate SHA-256 digest' "$RUNNER_TEMP/certs.txt" | awk '{print $NF}' | tr -d ':' | tr 'a-f' 'A-F')"
+          if [ "$actual" != "$EXPECTED_CERT_SHA256" ]; then
+            echo "::error::The APK is signed with a different key (SHA-256 $actual) than the expected Embidextrous release key."
+            exit 1
+          fi
+          echo "Signed with the expected release key."
+
       # Puts the interesting log lines into a run annotation so they are visible without signing in to read the log.
       - name: Summarize failures
         if: failure()
