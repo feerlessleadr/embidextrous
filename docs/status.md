@@ -51,3 +51,9 @@
 
 - Tag `v0.1.0` was pushed first. Its release run failed at the unit-test step (`./gradlew: Permission denied`, the wrapper had no executable bit and the release workflow, unlike ci.yml, did not chmod it). Nothing was built or published. The tag cannot be moved (tag ruleset), so the first release is `v0.1.1`. Fixed in `dcd8b1e`.
 - The steps after the build (pinned-key check, attestation, release creation) had not run in a real release before 0.1.1.
+
+## 2026-10-11: first feedback from the real phone (0.1.1)
+
+- Reported: sign-in works and both tabs load; the accent colour tints everything on the Watching Eye tab, and the users' profile pictures were missing.
+- Changed: the Watching Eye tab (and the bottom bar while it is open) now uses neutral greys for the background, cards and tonal buttons, in light and dark; the accent only colours the progress bar, the main button and links. The Smart Lists tab keeps the full accent look. Users' profile pictures are loaded from the server (`/Users/{id}/Images/Primary`, 96 px, kept in memory) with the first letter as the fallback.
+- Checked on an emulator (violet accent, light and dark): neutral cards, picture shown for a user who has one, initial for one who has none. Not checked: a real phone, a very large picture, a regular account's access to other users' pictures (it falls back to the initial if refused).

@@ -221,6 +221,25 @@ class ApiClient(
         }
     }
 
+    /** A user's profile picture, scaled by the server; null when the user has none. */
+    suspend fun embyUserImage(userId: String, maxHeight: Int = 96): ByteArray? = withContext(Dispatchers.IO) {
+        val url = "$server/emby/Users/${seg(userId)}/Images/Primary?maxHeight=$maxHeight&quality=90".toHttpUrl()
+        val request = Request.Builder().url(url).header("X-Emby-Token", token ?: throw ApiException(401, "You are signed out.")).get().build()
+        try {
+            http.newCall(request).execute().use { response ->
+                when {
+                    response.code == 404 -> null
+                    !response.isSuccessful -> throw ApiException(response.code, describeError(response.code, ""))
+                    else -> readLimited(response, Safety.MAX_AVATAR_BYTES)
+                }
+            }
+        } catch (e: ApiException) {
+            throw e
+        } catch (e: IOException) {
+            throw ApiException(0, "Could not reach the server: ${e.message ?: "network error"}.")
+        }
+    }
+
     // ----- backups -------------------------------------------------------------------------------------------
 
     suspend fun backups(): List<BackupInfo> {

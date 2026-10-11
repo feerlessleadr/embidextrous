@@ -14,6 +14,7 @@ import com.feerlessleadr.embidextrous.data.SessionRepository
 import com.feerlessleadr.embidextrous.data.UrlRules
 import com.feerlessleadr.embidextrous.data.WatchingEyeClient
 import com.feerlessleadr.embidextrous.watching.AlertService
+import com.feerlessleadr.embidextrous.watching.UserAvatars
 import com.feerlessleadr.embidextrous.watching.Link
 import com.feerlessleadr.embidextrous.watching.WatchingEyeRepository
 import com.feerlessleadr.embidextrous.watching.WidgetUpdater
@@ -44,6 +45,7 @@ class AppContainer(context: Context) {
     val sessions = SessionRepository(KeystoreSecureStore(context))
     val settings = AppSettings(context.getSharedPreferences("settings", Context.MODE_PRIVATE))
     val covers = CoverCache()
+    val avatars = UserAvatars()
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _listsChanged = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
@@ -158,6 +160,7 @@ class AppContainer(context: Context) {
     fun signOut() {
         val api = api()
         covers.clear()
+        avatars.clear()
         sessions.signOut()
         _pluginKey.value = null
         _smartListsProblem.value = null

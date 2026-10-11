@@ -1,5 +1,7 @@
 package com.feerlessleadr.embidextrous.watching
 
+import android.graphics.Bitmap
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,6 +50,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -75,9 +80,14 @@ private sealed interface WatchDialog {
     data class Stop(val user: UserStatus, val title: String) : WatchDialog
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WatchingEyeScreen(vm: WatchingEyeViewModel) {
+    WatchingEyeTheme { WatchingEyeContent(vm) }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WatchingEyeContent(vm: WatchingEyeViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -135,6 +145,7 @@ fun WatchingEyeScreen(vm: WatchingEyeViewModel) {
                                     UserCardView(
                                         card = card,
                                         nowMs = now,
+                                        loadAvatar = vm::avatar,
                                         onAdd = { minutes -> vm.extend(card.status, minutes) },
                                         onAddOther = { dialog = WatchDialog.AddOther(card.status) },
                                         onTimeOut = { dialog = WatchDialog.TimeOut(card.status) },
@@ -250,6 +261,7 @@ private fun KeyPrompt(onSave: (String) -> Unit) {
 private fun UserCardView(
     card: UserCard,
     nowMs: Long,
+    loadAvatar: suspend (String) -> Bitmap?,
     onAdd: (Int) -> Unit,
     onAddOther: () -> Unit,
     onTimeOut: () -> Unit,
@@ -263,8 +275,9 @@ private fun UserCardView(
     val timeoutEnd = status.activeTimeOutEnd(now)
     val reason = status.block(now)
     val remaining = card.remainingNow(nowMs)
-    val ok = Color(0xFF2E7D32)
-    val warn = Color(0xFF9A5B00)
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val ok = if (dark) Color(0xFF81C784) else Color(0xFF2E7D32)
+    val warn = if (dark) Color(0xFFFFB74D) else Color(0xFF9A5B00)
     val bad = MaterialTheme.colorScheme.error
 
     val (chipText, chipColor) = when {
@@ -280,11 +293,7 @@ private fun UserCardView(
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(44.dp)) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(status.username.take(1).uppercase(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                    }
-                }
+                Avatar(status.userId, status.username, loadAvatar)
                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
                     Text(status.username, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(chipText, style = MaterialTheme.typography.bodyMedium, color = chipColor, fontWeight = FontWeight.Bold)
@@ -356,6 +365,22 @@ private fun UserCardView(
                     Button(onClick = onResume, modifier = Modifier.weight(1f)) { Text("End time-out + $RESUME_MINUTES") }
                     OutlinedButton(onClick = onEndTimeOut, modifier = Modifier.weight(1f)) { Text("End time-out") }
                 }
+            }
+        }
+    }
+}
+
+/** The user's profile picture in a circle; the first letter of the name stands in until it is loaded or when there is none. */
+@Composable
+private fun Avatar(userId: String, name: String, load: suspend (String) -> Bitmap?) {
+    val picture by produceState<Bitmap?>(null, userId) { value = load(userId) }
+    Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(44.dp)) {
+        val bitmap = picture
+        if (bitmap != null) {
+            Image(bitmap = bitmap.asImageBitmap(), contentDescription = "Profile picture of $name", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        } else {
+            Box(contentAlignment = Alignment.Center) {
+                Text(name.take(1).uppercase(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
             }
         }
     }

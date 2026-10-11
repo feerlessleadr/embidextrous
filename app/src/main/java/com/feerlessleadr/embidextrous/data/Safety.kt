@@ -16,6 +16,9 @@ object Safety {
     // The most a cover picture response may be (the server is asked for a 200 px one).
     const val MAX_COVER_BYTES = 8L * 1024 * 1024
 
+    // The most a user's profile picture response may be (the server is asked for a 96 px one).
+    const val MAX_AVATAR_BYTES = 2L * 1024 * 1024
+
     // The most a custom list image response may be (the plugin accepts up to 20 MB).
     const val MAX_IMAGE_BYTES = 25L * 1024 * 1024
 

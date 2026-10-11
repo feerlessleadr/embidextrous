@@ -53,6 +53,7 @@ import com.feerlessleadr.embidextrous.ui.editor.EditorViewModel
 import com.feerlessleadr.embidextrous.ui.useDarkTheme
 import com.feerlessleadr.embidextrous.watching.AlertService
 import com.feerlessleadr.embidextrous.watching.WatchingEyeScreen
+import com.feerlessleadr.embidextrous.watching.WatchingEyeTheme
 import com.feerlessleadr.embidextrous.watching.WatchingEyeViewModel
 import kotlinx.coroutines.launch
 
@@ -119,22 +120,26 @@ private fun SignedIn(container: AppContainer, session: Session) {
     Scaffold(
         bottomBar = {
             if (showBar) {
-                NavigationBar {
-                    tabs.forEach { tab ->
-                        NavigationBarItem(
-                            selected = route == tab.route,
-                            onClick = {
-                                nav.navigate(tab.route) {
-                                    popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = { Icon(tab.icon, contentDescription = null) },
-                            label = { Text(tab.label) },
-                        )
+                // On the Watching Eye tab the bar matches the calm look of the cards; elsewhere it keeps the accent.
+                val bar: @Composable () -> Unit = {
+                    NavigationBar {
+                        tabs.forEach { tab ->
+                            NavigationBarItem(
+                                selected = route == tab.route,
+                                onClick = {
+                                    nav.navigate(tab.route) {
+                                        popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                },
+                                icon = { Icon(tab.icon, contentDescription = null) },
+                                label = { Text(tab.label) },
+                            )
+                        }
                     }
                 }
+                if (route == ROUTE_WATCHING) WatchingEyeTheme(bar) else bar()
             }
         },
     ) { padding ->

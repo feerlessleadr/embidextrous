@@ -38,6 +38,9 @@ class WatchingEyeViewModel(private val container: AppContainer) : ViewModel() {
 
     fun savePluginKey(key: String) = container.setPluginKey(key)
 
+    /** The user's profile picture, or null when they have none (or it cannot be loaded). */
+    suspend fun avatar(userId: String): android.graphics.Bitmap? = container.api()?.let { container.avatars.load(it, userId) }
+
     // ---- actions: each one tells the person how it went ------------------------------------------------------
 
     fun extend(user: UserStatus, minutes: Int) = run("Add time") {
