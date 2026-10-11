@@ -73,6 +73,26 @@ class AppSettings(private val prefs: SharedPreferences) {
     /** The colour a list was marked with, by list id. Kept on this phone only: the plugin has no field for it. */
     val listColors: StateFlow<Map<String, Swatch>> = _listColors.asStateFlow()
 
+    private val _profile = MutableStateFlow(AppProfile.fromName(prefs.getString(KEY_PROFILE, null)))
+
+    /** How this phone uses the app; null until the person has chosen (the app asks once after signing in). */
+    val profile: StateFlow<AppProfile?> = _profile.asStateFlow()
+
+    private val _customSmartLists = MutableStateFlow(prefs.getBoolean(KEY_CUSTOM_SMART_LISTS, false))
+
+    /** With the Custom profile: show the Smart Lists tab. */
+    val customSmartLists: StateFlow<Boolean> = _customSmartLists.asStateFlow()
+
+    fun setProfile(profile: AppProfile) {
+        prefs.edit().putString(KEY_PROFILE, profile.name).apply()
+        _profile.value = profile
+    }
+
+    fun setCustomSmartLists(on: Boolean) {
+        prefs.edit().putBoolean(KEY_CUSTOM_SMART_LISTS, on).apply()
+        _customSmartLists.value = on
+    }
+
     private val _alertsEnabled = MutableStateFlow(prefs.getBoolean(KEY_ALERTS, false))
 
     /** Watching Eye: keep a live connection in the background and notify when someone reaches their limit. */
@@ -136,6 +156,8 @@ class AppSettings(private val prefs: SharedPreferences) {
         const val KEY_DYNAMIC = "dynamic_color"
         const val KEY_DENSITY = "density"
         const val KEY_LIST_COLORS = "list_colors"
+        const val KEY_PROFILE = "profile"
+        const val KEY_CUSTOM_SMART_LISTS = "custom_smart_lists"
         const val KEY_ALERTS = "watching_alerts"
         const val KEY_WIDGET_HIDE_NAMES = "watching_widget_hide_names"
     }

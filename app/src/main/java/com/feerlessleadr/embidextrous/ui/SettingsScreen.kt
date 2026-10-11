@@ -44,7 +44,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.feerlessleadr.embidextrous.AppContainer
 import com.feerlessleadr.embidextrous.BuildConfig
+import com.feerlessleadr.embidextrous.data.AppProfile
 import com.feerlessleadr.embidextrous.data.Density
+import com.feerlessleadr.embidextrous.data.Profiles
 import com.feerlessleadr.embidextrous.data.Swatch
 import com.feerlessleadr.embidextrous.data.ThemeMode
 
@@ -106,9 +108,16 @@ fun SettingsScreen(container: AppContainer, onBackups: () -> Unit) {
 
             HorizontalDivider()
 
+            if (session?.isAdministrator == true) {
+                ProfileSection(container)
+                HorizontalDivider()
+            }
+
             WatchingEyeKeySection(container)
 
-            if (session?.isAdministrator == true) {
+            val profile by container.settings.profile.collectAsStateWithLifecycle()
+            val customSmartLists by container.settings.customSmartLists.collectAsStateWithLifecycle()
+            if (Profiles.showsSmartLists(profile, session?.isAdministrator == true, customSmartLists)) {
                 HorizontalDivider()
 
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -183,6 +192,33 @@ fun SwatchDot(swatch: Swatch, selected: Boolean, onClick: () -> Unit, size: andr
         if (selected) Icon(Icons.Default.Check, contentDescription = "${swatch.label}, selected", tint = Color.White, modifier = Modifier.size(size * 0.55f))
     }
 }
+/** How this phone uses the app: which tabs and Home cards it shows. Not a lock: it can be changed here at any time. */
+@Composable
+private fun ProfileSection(container: AppContainer) {
+    val profile by container.settings.profile.collectAsStateWithLifecycle()
+    val customSmartLists by container.settings.customSmartLists.collectAsStateWithLifecycle()
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("How this phone uses the app", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        AppProfile.entries.forEach { p ->
+            Row(Modifier.fillMaxWidth().clickable { container.settings.setProfile(p) }, verticalAlignment = Alignment.CenterVertically) {
+                RadioButton(selected = profile == p, onClick = { container.settings.setProfile(p) })
+                Column(Modifier.padding(vertical = 4.dp)) {
+                    Text(p.label, style = MaterialTheme.typography.bodyLarge)
+                    Text(p.summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+        if (profile == AppProfile.Custom) {
+            SettingRow(
+                title = "Show the Smart Lists tab",
+                subtitle = "Needs an Emby administrator account.",
+                checked = customSmartLists,
+                onChange = container.settings::setCustomSmartLists,
+            )
+        }
+    }
+}
+
 /** The Watching Eye plugin's key: shown as "set" or "not set"; a new one can be entered or the key removed. */
 @Composable
 private fun WatchingEyeKeySection(container: AppContainer) {

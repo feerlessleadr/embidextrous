@@ -25,6 +25,8 @@ data class UserStatus(
     @SerialName("Username") val username: String = "",
     @SerialName("DailyLimitMinutes") val dailyLimitMinutes: Int = 0,
     @SerialName("SecondsWatchedDaily") val secondsWatchedDaily: Double = 0.0,
+    @SerialName("SecondsWatchedWeekly") val secondsWatchedWeekly: Double = 0.0,
+    @SerialName("SecondsWatchedMonthly") val secondsWatchedMonthly: Double = 0.0,
     @SerialName("CreditSecondsDaily") val creditSecondsDaily: Double = 0.0,
     @SerialName("TimeOutUntil") val timeOutUntil: String? = null,
     @SerialName("EffectiveDailyLimitMinutes") val effectiveDailyLimitMinutes: Int? = null,
@@ -118,6 +120,20 @@ object WatchText {
             minutes >= 1 -> "%d min %02d s".format(java.util.Locale.ROOT, minutes, secs)
             else -> "$secs s"
         }
+    }
+
+    /**
+     * Time LEFT. Below 10 minutes it counts down in seconds like [duration]; from 10 minutes up the minutes round UP, so a limit that
+     * was just extended by 15 minutes reads "15 min" and not "14 min" (playback can run a moment past the limit, which leaves
+     * 14 min 59 s). Time used and totals keep rounding down ([duration]), because that is the honest direction for them.
+     */
+    fun durationLeft(seconds: Double): String {
+        val total = maxOf(0.0, seconds)
+        if (total < 600.0) return duration(total)
+        val minutes = Math.ceil(total / 60.0).toLong()
+        val hours = minutes / 60
+        val rest = minutes % 60
+        return if (hours > 0) "%d h %02d min".format(java.util.Locale.ROOT, hours, rest) else "$rest min"
     }
 
     /** Playback position like Emby shows it: "7:05" or "1:02:03". */

@@ -201,7 +201,7 @@ private fun WatchingEyeContent(vm: WatchingEyeViewModel) {
     }
 }
 
-private fun subtitle(state: WatchState, nowMs: Long): String = when (state.link) {
+internal fun subtitle(state: WatchState, nowMs: Long): String = when (state.link) {
     Link.LIVE -> "● Live"
     Link.CONNECTING -> "Connecting…"
     Link.NEEDS_KEY -> "Needs the Watching Eye key"
@@ -223,7 +223,7 @@ private fun ConnectionBanner(state: WatchState) {
 }
 
 @Composable
-private fun Banner(text: String, background: Color, content: Color) {
+internal fun Banner(text: String, background: Color, content: Color) {
     Surface(color = background, modifier = Modifier.fillMaxWidth()) {
         Text(text, color = content, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(12.dp))
     }
@@ -330,7 +330,7 @@ private fun UserCardView(
                     val allowed = status.allowedSeconds
                     val used = maxOf(0.0, allowed - remaining)
                     Text(
-                        if (remaining <= 0) "No time left" else "${WatchText.duration(remaining)} left",
+                        if (remaining <= 0) "No time left" else "${WatchText.durationLeft(remaining)} left",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (remaining <= 0) bad else if (remaining < 300) warn else MaterialTheme.colorScheme.onSurface,
@@ -381,7 +381,7 @@ private fun UserCardView(
 
 /** The user's profile picture in a circle; the first letter of the name stands in until it is loaded or when there is none. */
 @Composable
-private fun Avatar(userId: String, name: String, load: suspend (String) -> Bitmap?) {
+internal fun Avatar(userId: String, name: String, load: suspend (String) -> Bitmap?) {
     val picture by produceState<Bitmap?>(null, userId) { value = load(userId) }
     Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(44.dp)) {
         val bitmap = picture
@@ -397,7 +397,7 @@ private fun Avatar(userId: String, name: String, load: suspend (String) -> Bitma
 
 /** The poster of what is being watched; nothing is drawn (and no space taken) when the item has no picture. */
 @Composable
-private fun Poster(itemId: String, name: String, load: suspend (String) -> Bitmap?) {
+internal fun Poster(itemId: String, name: String, load: suspend (String) -> Bitmap?) {
     if (itemId.isEmpty()) return
     val picture by produceState<Bitmap?>(null, itemId) { value = load(itemId) }
     val bitmap = picture ?: return
@@ -411,7 +411,7 @@ private fun Poster(itemId: String, name: String, load: suspend (String) -> Bitma
 
 /** A small dialog asking for a number of minutes (1 to 43200). */
 @Composable
-private fun MinutesDialog(title: String, message: String, initial: Int, confirm: String, onDismiss: () -> Unit, onChosen: (Int) -> Unit) {
+internal fun MinutesDialog(title: String, message: String, initial: Int, confirm: String, onDismiss: () -> Unit, onChosen: (Int) -> Unit) {
     var text by remember { mutableStateOf(initial.toString()) }
     val minutes = parseMinutes(text)
     AlertDialog(
@@ -437,7 +437,7 @@ private fun MinutesDialog(title: String, message: String, initial: Int, confirm:
 }
 
 @Composable
-private fun ConfirmDialog(title: String, message: String, confirm: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+internal fun ConfirmDialog(title: String, message: String, confirm: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },

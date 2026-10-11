@@ -40,7 +40,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.material.icons.filled.Home
+import com.feerlessleadr.embidextrous.data.AppProfile
+import com.feerlessleadr.embidextrous.data.Profiles
 import com.feerlessleadr.embidextrous.data.Session
+import com.feerlessleadr.embidextrous.home.HomeScreen
+import com.feerlessleadr.embidextrous.ui.ProfileChoiceScreen
 import com.feerlessleadr.embidextrous.ui.BackupsScreen
 import com.feerlessleadr.embidextrous.ui.EmbidextrousTheme
 import com.feerlessleadr.embidextrous.ui.ListsScreen
@@ -88,13 +93,25 @@ private fun Root(container: AppContainer) {
         val vm: SignInViewModel = viewModel(factory = viewModelFactory { initializer { SignInViewModel(container) } })
         SignInScreen(vm)
     } else {
-        SignedIn(container, current)
+        val profile by container.settings.profile.collectAsStateWithLifecycle()
+        if (profile == null && current.isAdministrator) {
+            // An administrator account is asked once how this phone uses the app (the partner's phone may share the same account).
+            ProfileChoiceScreen(onChosen = { chosen, smartLists ->
+                container.settings.setCustomSmartLists(smartLists)
+                container.settings.setProfile(chosen)
+            })
+        } else {
+            // A regular account can only use Watching Eye, so there is nothing to ask.
+            if (profile == null) LaunchedEffect(Unit) { container.settings.setProfile(AppProfile.Parent) }
+            SignedIn(container, current)
+        }
     }
 }
 
 /** One tab of the bottom bar. */
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
 
+private const val ROUTE_HOME = "home"
 private const val ROUTE_WATCHING = "watching"
 private const val ROUTE_LISTS = "lists"
 private const val ROUTE_SETTINGS = "settings"
@@ -107,15 +124,26 @@ private fun SignedIn(container: AppContainer, session: Session) {
     val listsVm: ListsViewModel = viewModel(key = "lists-$token", factory = viewModelFactory { initializer { ListsViewModel(container) } })
     val watchVm: WatchingEyeViewModel = viewModel(key = "watching-$token", factory = viewModelFactory { initializer { WatchingEyeViewModel(container) } })
 
-    // An administrator gets every tool; a regular account only Watching Eye (the SmartLists plugin needs an administrator).
+    // The tabs follow the phone's profile; Smart Lists also needs an administrator account (the SmartLists plugin demands one).
+    val profile by container.settings.profile.collectAsStateWithLifecycle()
+    val customSmartLists by container.settings.customSmartLists.collectAsStateWithLifecycle()
+    val smartLists = Profiles.showsSmartLists(profile, session.isAdministrator, customSmartLists)
     val tabs = buildList {
+        add(Tab(ROUTE_HOME, "Home", Icons.Filled.Home))
         add(Tab(ROUTE_WATCHING, "Watching Eye", Icons.Filled.Visibility))
-        if (session.isAdministrator) add(Tab(ROUTE_LISTS, "Smart Lists", Icons.AutoMirrored.Filled.PlaylistPlay))
+        if (smartLists) add(Tab(ROUTE_LISTS, "Smart Lists", Icons.AutoMirrored.Filled.PlaylistPlay))
         add(Tab(ROUTE_SETTINGS, "Settings", Icons.Filled.Settings))
     }
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route
     val showBar = tabs.any { it.route == route }
+    val goTo: (String) -> Unit = { target ->
+        nav.navigate(target) {
+            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -126,33 +154,30 @@ private fun SignedIn(container: AppContainer, session: Session) {
                         tabs.forEach { tab ->
                             NavigationBarItem(
                                 selected = route == tab.route,
-                                onClick = {
-                                    nav.navigate(tab.route) {
-                                        popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
+                                onClick = { goTo(tab.route) },
                                 icon = { Icon(tab.icon, contentDescription = null) },
                                 label = { Text(tab.label) },
                             )
                         }
                     }
                 }
-                if (route == ROUTE_WATCHING) WatchingEyeTheme(bar) else bar()
+                if (route == ROUTE_WATCHING || route == ROUTE_HOME) WatchingEyeTheme(bar) else bar()
             }
         },
     ) { padding ->
         NavHost(
             navController = nav,
-            startDestination = ROUTE_WATCHING,
+            startDestination = ROUTE_HOME,
             modifier = Modifier.padding(padding).consumeWindowInsets(padding),
         ) {
+            composable(ROUTE_HOME) {
+                HomeScreen(watchVm, onOpenWatching = { goTo(ROUTE_WATCHING) }, onOpenSettings = { goTo(ROUTE_SETTINGS) })
+            }
             composable(ROUTE_WATCHING) {
                 WatchingEyeScreen(watchVm)
             }
             composable(ROUTE_LISTS) {
-                if (!session.isAdministrator) {
+                if (!smartLists) {
                     NotForRegularAccounts()
                 } else {
                     SmartListsTab(container) {

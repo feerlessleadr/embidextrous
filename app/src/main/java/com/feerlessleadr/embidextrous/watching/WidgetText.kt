@@ -25,6 +25,6 @@ object WidgetText {
         }
         val remaining = user.remainingSeconds
         if (remaining < 0) return "$name — no limit"
-        return "$name — ${WatchText.duration(remaining)} left"
+        return "$name — ${WatchText.durationLeft(remaining)} left"
     }
 }

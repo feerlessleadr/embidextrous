@@ -91,6 +91,46 @@ class WatchingEyeViewModel(private val container: AppContainer) : ViewModel() {
         _events.emit(WatchEvent("Time-out ended, added $minutes min for ${user.username}"))
     }
 
+    /** Bedtime: times out each of [users] for [minutes], with one Undo that ends all of those time-outs. */
+    fun bedtime(users: List<UserStatus>, minutes: Int) = run("Bedtime") {
+        if (users.isEmpty() || !validMinutes(minutes)) return@run
+        val done = ArrayList<UserStatus>()
+        val failed = ArrayList<String>()
+        var firstProblem = ""
+        for (user in users) {
+            try {
+                repository.act { timeOut(user.userId, minutes) }
+                done.add(user)
+            } catch (e: ApiException) {
+                failed.add(user.username)
+                if (firstProblem.isEmpty()) firstProblem = e.message.orEmpty()
+            }
+        }
+        if (done.isEmpty()) {
+            _events.emit(WatchEvent(firstProblem.ifEmpty { "Bedtime failed." }, isError = true))
+            return@run
+        }
+        val message = "Bedtime for ${done.joinToString(", ") { it.username }}" +
+            if (failed.isNotEmpty()) ". Not started for ${failed.joinToString(", ")}: $firstProblem" else ""
+        _events.emit(
+            WatchEvent(message, isError = failed.isNotEmpty(), undoLabel = "UNDO") {
+                try {
+                    for (user in done) repository.act { clearTimeOut(user.userId) }
+                    _events.emit(WatchEvent("Bedtime ended for ${done.joinToString(", ") { it.username }}"))
+                } catch (e: ApiException) {
+                    _events.emit(WatchEvent(e.message.orEmpty(), isError = true))
+                }
+            },
+        )
+    }
+
+    /** Ends every running time-out in [users] (the morning counterpart of Bedtime). */
+    fun endAllTimeOuts(users: List<UserStatus>) = run("End time-outs") {
+        if (users.isEmpty()) return@run
+        for (user in users) repository.act { clearTimeOut(user.userId) }
+        _events.emit(WatchEvent("Time-outs ended for ${users.joinToString(", ") { it.username }}"))
+    }
+
     fun resetTime(user: UserStatus) = run("Reset") {
         repository.act { resetTime(user.userId) }
         _events.emit(WatchEvent("Time reset for ${user.username}"))
