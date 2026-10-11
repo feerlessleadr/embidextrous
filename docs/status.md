@@ -39,3 +39,10 @@
   - No crash in logcat from the app (the only ANRs were Google system apps during the cold boot).
 - Not tested: import from a file ("Open file..."), "save a copy" of a backup to the phone (system file picker), custom image upload (photo picker) and bumpers, the collection type and the "playlist for every user" switch, per-rule runtime/audio/parent/collection-depth options, the tag-add field, "last refresh failed" marker, Material You colours, placing the widget on the home screen and tapping it (only the receiver was exercised, and the Quick Settings tile), a real phone, dark theme in the editor, tablet or large font sizes.
 - Observations (not changed): Back from the Smart Lists or Settings tab goes to the Watching Eye tab (the start destination) instead of leaving the app; the import dialog's draft is not marked as changed, so leaving it without saving gives no discard prompt.
+
+## 2026-10-10: release preparation
+
+- Phase 5 (editor) was verified in the combined app (see the entry above this one); no code changes were needed.
+- The release workflow now fails unless the APK is signed with the expected key: the SHA-256 of the release certificate (public information) is pinned in `release.yml`. The first key was replaced before any release existed, because its keystore text had been pasted into a chat; the pinned value belongs to the second key.
+- CodeQL: GitHub's default setup failed at its automatic build (Android needs Java 21 and the SDK licenses). `.github/workflows/codeql.yml` builds the app like CI and scans Kotlin and the workflow files. The default setup must be OFF in the repository settings, otherwise GitHub refuses the results of this workflow.
+- Still to do before 0.1.0: the owner adds the `SIGNING_*` secrets, the `release` environment (Tag rule `v*`), immutable releases, rulesets, secret scanning and push protection; release notes in `docs/releases/v0.1.0.md`; then "publish it".
