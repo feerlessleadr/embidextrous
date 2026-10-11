@@ -12,6 +12,7 @@ import com.feerlessleadr.embidextrous.data.SUPPORTED_API_VERSION
 import com.feerlessleadr.embidextrous.data.Session
 import com.feerlessleadr.embidextrous.data.SessionRepository
 import com.feerlessleadr.embidextrous.data.UrlRules
+import com.feerlessleadr.embidextrous.watching.WatchingEyeRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -75,34 +76,61 @@ class AppContainer(context: Context) {
         }
         val anonymous = apiFor(server, null)
         val signedIn = anonymous.signIn(userName.trim(), password)
-        if (!signedIn.isAdministrator) {
-            throw ApiException(403, "${signedIn.userName} is not an Emby administrator. The SmartLists API is for administrators only.")
-        }
-
-        val authed = apiFor(server, signedIn.token)
-        val info = try {
-            authed.info()
-        } catch (e: ApiException) {
-            if (e.status == 404) {
-                throw ApiException(404, "The SmartLists plugin was not found on this server. Install SmartLists 0.1.9 or newer.")
-            }
-            throw e
-        }
-        if (info.apiVersion != SUPPORTED_API_VERSION) {
-            val advice = if (info.apiVersion > SUPPORTED_API_VERSION) "Update the app." else "Update the SmartLists plugin."
-            throw ApiException(0, "This app speaks API version $SUPPORTED_API_VERSION but the plugin speaks ${info.apiVersion}. $advice")
-        }
-
-        val session = Session(server, signedIn.token, signedIn.userId, signedIn.userName)
+        // Any account may sign in: an administrator gets every tool, a regular account only Watching Eye.
+        val session = Session(server, signedIn.token, signedIn.userId, signedIn.userName, signedIn.isAdministrator)
         sessions.save(session)
         _session.value = session
+        _smartListsProblem.value = null
+        if (session.isAdministrator) {
+            // A missing or mismatched SmartLists plugin does not stop the sign-in: that tab explains what is wrong.
+            checkSmartLists()
+        }
     }
+
+    private val _smartListsProblem = MutableStateFlow<String?>(null)
+
+    /** Why the Smart Lists tab cannot work (plugin missing or a different API version), or null when it can. */
+    val smartListsProblem: StateFlow<String?> = _smartListsProblem.asStateFlow()
+
+    /** Looks for the SmartLists plugin and checks its API version; the result is in [smartListsProblem]. */
+    suspend fun checkSmartLists() {
+        val authed = api() ?: return
+        _smartListsProblem.value = try {
+            val info = authed.info()
+            if (info.apiVersion != SUPPORTED_API_VERSION) {
+                val advice = if (info.apiVersion > SUPPORTED_API_VERSION) "Update the app." else "Update the SmartLists plugin."
+                "This app speaks SmartLists API version $SUPPORTED_API_VERSION but the plugin speaks ${info.apiVersion}. $advice"
+            } else {
+                null
+            }
+        } catch (e: ApiException) {
+            if (e.status == 404) "The SmartLists plugin was not found on this server. Install SmartLists 0.1.9 or newer." else e.message
+        }
+    }
+
+    private val _pluginKey = MutableStateFlow(sessions.loadPluginKey())
+
+    /** The Watching Eye plugin's key, or null until it has been entered. */
+    val pluginKey: StateFlow<String?> = _pluginKey.asStateFlow()
+
+    fun setPluginKey(key: String) {
+        sessions.savePluginKey(key)
+        _pluginKey.value = sessions.loadPluginKey()
+    }
+
+    /** The Watching Eye part of the app: live status, kept up to date only while a screen needs it. */
+    val watchingEye: WatchingEyeRepository by lazy { WatchingEyeRepository(this, appScope, http) }
+
+    /** The device id Emby shows in its device list for this app. */
+    fun deviceId(): String = sessions.deviceId()
 
     // Signs out here and, best effort, on the server too, so a copy of the token stops working.
     fun signOut() {
         val api = api()
         covers.clear()
         sessions.signOut()
+        _pluginKey.value = null
+        _smartListsProblem.value = null
         _session.value = null
         if (api != null) {
             appScope.launch {

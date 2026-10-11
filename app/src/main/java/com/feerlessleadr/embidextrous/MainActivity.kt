@@ -6,16 +6,41 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.feerlessleadr.embidextrous.data.Session
 import com.feerlessleadr.embidextrous.ui.BackupsScreen
 import com.feerlessleadr.embidextrous.ui.EmbidextrousTheme
 import com.feerlessleadr.embidextrous.ui.ListsScreen
@@ -26,6 +51,9 @@ import com.feerlessleadr.embidextrous.ui.SignInViewModel
 import com.feerlessleadr.embidextrous.ui.editor.EditorScreen
 import com.feerlessleadr.embidextrous.ui.editor.EditorViewModel
 import com.feerlessleadr.embidextrous.ui.useDarkTheme
+import com.feerlessleadr.embidextrous.watching.WatchingEyeScreen
+import com.feerlessleadr.embidextrous.watching.WatchingEyeViewModel
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,47 +79,131 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun Root(container: AppContainer) {
     val session by container.session.collectAsStateWithLifecycle()
-    if (session == null) {
+    val current = session
+    if (current == null) {
         val vm: SignInViewModel = viewModel(factory = viewModelFactory { initializer { SignInViewModel(container) } })
         SignInScreen(vm)
     } else {
-        SignedIn(container, session?.token.orEmpty())
+        SignedIn(container, current)
+    }
+}
+
+/** One tab of the bottom bar. */
+private data class Tab(val route: String, val label: String, val icon: ImageVector)
+
+private const val ROUTE_WATCHING = "watching"
+private const val ROUTE_LISTS = "lists"
+private const val ROUTE_SETTINGS = "settings"
+
+@Composable
+private fun SignedIn(container: AppContainer, session: Session) {
+    // A new set of view models per signed-in session, so signing in as someone else never shows the previous data.
+    val token = session.token
+    val nav = rememberNavController()
+    val listsVm: ListsViewModel = viewModel(key = "lists-$token", factory = viewModelFactory { initializer { ListsViewModel(container) } })
+    val watchVm: WatchingEyeViewModel = viewModel(key = "watching-$token", factory = viewModelFactory { initializer { WatchingEyeViewModel(container) } })
+
+    // An administrator gets every tool; a regular account only Watching Eye (the SmartLists plugin needs an administrator).
+    val tabs = buildList {
+        add(Tab(ROUTE_WATCHING, "Watching Eye", Icons.Filled.Visibility))
+        if (session.isAdministrator) add(Tab(ROUTE_LISTS, "Smart Lists", Icons.AutoMirrored.Filled.PlaylistPlay))
+        add(Tab(ROUTE_SETTINGS, "Settings", Icons.Filled.Settings))
+    }
+    val entry by nav.currentBackStackEntryAsState()
+    val route = entry?.destination?.route
+    val showBar = tabs.any { it.route == route }
+
+    Scaffold(
+        bottomBar = {
+            if (showBar) {
+                NavigationBar {
+                    tabs.forEach { tab ->
+                        NavigationBarItem(
+                            selected = route == tab.route,
+                            onClick = {
+                                nav.navigate(tab.route) {
+                                    popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = { Icon(tab.icon, contentDescription = null) },
+                            label = { Text(tab.label) },
+                        )
+                    }
+                }
+            }
+        },
+    ) { padding ->
+        NavHost(
+            navController = nav,
+            startDestination = ROUTE_WATCHING,
+            modifier = Modifier.padding(padding).consumeWindowInsets(padding),
+        ) {
+            composable(ROUTE_WATCHING) {
+                WatchingEyeScreen(watchVm)
+            }
+            composable(ROUTE_LISTS) {
+                if (!session.isAdministrator) {
+                    NotForRegularAccounts()
+                } else {
+                    SmartListsTab(container) {
+                        ListsScreen(
+                            vm = listsVm,
+                            container = container,
+                            onNew = { nav.navigate("editor/new") },
+                            onEdit = { id -> nav.navigate("editor/$id") },
+                            onDuplicate = { id -> nav.navigate("editor/copy-$id") },
+                            onSettings = { nav.navigate(ROUTE_SETTINGS) },
+                        )
+                    }
+                }
+            }
+            composable("editor/{id}") { backEntry ->
+                val raw = backEntry.arguments?.getString("id").orEmpty()
+                // "copy-<id>" starts a new list from an existing one; "new" starts from a template; anything else edits that list.
+                val copyOf = raw.removePrefix("copy-").takeIf { raw.startsWith("copy-") }
+                val id = raw.takeIf { it != "new" && copyOf == null }
+                val vm: EditorViewModel = viewModel(
+                    key = "editor-$token-$raw",
+                    factory = viewModelFactory { initializer { EditorViewModel(container, id, copyOf) } },
+                )
+                EditorScreen(vm, onClose = { nav.popBackStack() })
+            }
+            composable(ROUTE_SETTINGS) {
+                SettingsScreen(container, onBackups = { nav.navigate("backups") })
+            }
+            composable("backups") {
+                BackupsScreen(container, onBack = { nav.popBackStack() })
+            }
+        }
+    }
+}
+
+/** Shows [content] when the SmartLists plugin is usable, and otherwise says what is wrong, with a way to look again. */
+@Composable
+private fun SmartListsTab(container: AppContainer, content: @Composable () -> Unit) {
+    val problem by container.smartListsProblem.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    val message = problem
+    if (message == null) {
+        content()
+    } else {
+        Column(
+            Modifier.fillMaxSize().padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text("Smart Lists is not available", style = MaterialTheme.typography.titleLarge)
+            Text(message, style = MaterialTheme.typography.bodyMedium)
+            Button(onClick = { scope.launch { container.checkSmartLists() } }) { Text("Check again") }
+        }
     }
 }
 
 @Composable
-private fun SignedIn(container: AppContainer, token: String) {
-    // A new set of view models per signed-in session, so signing in as someone else never shows the previous lists.
-    val nav = rememberNavController()
-    val listsVm: ListsViewModel = viewModel(key = "lists-$token", factory = viewModelFactory { initializer { ListsViewModel(container) } })
-
-    NavHost(navController = nav, startDestination = "lists") {
-        composable("lists") {
-            ListsScreen(
-                vm = listsVm,
-                container = container,
-                onNew = { nav.navigate("editor/new") },
-                onEdit = { id -> nav.navigate("editor/$id") },
-                onDuplicate = { id -> nav.navigate("editor/copy-$id") },
-                onSettings = { nav.navigate("settings") },
-            )
-        }
-        composable("editor/{id}") { entry ->
-            val raw = entry.arguments?.getString("id").orEmpty()
-            // "copy-<id>" starts a new list from an existing one; "new" starts from a template; anything else edits that list.
-            val copyOf = raw.removePrefix("copy-").takeIf { raw.startsWith("copy-") }
-            val id = raw.takeIf { it != "new" && copyOf == null }
-            val vm: EditorViewModel = viewModel(
-                key = "editor-$token-$raw",
-                factory = viewModelFactory { initializer { EditorViewModel(container, id, copyOf) } },
-            )
-            EditorScreen(vm, onClose = { nav.popBackStack() })
-        }
-        composable("settings") {
-            SettingsScreen(container, onBack = { nav.popBackStack() }, onBackups = { nav.navigate("backups") })
-        }
-        composable("backups") {
-            BackupsScreen(container, onBack = { nav.popBackStack() })
-        }
+private fun NotForRegularAccounts() {
+    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+        Text("Smart lists need an Emby administrator account.", style = MaterialTheme.typography.bodyLarge)
     }
 }

@@ -58,7 +58,7 @@ fun SignInScreen(vm: SignInViewModel) {
             Spacer(Modifier.height(24.dp))
             Text("Embidextrous", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
             Text(
-                "Manage your SmartLists plugin from your phone. Sign in with an Emby administrator account.",
+                "Watch-time limits and smart lists for your Emby server. Sign in with your Emby account: an administrator gets every tool, a regular account gets Watching Eye.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

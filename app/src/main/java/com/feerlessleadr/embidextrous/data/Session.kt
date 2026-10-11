@@ -8,6 +8,8 @@ data class Session(
     val token: String,
     val userId: String,
     val userName: String,
+    /** True for an Emby administrator: they get every tool; a regular account gets only Watching Eye. */
+    val isAdministrator: Boolean = false,
 )
 
 /** Persists the [Session] (and a stable device id Emby shows in its device list). */
@@ -21,13 +23,22 @@ class SessionRepository(private val store: SecureStore) {
             token = token,
             userId = store.get(KEY_USER_ID).orEmpty(),
             userName = store.get(KEY_USER_NAME).orEmpty(),
+            isAdministrator = store.get(KEY_IS_ADMIN) == "1",
         )
+    }
+
+    /** The Watching Eye plugin's own key (Public API tab on the plugin page), kept encrypted like the token. */
+    fun loadPluginKey(): String? = store.getSecret(KEY_PLUGIN_KEY)?.takeIf { it.isNotBlank() }
+
+    fun savePluginKey(key: String) {
+        if (key.isBlank()) store.putSecret(KEY_PLUGIN_KEY, "") else store.putSecret(KEY_PLUGIN_KEY, key.trim())
     }
 
     fun save(session: Session) {
         store.put(KEY_SERVER, session.serverUrl)
         store.put(KEY_USER_ID, session.userId)
         store.put(KEY_USER_NAME, session.userName)
+        store.put(KEY_IS_ADMIN, if (session.isAdministrator) "1" else "0")
         store.putSecret(KEY_TOKEN, session.token)
     }
 
@@ -53,6 +64,8 @@ class SessionRepository(private val store: SecureStore) {
         const val KEY_SERVER = "server"
         const val KEY_USER_ID = "userId"
         const val KEY_USER_NAME = "userName"
+        const val KEY_IS_ADMIN = "isAdmin"
+        const val KEY_PLUGIN_KEY = "watchingEyeKey"
         const val KEY_TOKEN = "token"
         const val KEY_DEVICE_ID = "deviceId"
     }

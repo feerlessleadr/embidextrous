@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,7 +50,7 @@ import com.feerlessleadr.embidextrous.data.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun SettingsScreen(container: AppContainer, onBack: () -> Unit, onBackups: () -> Unit) {
+fun SettingsScreen(container: AppContainer, onBackups: () -> Unit) {
     val theme by container.settings.themeMode.collectAsStateWithLifecycle()
     val accent by container.settings.accent.collectAsStateWithLifecycle()
     val dynamic by container.settings.dynamicColor.collectAsStateWithLifecycle()
@@ -60,7 +61,6 @@ fun SettingsScreen(container: AppContainer, onBack: () -> Unit, onBackups: () ->
         topBar = {
             TopAppBar(
                 title = { Text("Settings") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
             )
         },
     ) { padding ->
@@ -104,32 +104,43 @@ fun SettingsScreen(container: AppContainer, onBack: () -> Unit, onBackups: () ->
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("List overview", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                Density.entries.forEach { d ->
-                    Row(Modifier.fillMaxWidth().clickable { container.settings.setDensity(d) }, verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(selected = density == d, onClick = { container.settings.setDensity(d) })
-                        Text(d.label, style = MaterialTheme.typography.bodyLarge)
-                    }
-                }
-            }
-
             HorizontalDivider()
 
-            Row(Modifier.fillMaxWidth().clickable(onClick = onBackups).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Backup, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
-                    Text("Backups", style = MaterialTheme.typography.titleMedium)
-                    Text("Back up, restore or save a copy of all your smart lists", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            WatchingEyeKeySection(container)
+
+            if (session?.isAdministrator == true) {
+                HorizontalDivider()
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Smart lists overview", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    Density.entries.forEach { d ->
+                        Row(Modifier.fillMaxWidth().clickable { container.settings.setDensity(d) }, verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(selected = density == d, onClick = { container.settings.setDensity(d) })
+                            Text(d.label, style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
                 }
-                Icon(Icons.Default.ChevronRight, contentDescription = null)
+
+                HorizontalDivider()
+
+                Row(Modifier.fillMaxWidth().clickable(onClick = onBackups).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Backup, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
+                        Text("Backups", style = MaterialTheme.typography.titleMedium)
+                        Text("Back up, restore or save a copy of all your smart lists", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Icon(Icons.Default.ChevronRight, contentDescription = null)
+                }
             }
 
             HorizontalDivider()
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Account", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                Text("Signed in as ${session?.userName.orEmpty()}", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    "Signed in as ${session?.userName.orEmpty()} (${if (session?.isAdministrator == true) "administrator: every tool" else "regular account: Watching Eye only"})",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
                 Text(session?.serverUrl.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedButton(onClick = container::signOut, modifier = Modifier.padding(top = 6.dp)) {
                     Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
@@ -148,7 +159,7 @@ fun SettingsScreen(container: AppContainer, onBack: () -> Unit, onBackups: () ->
                 Text("About", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                 Text("Embidextrous ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "Manages the SmartLists plugin on your Emby server. Open source (MIT): github.com/feerlessleadr/emby.smartlists.android",
+                    "Watch-time limits and smart lists for your Emby server, from one app. Open source (MIT): github.com/feerlessleadr/embidextrous",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -170,5 +181,30 @@ fun SwatchDot(swatch: Swatch, selected: Boolean, onClick: () -> Unit, size: andr
         contentAlignment = Alignment.Center,
     ) {
         if (selected) Icon(Icons.Default.Check, contentDescription = "${swatch.label}, selected", tint = Color.White, modifier = Modifier.size(size * 0.55f))
+    }
+}
+/** The Watching Eye plugin's key: shown as "set" or "not set"; a new one can be entered or the key removed. */
+@Composable
+private fun WatchingEyeKeySection(container: AppContainer) {
+    val key by container.pluginKey.collectAsStateWithLifecycle()
+    var text by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Watching Eye", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        Text(
+            if (key == null) "Not set. Paste the key from the plugin page (External API tab)." else "Key is set (stored encrypted on this phone).",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        androidx.compose.material3.OutlinedTextField(
+            value = text,
+            onValueChange = { text = it },
+            label = { Text(if (key == null) "Watching Eye key" else "Replace the key") },
+            singleLine = true,
+            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            androidx.compose.material3.Button(onClick = { container.setPluginKey(text); text = "" }, enabled = text.isNotBlank()) { Text("Save key") }
+            if (key != null) OutlinedButton(onClick = { container.setPluginKey("") }) { Text("Remove key") }
+        }
     }
 }
