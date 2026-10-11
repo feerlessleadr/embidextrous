@@ -11,7 +11,7 @@ Embidextrous combines the owner's two Emby apps into one and is meant to grow. W
 | 2 | Port Watching Eye to Kotlin/Compose: plugin API client, live connection (websocket) and status repository, time-left cards with the countdown, quick +15/+30/+60 and custom minutes, undo, confirmations, time-out and resume, pull-to-refresh, "Live" indicator | done (the Kotlin port was built together with phase 1) |
 | 3 | Watching Eye extras: alerts (optional foreground service, notification buttons), home-screen widget, widget name hiding, settings | done, needs more testing |
 | 4 | Release 0.1.0 as the first combined app: new signing key (owner makes it, adds the GitHub secrets), signed APK, build provenance, Obtainium; retire the two old apps once this one does everything they do | |
-| 5 | Smart-list editor (everything the SmartLists app already has, in the combined app) | |
+| 5 | Smart-list editor (everything the SmartLists app already has, in the combined app) | done: works in the combined app, verified by hand on an emulator (see status.md for what was not tested) |
 | later | Plugin manager for GitHub downloads; bulk tag editing; explicit-tag editing for music | ideas |
 
 The first release (phase 4) has the full Watching Eye and only the list overview of SmartLists; the editor follows (phase 5), as the owner chose.
