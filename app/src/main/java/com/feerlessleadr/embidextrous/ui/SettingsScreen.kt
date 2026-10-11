@@ -1,0 +1,174 @@
+package com.feerlessleadr.embidextrous.ui
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.feerlessleadr.embidextrous.AppContainer
+import com.feerlessleadr.embidextrous.BuildConfig
+import com.feerlessleadr.embidextrous.data.Density
+import com.feerlessleadr.embidextrous.data.Swatch
+import com.feerlessleadr.embidextrous.data.ThemeMode
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+fun SettingsScreen(container: AppContainer, onBack: () -> Unit, onBackups: () -> Unit) {
+    val theme by container.settings.themeMode.collectAsStateWithLifecycle()
+    val accent by container.settings.accent.collectAsStateWithLifecycle()
+    val dynamic by container.settings.dynamicColor.collectAsStateWithLifecycle()
+    val density by container.settings.density.collectAsStateWithLifecycle()
+    val session by container.session.collectAsStateWithLifecycle()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Settings") },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
+            )
+        },
+    ) { padding ->
+        Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Appearance", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                ThemeMode.entries.forEach { mode ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable { container.settings.setThemeMode(mode) },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = theme == mode, onClick = { container.settings.setThemeMode(mode) })
+                        Text(mode.label, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Accent colour", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Swatch.entries.forEach { swatch ->
+                        SwatchDot(swatch, selected = !dynamic && accent == swatch, onClick = {
+                            container.settings.setDynamicColor(false)
+                            container.settings.setAccent(swatch)
+                        })
+                    }
+                }
+                Text(
+                    if (dynamic) "Using your wallpaper colours." else accent.label,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (dynamicColorSupported) {
+                    Row(Modifier.fillMaxWidth().clickable { container.settings.setDynamicColor(!dynamic) }, verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Match my wallpaper", style = MaterialTheme.typography.bodyLarge)
+                            Text("Material You: the colours follow your phone's wallpaper", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(checked = dynamic, onCheckedChange = container.settings::setDynamicColor)
+                    }
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("List overview", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                Density.entries.forEach { d ->
+                    Row(Modifier.fillMaxWidth().clickable { container.settings.setDensity(d) }, verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = density == d, onClick = { container.settings.setDensity(d) })
+                        Text(d.label, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+
+            HorizontalDivider()
+
+            Row(Modifier.fillMaxWidth().clickable(onClick = onBackups).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Backup, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
+                    Text("Backups", style = MaterialTheme.typography.titleMedium)
+                    Text("Back up, restore or save a copy of all your smart lists", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Icon(Icons.Default.ChevronRight, contentDescription = null)
+            }
+
+            HorizontalDivider()
+
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Account", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                Text("Signed in as ${session?.userName.orEmpty()}", style = MaterialTheme.typography.bodyLarge)
+                Text(session?.serverUrl.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedButton(onClick = container::signOut, modifier = Modifier.padding(top = 6.dp)) {
+                    Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
+                    Text("  Sign out")
+                }
+                Text(
+                    "Signing out ends this session on the server and removes the access token from this phone. If the server cannot be reached, you can revoke this device in Emby (Dashboard, Devices).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            HorizontalDivider()
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("About", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                Text("Embidextrous ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    "Manages the SmartLists plugin on your Emby server. Open source (MIT): github.com/feerlessleadr/emby.smartlists.android",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/** One colour of the palette: a filled circle with a check when chosen. */
+@Composable
+fun SwatchDot(swatch: Swatch, selected: Boolean, onClick: () -> Unit, size: androidx.compose.ui.unit.Dp = 40.dp) {
+    Box(
+        Modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(swatch.dotColor())
+            .let { if (selected) it.then(Modifier.padding(0.dp)) else it }
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (selected) Icon(Icons.Default.Check, contentDescription = "${swatch.label}, selected", tint = Color.White, modifier = Modifier.size(size * 0.55f))
+    }
+}

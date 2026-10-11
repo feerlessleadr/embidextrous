@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Embidextrous</string>
+    <string name="widget_title">Refresh all lists</string>
+    <string name="widget_hint">Tap to refresh your smart lists</string>
+    <string name="widget_description">Refreshes all your smart lists with one tap</string>
+    <string name="tile_label">Refresh lists</string>
+</resources>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DEBUG BUILDS ONLY: also allow plain HTTP so the app can be tried against a local test server
+     (for example the emulator's host at 10.0.2.2). The release build never includes this file. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

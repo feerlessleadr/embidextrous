@@ -1,0 +1,157 @@
+name: Release
+
+# Publishing: write docs/releases/vX.Y.Z.md, then push a tag (git tag vX.Y.Z && git push origin vX.Y.Z).
+# The workflow runs the unit tests, builds a release APK signed with the project key, and creates the GitHub
+# release with that APK as the ONLY asset (Obtainium installs and updates from it). If the notes file is
+# missing, GitHub generates notes from the commits.
+#
+# Dry run: Actions > Release > Run workflow builds the APK and attaches it to the run, publishing nothing.
+# A dry run (and any run without the signing secrets) is signed with a throw-away debug key: never install
+# such a build as your real copy, because Android will refuse later updates signed with the real key.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build, for example 0.1.0 (dry run: nothing is published)'
+        required: true
+        default: '0.0.1'
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # The signing secrets can be moved into this GitHub "Environment" and limited to the tags v* (Settings -> Environments
+    # -> release), so that no other branch or workflow run can ever use them. Until then the repository secrets work.
+    environment: release
+    permissions:
+      contents: write # only needed to create the GitHub Release
+      id-token: write # lets the build prove where the APK came from (see the attest step)
+      attestations: write
+
+    steps:
+      - name: Work out the version
+        id: version
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            tag="$GITHUB_REF_NAME"
+            if ! echo "$tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'; then
+              echo "::error::Tag '$tag' must look like v1.2.3 (or v1.2.3-rc.1 for a pre-release)."
+              exit 1
+            fi
+            version=$(echo "$tag" | sed -E 's/^v//; s/-.*$//')
+          else
+            tag="dry-run"
+            version="$INPUT_VERSION"
+            if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+              echo "::error::Version '$version' must look like 1.2.3."
+              exit 1
+            fi
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Set up Java
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # GitHub's Ubuntu runner already has the Android SDK; accepting its licenses lets the Android Gradle
+      # plugin download any platform or build tool it needs that is not installed yet.
+      - name: Accept the Android SDK licenses
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          SDKMANAGER=$(find "$ANDROID_HOME" -name sdkmanager -type f | head -1)
+          echo "sdkmanager: $SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+
+      - name: Check the signing secrets (real releases only)
+        if: github.ref_type == 'tag'
+        env:
+          KEYSTORE: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE" ]; then
+            echo "::error::The SIGNING_* repository secrets are not set; refusing to publish a debug-signed release."
+            exit 1
+          fi
+
+      - name: Run the unit tests
+        run: |
+          set -o pipefail
+          ./gradlew test --no-daemon 2>&1 | tee "$RUNNER_TEMP/tests.log"
+
+      - name: Prepare the signing key
+        env:
+          KEYSTORE: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE" ]; then
+            echo "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "SIGNING_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build the release APK
+        env:
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          set -o pipefail
+          # Only a dry run (never a tag) may fall back to the throw-away debug key; the Gradle build refuses otherwise.
+          EXTRA=""
+          if [ "$GITHUB_REF_TYPE" != "tag" ]; then EXTRA="-PallowDebugSigning"; fi
+          ./gradlew assembleRelease --no-daemon $EXTRA -PappVersion="${{ steps.version.outputs.version }}" 2>&1 | tee "$RUNNER_TEMP/build.log"
+          mkdir -p artifacts
+          cp app/build/outputs/apk/release/*.apk "artifacts/Embidextrous-${{ steps.version.outputs.version }}.apk"
+          ls -l artifacts
+
+      # Puts the interesting log lines into a run annotation so they are visible without signing in to read the log.
+      - name: Summarize failures
+        if: failure()
+        run: |
+          {
+            for f in "$RUNNER_TEMP/tests.log" "$RUNNER_TEMP/build.log"; do
+              [ -f "$f" ] && { echo "== $(basename "$f")"; grep -E "^e: |FAILED|What went wrong|error:|Error|Exception|not found|No value|license" "$f" | head -30; echo "-- tail --"; tail -n 15 "$f"; }
+            done
+          } | cut -c1-300 | awk 'BEGIN{ORS="%0A"} {print}' > "$RUNNER_TEMP/summary.txt"
+          echo "::error title=Build output::$(cat "$RUNNER_TEMP/summary.txt")"
+
+      - name: Dry run - keep the APK as a run artifact
+        if: github.ref_type != 'tag'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: Embidextrous-${{ steps.version.outputs.version }}-dry-run
+          path: artifacts/*.apk
+
+      - name: Attest where the APK came from
+        # Signed proof that this exact file was built from this repository by this workflow. Verify a download with:
+        #   gh attestation verify Embidextrous-X.Y.Z.apk --repo feerlessleadr/embidextrous
+        if: github.ref_type == 'tag'
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: artifacts/*.apk
+
+      - name: Create the GitHub release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.version.outputs.tag }}"
+          flags=""
+          case "$tag" in *-*) flags="--prerelease" ;; esac
+          notes="docs/releases/${tag}.md"
+          if [ -f "$notes" ]; then
+            gh release create "$tag" artifacts/*.apk --title "$tag" --notes-file "$notes" $flags
+          else
+            echo "::warning::$notes not found, generating notes from the commits"
+            gh release create "$tag" artifacts/*.apk --title "$tag" --generate-notes $flags
+          fi
