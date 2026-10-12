@@ -264,7 +264,10 @@ internal fun KidsCard(cards: List<UserCard>, nowMs: Long, loadAvatar: suspend (S
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(s.username, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Pill(state, stateColor)
-                        if (s.secondsWatchedWeekly > 0) {
+                        if (s.reportsWatchedTotals) {
+                            Text("Watched today ${WatchText.total(s.watchedTodaySeconds ?: 0.0)} · week ${WatchText.total(s.watchedWeekSeconds ?: 0.0)}", style = MaterialTheme.typography.bodySmall, color = quiet)
+                            Text("month ${WatchText.total(s.watchedMonthSeconds ?: 0.0)} · year ${WatchText.total(s.watchedYearSeconds ?: 0.0)}", style = MaterialTheme.typography.bodySmall, color = quiet)
+                        } else if (s.secondsWatchedWeekly > 0) {
                             Text("This week: ${WatchText.duration(s.secondsWatchedWeekly)}", style = MaterialTheme.typography.bodySmall, color = quiet)
                         }
                     }
@@ -283,6 +286,9 @@ internal fun KidsCard(cards: List<UserCard>, nowMs: Long, loadAvatar: suspend (S
                     }
                 }
                 if (index < cards.lastIndex) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+            }
+            WatchText.trackingNote(cards.map { it.status.watchedTrackingSince }, java.time.LocalDate.now())?.let { note ->
+                Text(note, Modifier.padding(horizontal = 16.dp, vertical = 6.dp), style = MaterialTheme.typography.labelSmall, color = quiet)
             }
         }
     }

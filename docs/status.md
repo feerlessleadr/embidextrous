@@ -225,3 +225,8 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 - Code: `data/HallPass.kt` (models, tolerant parser, version gate), `hpXxx` calls in `ApiClient`, `hallpass/HallPassViewModel.kt` and `HallPassScreen.kt`, `HallPassTest.kt` (6 parser and gate tests; the whole suite passes).
 - **Checked on a private emulator** (AVD Hp_Test, port 5572, removed afterwards) against the test server with a throw-away administrator (deleted): the tab loads live counts and tracks, marking a track explicit moved the counts and showed the message, the Albums list loaded, the album confirmation appeared, the Apply dialog said dry run is on. The manual decisions were cleared afterwards.
 - **Not checked:** Apply with dry run off from the phone, a scan started from the phone through to the end, a library of thousands of tracks (paging is 50 at a time), the not-installed and too-old screens (written, not seen), dark theme, a real phone.
+
+## 2026-10-12: watched totals on the Kids card and the Hall Monitor tab (built, not released)
+- Needs Hall Monitor plugin 2.1.0.0 (ApiLevel 3). The Home "Kids today" card shows, per child, watched today and week, then month and year, and one footnote saying when the plugin started recording (earlier time was not recorded). The Hall Monitor tab card shows the same line. With an older plugin the card keeps its old "This week" line.
+- The three-dot menu entry now reads "Reset today's time..." with a "Fresh day" dialog when the plugin is 2.1: it only gives a fresh daily allowance and keeps the totals (the plugin changed what Reset does).
+- Tests: `WatchedTotalsTest` (reading the fields, old plugin, duration text, footnote). Not seen on a screen or a phone.

@@ -191,9 +191,9 @@ private fun HallMonitorContent(vm: HallMonitorViewModel) {
             onChosen = { minutes -> dialog = null; vm.timeOut(d.user, minutes) },
         )
         is WatchDialog.Reset -> ConfirmDialog(
-            title = "Reset ${d.user.username}'s time?",
-            message = "The time used (day, week, month and year) and any extra time go back to zero.",
-            confirm = "Reset",
+            title = if (d.user.reportsWatchedTotals) "Fresh day for ${d.user.username}?" else "Reset ${d.user.username}'s time?",
+            message = if (d.user.reportsWatchedTotals) "Gives ${d.user.username} a fresh day: today's time used and any extra time added today go back to zero. The totals watched this week, month and year are kept." else "The time used (day, week, month and year) and any extra time go back to zero.",
+            confirm = if (d.user.reportsWatchedTotals) "Fresh day" else "Reset",
             onDismiss = { dialog = null },
             onConfirm = { dialog = null; vm.resetTime(d.user) },
         )
@@ -332,7 +332,7 @@ private fun UserCardView(
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         DropdownMenuItem(text = { Text("Time out…") }, onClick = { menuOpen = false; onTimeOut() })
                         if (timeoutEnd != null) DropdownMenuItem(text = { Text("End time-out") }, onClick = { menuOpen = false; onEndTimeOut() })
-                        DropdownMenuItem(text = { Text("Reset time used…") }, onClick = { menuOpen = false; onReset() })
+                        DropdownMenuItem(text = { Text(if (status.reportsWatchedTotals) "Reset today's time…" else "Reset time used…") }, onClick = { menuOpen = false; onReset() })
                         if (card.playing) DropdownMenuItem(text = { Text("Stop stream…") }, onClick = { menuOpen = false; onStop() })
                     }
                 }
@@ -366,7 +366,16 @@ private fun UserCardView(
                 }
             }
 
+            if (status.reportsWatchedTotals) {
+                Text(
+                    "Watched: today ${WatchText.total(status.watchedTodaySeconds ?: 0.0)} · week ${WatchText.total(status.watchedWeekSeconds ?: 0.0)} · month ${WatchText.total(status.watchedMonthSeconds ?: 0.0)} · year ${WatchText.total(status.watchedYearSeconds ?: 0.0)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             // What they are watching.
+
             status.nowPlaying?.let { np ->
                 val position = card.positionTicksNow(nowMs).let { if (np.runTimeTicks > 0) minOf(it, np.runTimeTicks) else it }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {

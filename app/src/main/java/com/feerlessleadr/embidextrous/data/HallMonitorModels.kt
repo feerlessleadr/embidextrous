@@ -36,6 +36,13 @@ data class UserStatus(
     @SerialName("LimitingPeriod") val limitingPeriod: String? = null,
     @SerialName("LimitingAllowedSeconds") val limitingAllowedSeconds: Double? = null,
     @SerialName("NowPlaying") val nowPlaying: NowPlaying? = null,
+    /** Plugin 2.1 and newer: how long this person has really watched, kept apart from the limiter (a reset or an extension never changes these). */
+    @SerialName("WatchedTodaySeconds") val watchedTodaySeconds: Double? = null,
+    @SerialName("WatchedWeekSeconds") val watchedWeekSeconds: Double? = null,
+    @SerialName("WatchedMonthSeconds") val watchedMonthSeconds: Double? = null,
+    @SerialName("WatchedYearSeconds") val watchedYearSeconds: Double? = null,
+    /** The first day (yyyy-MM-dd) the plugin has watched time for: totals before it were not recorded. */
+    @SerialName("WatchedTrackingSince") val watchedTrackingSince: String? = null,
     @SerialName("ApiLevel") val apiLevel: Int? = null,
 ) {
     /** True unless the plugin says this user's limit is switched off. */
@@ -43,6 +50,9 @@ data class UserStatus(
 
     /** 2 or higher: the plugin itself says what is playing, so a missing [nowPlaying] really means "not playing". */
     val reportsNowPlaying: Boolean get() = (apiLevel ?: 0) >= 2
+
+    /** 3 or higher (plugin 2.1): the watched-time totals are there, and the plugin's Reset only gives a fresh day instead of wiping the totals. */
+    val reportsWatchedTotals: Boolean get() = (apiLevel ?: 0) >= 3 && watchedTodaySeconds != null
 
     /** The end of a running time-out, or null when there is none, it has ended, or the text is unusable. */
     fun activeTimeOutEnd(now: Instant): Instant? {
@@ -144,6 +154,24 @@ object WatchText {
         val secs = total % 60
         return if (hours > 0) "%d:%02d:%02d".format(java.util.Locale.ROOT, hours, minutes, secs)
         else "%d:%02d".format(java.util.Locale.ROOT, minutes, secs)
+    }
+
+    /** A total for a day, week, month or year: "0 min", "42 min", "3 h 05 min". Seconds are noise at this size. Negative counts as zero. */
+    fun total(seconds: Double): String {
+        val minutes = maxOf(0.0, Math.floor(seconds / 60.0)).toLong()
+        val hours = minutes / 60
+        return if (hours > 0) "%d h %02d min".format(java.util.Locale.ROOT, hours, minutes % 60) else "$minutes min"
+    }
+
+    /**
+     * The one-line footnote for the watched totals: the plugin only has time from the day it started recording, so a week, month or year total may
+     * be a part-total. Null when nobody has a start day this year (or none can be read). [sinceDates] are the plugin's yyyy-MM-dd texts.
+     */
+    fun trackingNote(sinceDates: List<String?>, today: java.time.LocalDate): String? {
+        val first = sinceDates.mapNotNull { text -> try { java.time.LocalDate.parse(text?.trim().orEmpty()) } catch (e: Exception) { null } }.minOrNull() ?: return null
+        if (first.year < today.year || first.isAfter(today)) return null
+        val shown = java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM).withLocale(java.util.Locale.getDefault()).format(first)
+        return "Watched totals count from $shown; earlier time was not recorded."
     }
 
     /** "today", "this week", ... for the limiting period name. */
