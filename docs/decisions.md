@@ -50,3 +50,15 @@ A running log of what was decided about the app, when and why. Newest at the bot
 
 ## 2026-10-11: the plugin's DLL keeps the name WatchingEye.dll
 - The Hall Monitor plugin is renamed for people, but the file stays `WatchingEye.dll` (and the code namespace stays `WatchingEye`). A new file name would leave the old file beside the new one (two copies with one plugin GUID), break updaters that replace by file name (the GitHub-downloads plugin would see a new plugin), and could lose saved settings, which Emby stores under a name derived from the configuration class. The owner chose to leave it as is; a migration release would be the way if that ever changes.
+
+## 2026-10-12: look, navigation and behaviour decisions (owner's choices)
+- **Neutral base, accent highlights.** Surfaces are neutral dark or light greys (`withNeutralSurfaces`); the chosen accent colour is used only for highlights (buttons, selected items, rings) and is the same on every tab and in the widget. The accent is changeable in Settings; the owner uses dark mode on their phones, so dark is checked first.
+- **Grouped navigation.** Bottom bar: Home, Watching, Library, Server, Settings (a Parent phone gets Home, Watching, Settings). Each group has sub-tabs along the top and can be swiped; the open sub-tab of each group is remembered by name and Home links name the tab they want. Inner titles are hidden inside a group (no double titles).
+- **Smart list backups live only in Settings**, labelled "Smart list backups" so they are not confused with backing up the app.
+- **The Server group shows tools, not a second overview** (the overview duplicated Home): Live, Tasks, Activity, Devices, Plugins. Library has the libraries list.
+- **No in-app screen lock.** It was added and then removed at the owner's request; do not add it again.
+- **Push first, polling only as the fallback.** One shared Emby websocket and Tracearr's event stream; a timer asks only while the push is down. Things nothing pushes (smart-list refresh progress, library counts, waiting after a restart) are still asked.
+- **Alerts clear on every phone and a stale +15 adds nothing.** Two parents must not give the same extra time twice, so the old notification disappears everywhere once time is added and the buttons check first.
+- **New smart lists use the SmartLists plugin's defaults** (its "defaults for new lists" settings), not the app's own; a template keeps what it decides.
+- **Secrets stay with the owner.** The Tracearr `trr_pub_` key is typed by the owner on their own phone over their VPN and never sent to the assistant; the GitHub plugin's two API switches are flipped only by the owner on the plugin's Emby page (the assistant must not edit its settings file); keystores and tokens are never shared.
+- **Release rule.** A release is made only when the owner says "publish it"; 0.4.0 contains everything on `main` since 0.3.0. The Hall Monitor plugin needs no new release (1.10.0.0 unchanged).
