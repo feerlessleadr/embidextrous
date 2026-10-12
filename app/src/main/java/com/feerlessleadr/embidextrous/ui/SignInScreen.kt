@@ -65,7 +65,7 @@ fun SignInScreen(vm: SignInViewModel) {
             LogoMark(92.dp)
             Spacer(Modifier.height(18.dp))
             Text("Embidextrous", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = Brand.OnDark)
-            Text("Both hands on your Emby server", style = MaterialTheme.typography.titleMedium, color = Brand.Mint, modifier = Modifier.padding(top = 4.dp))
+            Text("Both hands on your Emby server", style = MaterialTheme.typography.titleMedium, color = accentOnDark(), modifier = Modifier.padding(top = 4.dp))
             Spacer(Modifier.height(10.dp))
             Text(
                 "Watch-time limits for the kids and smart lists, in one app.",

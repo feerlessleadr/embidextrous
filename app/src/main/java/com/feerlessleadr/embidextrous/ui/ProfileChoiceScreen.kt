@@ -75,7 +75,7 @@ fun ProfileChoiceScreen(onChosen: (AppProfile, Boolean) -> Unit) {
 
             ProfileCard(
                 icon = Icons.Default.FamilyRestroom,
-                tint = Brand.Mint,
+                tint = accentOnDark(),
                 title = AppProfile.Parent.label,
                 summary = AppProfile.Parent.summary,
                 shows = listOf("Home", "Hall Monitor", "Settings"),
@@ -83,7 +83,7 @@ fun ProfileChoiceScreen(onChosen: (AppProfile, Boolean) -> Unit) {
             )
             ProfileCard(
                 icon = Icons.Default.AdminPanelSettings,
-                tint = Brand.Violet,
+                tint = accentOnDark(),
                 title = AppProfile.Administrator.label,
                 summary = AppProfile.Administrator.summary,
                 shows = listOf("Home", "Hall Monitor", "Smart Lists", "Server cards", "Settings"),
@@ -91,7 +91,7 @@ fun ProfileChoiceScreen(onChosen: (AppProfile, Boolean) -> Unit) {
             )
             ProfileCard(
                 icon = Icons.Default.Tune,
-                tint = Brand.Amber,
+                tint = accentOnDark(),
                 title = AppProfile.Custom.label,
                 summary = AppProfile.Custom.summary,
                 shows = listOf("Home", "Hall Monitor", "Settings") + if (custom && smartLists) listOf("Smart Lists") else emptyList(),
@@ -104,12 +104,12 @@ fun ProfileChoiceScreen(onChosen: (AppProfile, Boolean) -> Unit) {
                         Switch(
                             checked = smartLists,
                             onCheckedChange = { smartLists = it },
-                            colors = SwitchDefaults.colors(checkedTrackColor = Brand.Mint, checkedThumbColor = Brand.Deep),
+                            colors = SwitchDefaults.colors(checkedTrackColor = accentOnDark(), checkedThumbColor = onAccent(accentOnDark())),
                         )
                     }
                     Button(
                         onClick = { onChosen(AppProfile.Custom, smartLists) },
-                        colors = ButtonDefaults.buttonColors(containerColor = Brand.Mint, contentColor = Brand.Deep),
+                        colors = ButtonDefaults.buttonColors(containerColor = accentOnDark(), contentColor = onAccent(accentOnDark())),
                         modifier = Modifier.fillMaxWidth().height(50.dp),
                     ) { Text("Continue", fontWeight = FontWeight.Bold) }
                 }

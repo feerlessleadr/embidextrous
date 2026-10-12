@@ -40,11 +40,17 @@ class PaletteTest {
 
     @Test fun lightHallMonitorColoursAreReadable() = check(dark = false)
 
-    @Test fun theDarkPaletteIsTheLogoPalette() {
-        val s = colorSchemeFor(Swatch.HallMonitor, dark = true)
-        assertEquals(Color(0xFF140B2E), s.background)
-        assertEquals(Color(0xFFB388FF), s.primary)
-        assertEquals(Color(0xFF5CF2C0), s.secondary)
+    @Test fun theDarkSurfacesAreNeutralAndTheAccentIsTheLogoViolet() {
+        for (swatch in Swatch.entries) {
+            val s = colorSchemeFor(swatch, dark = true)
+            val bg = s.background
+            // neutral: red, green and blue within a few steps of each other, and dark
+            assertTrue("${swatch.label}: background is not neutral", maxOf(bg.red, bg.green, bg.blue) - minOf(bg.red, bg.green, bg.blue) < 0.04f)
+            assertTrue("${swatch.label}: background is not dark", bg.luminance() < 0.02f)
+            // tonal buttons and the selected tab follow the accent
+            assertEquals(s.primaryContainer, s.secondaryContainer)
+        }
+        assertEquals(Color(0xFFB388FF), colorSchemeFor(Swatch.HallMonitor, dark = true).primary)
     }
 
     @Test fun hallMonitorIsTheFirstSwatchAndTheDefault() {

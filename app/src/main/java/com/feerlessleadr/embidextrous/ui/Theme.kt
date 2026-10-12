@@ -87,23 +87,33 @@ private fun deepEnoughForWhite(h: Float, s: Float, startL: Float, target: Float 
     return hsl(h, s, l)
 }
 
-/** The surface layers (menus, dialogs, sheets) tinted with the accent, instead of Material's default lilac grey. */
-private fun ColorScheme.withTintedSurfaces(swatch: Swatch, dark: Boolean): ColorScheme {
-    val h = swatch.hue
-    val s = (swatch.saturation * 0.25f).coerceAtMost(0.2f)
-    return if (dark) {
+/**
+ * Neutral greys for every surface (the dark ones are the usual dark-mode greys), so the accent only shows where it highlights:
+ * buttons, the selected tab, links, switches. The secondary colours follow the accent too, so tonal buttons look the same on every screen.
+ */
+fun ColorScheme.withNeutralSurfaces(dark: Boolean): ColorScheme {
+    val neutral = if (dark) {
         copy(
-            surfaceContainerLowest = hsl(h, s, 0.05f), surfaceContainerLow = hsl(h, s, 0.09f), surfaceContainer = hsl(h, s, 0.115f),
-            surfaceContainerHigh = hsl(h, s, 0.15f), surfaceContainerHighest = hsl(h, s, 0.19f), surfaceTint = primary,
-            inverseSurface = hsl(h, s, 0.88f), inverseOnSurface = hsl(h, 0.1f, 0.15f), inversePrimary = hsl(h, swatch.saturation, 0.3f),
+            background = Color(0xFF121214), onBackground = Color(0xFFE6E3EA), surface = Color(0xFF121214), onSurface = Color(0xFFE6E3EA),
+            surfaceVariant = Color(0xFF2A2A30), onSurfaceVariant = Color(0xFFC9C7D0), outline = Color(0xFF8F8D98), outlineVariant = Color(0xFF3B3B44),
+            surfaceContainerLowest = Color(0xFF0D0D10), surfaceContainerLow = Color(0xFF17171B), surfaceContainer = Color(0xFF1C1C21),
+            surfaceContainerHigh = Color(0xFF242429), surfaceContainerHighest = Color(0xFF2C2C32),
+            inverseSurface = Color(0xFFE6E3EA), inverseOnSurface = Color(0xFF2A2A30),
         )
     } else {
         copy(
-            surfaceContainerLowest = hsl(h, s, 1f), surfaceContainerLow = hsl(h, s, 0.965f), surfaceContainer = hsl(h, s, 0.945f),
-            surfaceContainerHigh = hsl(h, s, 0.925f), surfaceContainerHighest = hsl(h, s, 0.905f), surfaceTint = primary,
-            inverseSurface = hsl(h, s, 0.17f), inverseOnSurface = hsl(h, 0.1f, 0.93f), inversePrimary = hsl(h, (swatch.saturation + 0.2f).coerceAtMost(0.95f), 0.72f),
+            background = Color(0xFFF7F7F9), onBackground = Color(0xFF1B1B1F), surface = Color(0xFFF7F7F9), onSurface = Color(0xFF1B1B1F),
+            surfaceVariant = Color(0xFFE6E6EB), onSurfaceVariant = Color(0xFF46464F), outline = Color(0xFF7A7A86), outlineVariant = Color(0xFFCBCBD3),
+            surfaceContainerLowest = Color(0xFFFFFFFF), surfaceContainerLow = Color(0xFFF9F9FB), surfaceContainer = Color(0xFFF2F2F5),
+            surfaceContainerHigh = Color(0xFFECECF0), surfaceContainerHighest = Color(0xFFE6E6EB),
+            inverseSurface = Color(0xFF2F2F35), inverseOnSurface = Color(0xFFF3F3F6),
         )
     }
+    return neutral.copy(
+        secondary = primary, onSecondary = onPrimary,
+        secondaryContainer = primaryContainer, onSecondaryContainer = onPrimaryContainer,
+        surfaceTint = neutral.surface,
+    )
 }
 
 /**
@@ -147,13 +157,11 @@ private val HallMonitorLight = lightColorScheme(
     inverseSurface = Color(0xFF302A4A), inverseOnSurface = Color(0xFFF3EEFF), inversePrimary = Color(0xFFCDB5FF),
 )
 
-/** True when the whole app wears the Hall Monitor palette, so its tabs need no extra neutral "calm" treatment. */
-val LocalFullPalette = androidx.compose.runtime.compositionLocalOf { false }
-
 /** A whole colour scheme from one hue: Hall Monitor and Emby green keep hand-tuned colours, the others are generated. */
 fun colorSchemeFor(swatch: Swatch, dark: Boolean): ColorScheme {
-    if (swatch == Swatch.HallMonitor) return if (dark) HallMonitorDark else HallMonitorLight
-    val base = if (swatch == Swatch.EmbyGreen) {
+    val base = if (swatch == Swatch.HallMonitor) {
+        if (dark) HallMonitorDark else HallMonitorLight
+    } else if (swatch == Swatch.EmbyGreen) {
         if (dark) DarkColors else LightColors
     } else {
         val h = swatch.hue
@@ -187,7 +195,7 @@ fun colorSchemeFor(swatch: Swatch, dark: Boolean): ColorScheme {
             )
         }
     }
-    return base.withTintedSurfaces(swatch, dark)
+    return base.withNeutralSurfaces(dark)
 }
 
 /** The colour of a swatch as a dot or marker (the same in light and dark, mid-tone). */
@@ -207,12 +215,9 @@ fun EmbidextrousTheme(
     val dark = useDarkTheme(mode)
     val context = LocalContext.current
     val scheme = if (dynamic && dynamicColorSupported) {
-        if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        (if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)).withNeutralSurfaces(dark)
     } else {
         colorSchemeFor(accent, dark)
     }
-    val fullPalette = accent == Swatch.HallMonitor && !(dynamic && dynamicColorSupported)
-    androidx.compose.runtime.CompositionLocalProvider(LocalFullPalette provides fullPalette) {
-        MaterialTheme(colorScheme = scheme, content = content)
-    }
+    MaterialTheme(colorScheme = scheme, content = content)
 }

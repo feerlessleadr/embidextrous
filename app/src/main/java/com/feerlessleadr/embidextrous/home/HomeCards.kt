@@ -50,6 +50,9 @@ import com.feerlessleadr.embidextrous.data.UserStatus
 import com.feerlessleadr.embidextrous.data.WatchText
 import com.feerlessleadr.embidextrous.ui.Brand
 import com.feerlessleadr.embidextrous.ui.IconBadge
+import com.feerlessleadr.embidextrous.ui.accentOnDark
+import com.feerlessleadr.embidextrous.ui.heroSurface
+import com.feerlessleadr.embidextrous.ui.onAccent
 import com.feerlessleadr.embidextrous.ui.Pill
 import com.feerlessleadr.embidextrous.watching.Attention
 import com.feerlessleadr.embidextrous.watching.Avatar
@@ -62,14 +65,6 @@ import java.time.format.FormatStyle
 
 internal val HomeCardShape = RoundedCornerShape(24.dp)
 private const val QUICK_ADD = 15
-
-/** The hero look: the violet gradient, brighter on a dark screen where it also gets a thin violet outline so its edge shows. */
-@Composable
-internal fun Modifier.heroSurface(shape: androidx.compose.ui.graphics.Shape): Modifier {
-    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    val filled = clip(shape).background(if (dark) Brand.GradientBright else Brand.Gradient)
-    return if (dark) filled.border(1.dp, Brand.Violet.copy(alpha = 0.5f), shape) else filled
-}
 
 /** "Good morning", "Good afternoon" or "Good evening" for a local hour (0 to 23). */
 object Greeting {
@@ -99,13 +94,14 @@ internal fun SectionTitle(text: String, icon: ImageVector? = null) {
 @Composable
 internal fun StatusCard(attention: List<Attention>, watchingCount: Int, loaded: Boolean, onAdd: (UserStatus) -> Unit, onOpenSettings: () -> Unit) {
     val greeting = remember { Greeting.forHour(LocalTime.now().hour) }
+    val accent = accentOnDark()
     Box(
         Modifier
             .fillMaxWidth()
             .heroSurface(RoundedCornerShape(28.dp))
             .drawBehind {
-                drawCircle(Brand.Violet.copy(alpha = 0.22f), radius = size.height * 0.9f, center = Offset(size.width * 0.95f, size.height * 0.1f))
-                drawCircle(Brand.Mint.copy(alpha = 0.14f), radius = size.height * 0.6f, center = Offset(size.width * 0.80f, size.height * 0.95f))
+                drawCircle(accent.copy(alpha = 0.13f), radius = size.height * 0.9f, center = Offset(size.width * 0.95f, size.height * 0.1f))
+                drawCircle(accent.copy(alpha = 0.07f), radius = size.height * 0.6f, center = Offset(size.width * 0.80f, size.height * 0.95f))
             },
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -145,6 +141,7 @@ internal fun StatusCard(attention: List<Attention>, watchingCount: Int, loaded: 
 
 @Composable
 private fun AttentionRow(item: Attention, onAdd: (UserStatus) -> Unit, onOpenSettings: () -> Unit) {
+    val accent = accentOnDark()
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Color.White.copy(alpha = 0.08f)).padding(start = 14.dp, top = 8.dp, bottom = 8.dp, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -157,7 +154,7 @@ private fun AttentionRow(item: Attention, onAdd: (UserStatus) -> Unit, onOpenSet
             is Attention.AtLimit -> "${item.user.username} reached their ${item.user.periodLabel} limit."
         }
         Text(text, style = MaterialTheme.typography.bodyMedium, color = Brand.OnDark, modifier = Modifier.weight(1f))
-        val colors = ButtonDefaults.buttonColors(containerColor = Brand.Mint, contentColor = Brand.Deep)
+        val colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = onAccent(accent))
         when (item) {
             Attention.NeedsKey, is Attention.KeyRefused -> Button(onClick = onOpenSettings, colors = colors) { Text("Settings", fontWeight = FontWeight.Bold) }
             is Attention.AtLimit -> Button(onClick = { onAdd(item.user) }, colors = colors) { Text("+$QUICK_ADD min", fontWeight = FontWeight.Bold) }
@@ -294,17 +291,18 @@ internal fun KidsCard(cards: List<UserCard>, nowMs: Long, loadAvatar: suspend (S
 /** Bedtime: stop everyone for a while. Always asks first (the dialog) and can be undone. */
 @Composable
 internal fun BedtimeCard(anyTimedOut: Boolean, onBedtime: () -> Unit, onEndTimeOuts: () -> Unit) {
+    val accent = accentOnDark()
     Box(
         Modifier
             .fillMaxWidth()
             .heroSurface(HomeCardShape)
             .drawBehind {
-                drawCircle(Brand.Violet.copy(alpha = 0.20f), radius = size.height * 0.8f, center = Offset(size.width * 0.92f, size.height * 0.05f))
+                drawCircle(accent.copy(alpha = 0.11f), radius = size.height * 0.8f, center = Offset(size.width * 0.92f, size.height * 0.05f))
             },
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                IconBadge(Icons.Default.Bedtime, Brand.Violet, size = 44.dp)
+                IconBadge(Icons.Default.Bedtime, accentOnDark(), size = 44.dp)
                 Text("Bedtime", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Brand.OnDark)
             }
             Text(
@@ -315,7 +313,7 @@ internal fun BedtimeCard(anyTimedOut: Boolean, onBedtime: () -> Unit, onEndTimeO
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = onBedtime,
-                    colors = ButtonDefaults.buttonColors(containerColor = Brand.Mint, contentColor = Brand.Deep),
+                    colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = onAccent(accent)),
                     modifier = Modifier.weight(1f),
                 ) { Text("Bedtime…", fontWeight = FontWeight.Bold) }
                 if (anyTimedOut) {

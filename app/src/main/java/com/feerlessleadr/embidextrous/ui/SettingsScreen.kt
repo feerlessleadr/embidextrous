@@ -89,7 +89,7 @@ fun SettingsScreen(container: AppContainer, onBackups: () -> Unit) {
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SettingsCard("Appearance", Icons.Default.Palette, Brand.Violet) {
+            SettingsCard("Appearance", Icons.Default.Palette, MaterialTheme.colorScheme.primary) {
                 ThemeMode.entries.forEach { mode ->
                     Row(
                         Modifier.fillMaxWidth().clickable { container.settings.setThemeMode(mode) },
@@ -134,7 +134,7 @@ fun SettingsScreen(container: AppContainer, onBackups: () -> Unit) {
             val profile by container.settings.profile.collectAsStateWithLifecycle()
             val customSmartLists by container.settings.customSmartLists.collectAsStateWithLifecycle()
             if (Profiles.showsSmartLists(profile, session?.isAdministrator == true, customSmartLists)) {
-                SettingsCard("Smart lists", Icons.AutoMirrored.Filled.PlaylistPlay, Brand.Violet) {
+                SettingsCard("Smart lists", Icons.AutoMirrored.Filled.PlaylistPlay, MaterialTheme.colorScheme.primary) {
                     Text("Overview", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Density.entries.forEach { d ->
                         Row(Modifier.fillMaxWidth().clickable { container.settings.setDensity(d) }, verticalAlignment = Alignment.CenterVertically) {
@@ -154,11 +154,11 @@ fun SettingsScreen(container: AppContainer, onBackups: () -> Unit) {
                 }
             }
 
-            SettingsCard("Account", Icons.Default.Person, Brand.Mint) {
+            SettingsCard("Account", Icons.Default.Person, MaterialTheme.colorScheme.primary) {
                 Text(session?.userName.orEmpty(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Pill(
                     if (session?.isAdministrator == true) "Administrator: every tool" else "Regular account: Hall Monitor only",
-                    if (session?.isAdministrator == true) Brand.Violet else Brand.Mint,
+                    if (session?.isAdministrator == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary,
                 )
                 Text(session?.serverUrl.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedButton(onClick = container::signOut, modifier = Modifier.padding(top = 6.dp)) {
@@ -172,7 +172,7 @@ fun SettingsScreen(container: AppContainer, onBackups: () -> Unit) {
                 )
             }
 
-            SettingsCard("About", Icons.Default.Info, Brand.Amber) {
+            SettingsCard("About", Icons.Default.Info, MaterialTheme.colorScheme.primary) {
                 Text("Embidextrous ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodyLarge)
                 Text(
                     "Watch-time limits and smart lists for your Emby server, from one app. Open source (MIT): github.com/feerlessleadr/embidextrous",
@@ -205,7 +205,7 @@ fun SwatchDot(swatch: Swatch, selected: Boolean, onClick: () -> Unit, size: andr
 private fun ProfileSection(container: AppContainer) {
     val profile by container.settings.profile.collectAsStateWithLifecycle()
     val customSmartLists by container.settings.customSmartLists.collectAsStateWithLifecycle()
-    SettingsCard("How this phone uses the app", Icons.Default.PhoneAndroid, Brand.Amber) {
+    SettingsCard("How this phone uses the app", Icons.Default.PhoneAndroid, MaterialTheme.colorScheme.primary) {
         AppProfile.entries.forEach { p ->
             Row(Modifier.fillMaxWidth().clickable { container.settings.setProfile(p) }, verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(selected = profile == p, onClick = { container.settings.setProfile(p) })
@@ -231,7 +231,7 @@ private fun ProfileSection(container: AppContainer) {
 private fun WatchingEyeKeySection(container: AppContainer) {
     val key by container.pluginKey.collectAsStateWithLifecycle()
     var text by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
-    SettingsCard("Hall Monitor", Icons.Default.Timer, Brand.Mint) {
+    SettingsCard("Hall Monitor", Icons.Default.Timer, MaterialTheme.colorScheme.primary) {
         Text(
             if (key == null) "Not set. Paste the key from the plugin page (External API tab)." else "Key is set (stored encrypted on this phone).",
             style = MaterialTheme.typography.bodyMedium,

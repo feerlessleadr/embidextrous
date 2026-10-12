@@ -22,6 +22,8 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -29,38 +31,58 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.feerlessleadr.embidextrous.R
 
-/** The Hall Monitor colours, used for the parts of the app that are always dark and bold (the sign-in and profile screens, the Home hero). */
+/**
+ * Fixed colours (the logo's, and the meaning colours for good and warning). Everything that is a highlight, such as buttons, rings
+ * and badges, follows the accent the person chose; see [accentOnDark] and [onAccent].
+ */
 object Brand {
     val Deep = Color(0xFF140B2E)
-    val DeepMid = Color(0xFF2A1670)
-    val Rich = Color(0xFF4527A8)
     val Violet = Color(0xFFB388FF)
     val Mint = Color(0xFF5CF2C0)
-    val Track = Color(0xFF261A4A)
     val Amber = Color(0xFFFFB74D)
-    val OnDark = Color(0xFFECE6FF)
-    val OnDarkMuted = Color(0xFFB9AFD9)
+    val OnDark = Color(0xFFEAE8EF)
+    val OnDarkMuted = Color(0xFFB9B7C2)
+}
 
-    /** The diagonal gradient behind the hero areas. */
-    val Gradient: Brush get() = Brush.linearGradient(listOf(Deep, DeepMid, Rich))
+/** The chosen accent, light enough to stand on a dark area (on a dark screen that is the accent itself; on a light screen a lightened copy). */
+@Composable
+fun accentOnDark(): Color {
+    val scheme = MaterialTheme.colorScheme
+    return if (scheme.background.luminance() < 0.5f) scheme.primary else lerp(scheme.primary, Color.White, 0.45f)
+}
 
-    /** The same gradient, brighter, for dark screens. */
-    val GradientBright: Brush get() = Brush.linearGradient(listOf(Color(0xFF241461), Color(0xFF3B20A0), Color(0xFF5A35C8)))
+/** Text or icon colour that reads on top of [accent] (used on filled accent buttons over dark areas). */
+fun onAccent(accent: Color): Color = if (accent.luminance() > 0.3f) Color(0xFF1B1030) else Color.White
+
+/**
+ * The hero look: a dark neutral card with a soft wash of the accent in one corner (brighter, and with a thin accent outline, on a
+ * dark screen so its edge shows). Always dark, so light text goes on it.
+ */
+@Composable
+fun Modifier.heroSurface(shape: androidx.compose.ui.graphics.Shape): Modifier {
+    val accent = accentOnDark()
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val start = if (dark) Color(0xFF24242C) else Color(0xFF17171D)
+    val mid = if (dark) Color(0xFF2B2B35) else Color(0xFF1E1E26)
+    val brush = Brush.linearGradient(listOf(start, lerp(mid, accent, 0.07f), lerp(mid, accent, 0.22f)))
+    val filled = clip(shape).background(brush)
+    return if (dark) filled.border(1.dp, accent.copy(alpha = 0.4f), shape) else filled
 }
 
 /**
- * A dark violet backdrop with two big soft circles, one violet and one mint: the shape of the app icon. Content is drawn on top and
- * should use [Brand.OnDark] for text.
+ * A near-black backdrop with two big soft circles in the accent, the shape of the app icon. Content is drawn on top and should use
+ * [Brand.OnDark] for text.
  */
 @Composable
 fun BrandBackdrop(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+    val accent = accentOnDark()
     Box(
         modifier
-            .background(Brush.verticalGradient(listOf(Brand.Deep, Color(0xFF1B0F44), Brand.Deep)))
+            .background(Brush.verticalGradient(listOf(Color(0xFF0E0E12), Color(0xFF17171D), Color(0xFF0E0E12))))
             .drawBehind {
-                drawCircle(Brand.Violet.copy(alpha = 0.20f), radius = size.width * 0.62f, center = Offset(size.width * 0.02f, size.height * 0.04f))
-                drawCircle(Brand.Mint.copy(alpha = 0.13f), radius = size.width * 0.55f, center = Offset(size.width * 0.98f, size.height * 0.10f))
-                drawCircle(Brand.Violet.copy(alpha = 0.10f), radius = size.width * 0.5f, center = Offset(size.width * 0.9f, size.height * 0.95f))
+                drawCircle(accent.copy(alpha = 0.16f), radius = size.width * 0.62f, center = Offset(size.width * 0.02f, size.height * 0.04f))
+                drawCircle(accent.copy(alpha = 0.09f), radius = size.width * 0.55f, center = Offset(size.width * 0.98f, size.height * 0.10f))
+                drawCircle(accent.copy(alpha = 0.07f), radius = size.width * 0.5f, center = Offset(size.width * 0.9f, size.height * 0.95f))
             },
         content = content,
     )

@@ -63,7 +63,7 @@ fun SmartListsCard(admin: AdminHome, nowMs: Long) {
     val state by admin.lists.state.collectAsStateWithLifecycle()
     val problem by admin.problem.collectAsStateWithLifecycle()
     val warn = warnColor()
-    AdminCard("Smart lists", Icons.AutoMirrored.Filled.PlaylistPlay, Brand.Violet) {
+    AdminCard("Smart lists", Icons.AutoMirrored.Filled.PlaylistPlay, MaterialTheme.colorScheme.primary) {
         val snapshot = AdminModel.lists(state.lists, state.status)
         when {
             problem != null -> Detail(problem.orEmpty(), warn)
@@ -105,7 +105,7 @@ fun ServerCard(vm: AdminHomeViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     val snapshot = state.snapshot
     val warn = warnColor()
-    AdminCard("Server", Icons.Default.Dns, Brand.Mint) {
+    AdminCard("Server", Icons.Default.Dns, MaterialTheme.colorScheme.primary) {
         when {
             snapshot == null -> Detail(if (state.loading) "Loading…" else "Could not read the server's state.")
             else -> {
@@ -142,7 +142,7 @@ fun PluginsCard(vm: AdminHomeViewModel) {
     val warn = warnColor()
     val ok = okColor()
     var showAll by remember { mutableStateOf(false) }
-    AdminCard("Plugins", Icons.Default.Extension, Brand.Amber) {
+    AdminCard("Plugins", Icons.Default.Extension, MaterialTheme.colorScheme.primary) {
         val plugins = snapshot?.plugins
         if (plugins == null) {
             Detail(if (state.loading) "Loading…" else "Could not read the plugins.", if (state.loading) MaterialTheme.colorScheme.onSurfaceVariant else warn)

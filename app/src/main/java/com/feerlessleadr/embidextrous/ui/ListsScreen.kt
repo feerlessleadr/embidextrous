@@ -420,7 +420,7 @@ private fun DetailLine(label: String, text: String) {
 @Composable
 private fun EmptyLists(modifier: Modifier = Modifier) {
     Column(modifier.padding(32.dp), verticalArrangement = Arrangement.spacedBy(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        IconBadge(Icons.AutoMirrored.Filled.PlaylistPlay, Brand.Violet, size = 88.dp)
+        IconBadge(Icons.AutoMirrored.Filled.PlaylistPlay, MaterialTheme.colorScheme.primary, size = 88.dp)
         Text("No smart lists yet", style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
         Text(
             "A smart list fills itself from rules, like \"unwatched comedies under 30 minutes\". Tap New list to make your first one.",

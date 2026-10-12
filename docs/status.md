@@ -115,3 +115,9 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 - The selected tab's indicator is now violet (it was a muddy green in dark mode).
 - Behaviour is unchanged. 156 unit tests pass (one new, for the greeting).
 - Checked on an emulator (Android 37) in light and dark mode: sign-in, profile choice, Home, Hall Monitor, Smart Lists (empty), Settings. Not checked: the "Watching now" and "needs attention" Home states with the new look, large fonts, the Smart Lists cards with real lists, a real phone.
+
+## 2026-10-12: neutral base, accent only for highlights
+- Every colour scheme now has neutral greys for its surfaces (usual dark-mode greys; light greys in light mode) and uses the chosen accent only for highlights: buttons, the selected tab, switches, rings, badges and links. The secondary colours follow the accent, so the +15 / +30 / +60 tonal buttons look the same as every other button. The hero, Bedtime, sign-in and profile screens are neutral near-black with a soft wash of the accent.
+- The accent picker (Settings, Appearance) changes all of it, including "Match my wallpaper". Good and warning colours (green, amber, red) keep their meaning and do not change with the accent.
+- 156 unit tests pass (the "logo palette" test was replaced by one that checks every swatch has a neutral dark background and that tonal containers follow the accent).
+- Checked on an emulator (dark, Hall Monitor purple and teal): Home, Hall Monitor, Settings. Not checked: light mode and the other swatches on a device, the sign-in and profile screens with a non-purple accent, the home-screen widget (still the fixed violet and mint look).

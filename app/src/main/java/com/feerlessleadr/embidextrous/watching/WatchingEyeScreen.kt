@@ -239,7 +239,7 @@ internal fun Banner(text: String, background: Color, content: Color) {
 @Composable
 private fun EmptyHint() {
     Column(Modifier.fillMaxSize().padding(32.dp), verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically), horizontalAlignment = Alignment.CenterHorizontally) {
-        IconBadge(Icons.Default.Group, Brand.Mint, size = 88.dp)
+        IconBadge(Icons.Default.Group, MaterialTheme.colorScheme.primary, size = 88.dp)
         Text("No limited users yet", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Text(
             "Add users on the Hall Monitor plugin page in the Emby dashboard, and they will show up here.",
@@ -254,7 +254,7 @@ private fun EmptyHint() {
 private fun KeyPrompt(onSave: (String) -> Unit) {
     var key by remember { mutableStateOf("") }
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        IconBadge(Icons.Default.Key, Brand.Mint, size = 88.dp)
+        IconBadge(Icons.Default.Key, MaterialTheme.colorScheme.primary, size = 88.dp)
         Text("Enter the Hall Monitor key", style = MaterialTheme.typography.titleLarge)
         Text(
             "On the plugin page in the Emby dashboard, open the External API tab, tick Enable Public API, generate a key and save. " +
