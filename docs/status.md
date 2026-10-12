@@ -201,3 +201,8 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 
 ## 2026-10-12: releasing plugin 2.0.0.0 and app 0.5.0 (in progress)
 - The owner said "publish it". Plugin tag `v2.0.0.0` pushed on `fe89f32` (its checks were green); the plugin's release run builds `HallMonitor.dll`, writes the checksum, attests and creates the release. App release notes `docs/releases/v0.5.0.md` pushed next: CI and both CodeQL jobs must be green on that commit, then tag `v0.5.0`. The owner was told that the GitHub updater adds `HallMonitor.dll` without removing `WatchingEye.dll` (read in its source, not run), and that its auto-update could fetch the new file by itself.
+
+## 2026-10-12: Hall Monitor plugin 2.0.0.0 and Embidextrous 0.5.0 released
+- Plugin: tag `v2.0.0.0` on `fe89f32`; release run succeeded; assets `HallMonitor.dll` (216,064 bytes, SHA-256 `13d82caac1ee4f0dc0cab98602239b2c8e285fd619644bff1f2841b830cbc934`) and `HallMonitor.dll.sha256`.
+- App: tag `v0.5.0` on `61cdcd9` (CI and both CodeQL jobs green); release run succeeded; `Embidextrous-0.5.0.apk`, 2,406,454 bytes, SHA-256 `544ab5a276e62cb307c994dbe20e7d835f9f49ee5d649fec4def0f99495bcaf7`. `gh attestation verify` not run locally (no `gh`).
+- To do by the owner: on the server delete `WatchingEye.dll` from `plugins`, add `HallMonitor.dll` (or update through the GitHub plugin and then delete the old file), restart Emby once; update both phones through Obtainium; check the Hall Monitor tab connects and the key is still there.
