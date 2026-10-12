@@ -190,3 +190,6 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 
 ## 2026-10-12: Embidextrous 0.4.1 released
 - Tag `v0.4.1` on `3391a80` (CI and both CodeQL jobs green); the `Release v0.4.1` run succeeded. Asset `Embidextrous-0.4.1.apk`, 2,406,454 bytes, SHA-256 `99cda972c239cdcabe36189865f2a6bcecaf8a7c32781c4a3857ebdabdb3defa`. `gh attestation verify` not run locally (no `gh`). Contains: Live shows the series poster for episodes.
+
+## 2026-10-12: test fixtures cleaned up
+- Deleted from the shared test server: the throw-away users `we-p7-admin`, `we-p7-kid`, `we-p7-kid2` (`kevin` and `test1` untouched), the three test smart lists (Weekend Movies, Family Movie Night, Old Favourites, with their Emby lists), and reset the Hall Monitor plugin's test state (limiter off, phone API off, key cleared, users and log cleared). The private emulator `We_P7` was stopped and its files removed. Test-server plugin API switches for the GitHub plugin were left as the owner set them.
