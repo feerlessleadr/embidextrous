@@ -8,6 +8,7 @@ import com.feerlessleadr.embidextrous.data.ApiException
 import com.feerlessleadr.embidextrous.data.Catalog
 import com.feerlessleadr.embidextrous.data.EmbyUser
 import com.feerlessleadr.embidextrous.data.ImageInfo
+import com.feerlessleadr.embidextrous.data.ListDefaults
 import com.feerlessleadr.embidextrous.data.ListDraft
 import com.feerlessleadr.embidextrous.data.Preview
 import com.feerlessleadr.embidextrous.data.Safety
@@ -28,6 +29,8 @@ data class EditorUiState(
     val loadError: String? = null,
     val catalog: Catalog? = null,
     val users: List<EmbyUser> = emptyList(),
+    /** The plugin's defaults for new lists (empty when they could not be read). */
+    val defaults: ListDefaults = ListDefaults(),
     val libraries: List<ValueOption> = emptyList(),
     /** What a "similar to" rule can compare. */
     val similarityFields: List<ValueOption> = emptyList(),
@@ -74,6 +77,7 @@ class EditorViewModel(private val container: AppContainer, private val listId: S
                     val users = async { runCatching { api.users() }.getOrDefault(emptyList()) }
                     val libraries = async { runCatching { api.libraries() }.getOrDefault(emptyList()) }
                     val similarity = async { runCatching { api.similarityFields() }.getOrDefault(emptyList()) }
+                    val defaults = async { runCatching { api.listDefaults() }.getOrDefault(ListDefaults()) }
                     val doc = (listId ?: copyOf)?.let { id -> async { api.list(id) } }
                     val loadedUsers = users.await()
                     val loadedDraft = doc?.await()?.let { d -> ListDraft.from(d).let { draft -> if (copyOf != null) draft.asCopy() else draft } }
@@ -84,6 +88,7 @@ class EditorViewModel(private val container: AppContainer, private val listId: S
                             loading = false,
                             catalog = catalog.await(),
                             users = loadedUsers,
+                            defaults = defaults.await(),
                             libraries = libraries.await(),
                             similarityFields = similarity.await(),
                             draft = draft,
@@ -104,7 +109,10 @@ class EditorViewModel(private val container: AppContainer, private val listId: S
         val users = _state.value.users
         val me = container.session.value?.userId
         val owner = users.firstOrNull { it.id.equals(me, ignoreCase = true) }?.id ?: users.firstOrNull()?.id
-        val draft = Templates.draft(id, owner)
+        var draft = Templates.draft(id, owner)
+        // The plugin's own defaults for new lists: all of them for a blank list, and the ones a template leaves open for a template.
+        val defaults = _state.value.defaults
+        draft = if (id == "blank") defaults.applyToBlank(draft, _state.value.catalog?.sorts?.map { it.value }?.toSet()) else defaults.applyToTemplate(draft)
         _state.update { it.copy(draft = draft, baseline = draft.toJson(), choosingTemplate = false) }
     }
 

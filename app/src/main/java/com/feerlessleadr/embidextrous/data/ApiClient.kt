@@ -98,6 +98,9 @@ class ApiClient(
         send("POST", "$pluginBase/${seg(id)}/refresh", "")
     }
 
+    /** The "defaults for new lists" from the SmartLists plugin's settings (an administrator may read the plugin's configuration). */
+    suspend fun listDefaults(): ListDefaults = ListDefaults.parse(get("$server/emby/Plugins/$SMARTLISTS_PLUGIN_ID/Configuration"))
+
     suspend fun refreshAll() {
         send("POST", "$pluginBase/refresh", "")
     }
@@ -137,6 +140,15 @@ class ApiClient(
         ServerAdminParser.activity(get("$server/emby/System/ActivityLog/Entries?StartIndex=$start&Limit=$limit"))
 
     suspend fun devices(): List<DeviceInfo> = ServerAdminParser.devices(get("$server/emby/Devices"))
+
+    /** The name an administrator gave a device (shown instead of the one it reports), or null when none was set. */
+    suspend fun deviceCustomName(id: String): String? =
+        (AppJson.parseToJsonElement(get("$server/emby/Devices/Options?Id=${seg(id)}")) as? JsonObject)?.stringAt("CustomName")?.takeIf { it.isNotBlank() }
+
+    /** Gives a device a name of your own; an empty [name] goes back to the name the device reports. */
+    suspend fun setDeviceCustomName(id: String, name: String) {
+        send("POST", "$server/emby/Devices/Options?Id=${seg(id)}", buildJsonObject { put("CustomName", name.trim()) }.toString())
+    }
 
     /** Signs a device out for good: its token stops working and it disappears from the list. */
     suspend fun revokeDevice(id: String) {
@@ -488,6 +500,7 @@ class ApiClient(
 
     companion object {
         private val JSON = "application/json; charset=utf-8".toMediaType()
+        const val SMARTLISTS_PLUGIN_ID = "7f0b8a52-6c1d-4b57-9a2e-5d3b0c4e91a8"
         private val SEGMENT = Regex("[A-Za-z0-9._-]+")
 
         fun defaultHttpClient(): OkHttpClient = OkHttpClient.Builder()

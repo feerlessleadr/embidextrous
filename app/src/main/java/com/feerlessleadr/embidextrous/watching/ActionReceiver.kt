@@ -33,11 +33,19 @@ class ActionReceiver : BroadcastReceiver() {
             try {
                 val container = (app as App).container
                 var ok = false
+                var alreadyHandled = false
                 val result = try {
                     val client = container.watchingEyeClient() ?: throw ApiException(0, "Sign in and enter the Hall Monitor key in the app first.")
-                    runBlocking { client.extend(userId, minutes) }
-                    ok = true
-                    "Added $minutes min for $name"
+                    // Time may already have been added from another phone: look first, so a stale button can never add it twice.
+                    val current = runBlocking { client.status() }.firstOrNull { it.userId == userId }
+                    if (current != null && current.enabled && current.block(java.time.Instant.now()) != "TimeLimitExceeded") {
+                        alreadyHandled = true
+                        "$name already has time, so nothing was added."
+                    } else {
+                        runBlocking { client.extend(userId, minutes) }
+                        ok = true
+                        "Added $minutes min for $name"
+                    }
                 } catch (e: ApiException) {
                     e.message.orEmpty()
                 } catch (e: Exception) {
@@ -46,6 +54,20 @@ class ActionReceiver : BroadcastReceiver() {
                 val nm = app.getSystemService(NotificationManager::class.java)
                 if (ok) {
                     nm.cancel(notificationId)
+                } else if (alreadyHandled) {
+                    // Someone else already gave time: the old alert goes, and a short note says why nothing was added.
+                    nm.cancel(notificationId)
+                    if (AlertService.canNotify(app)) {
+                        nm.notify(
+                            notificationId,
+                            NotificationCompat.Builder(app, AlertService.CHANNEL_ALERTS)
+                                .setSmallIcon(R.drawable.ic_notification)
+                                .setContentTitle(result)
+                                .setTimeoutAfter(10_000)
+                                .setAutoCancel(true)
+                                .build(),
+                        )
+                    }
                 } else if (AlertService.canNotify(app)) {
                     nm.notify(
                         notificationId,

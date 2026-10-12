@@ -13,6 +13,7 @@ enum class PlayMethod { Direct, DirectStream, Transcode, Unknown }
 
 /** What a session is playing right now. */
 data class PlayingNow(
+    val itemId: String,
     val title: String,
     val subtitle: String?,
     val positionTicks: Long,
@@ -26,6 +27,7 @@ data class PlayingNow(
 /** Someone or something connected to the server (GET /Sessions). [userName] is empty for devices with no user, such as speakers and TVs found on the network. */
 data class LiveSession(
     val id: String,
+    val userId: String,
     val userName: String,
     val client: String,
     val device: String,
@@ -97,6 +99,7 @@ object ServerAdminParser {
         val transcoding = o["TranscodingInfo"] as? JsonObject
         LiveSession(
             id = id,
+            userId = o.stringAt("UserId").orEmpty(),
             userName = o.stringAt("UserName").orEmpty(),
             client = o.stringAt("Client").orEmpty(),
             device = o.stringAt("DeviceName").orEmpty(),
@@ -127,6 +130,7 @@ object ServerAdminParser {
         val reasons = (transcoding?.get("TranscodeReasons") as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content }
         val codecs = listOfNotNull(transcoding?.stringAt("VideoCodec"), transcoding?.stringAt("AudioCodec")).joinToString(" + ").ifEmpty { null }
         return PlayingNow(
+            itemId = item.stringAt("Id").orEmpty(),
             title = item.stringAt("Name").orEmpty(),
             subtitle = subtitle,
             positionTicks = (state?.get("PositionTicks") as? JsonPrimitive)?.longOrNull ?: 0L,

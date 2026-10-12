@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -182,6 +183,18 @@ private fun SignedIn(container: AppContainer, session: Session) {
             restoreState = true
         }
     }
+    // Each group remembers which of its tabs is open; a link from Home names the exact tab it wants.
+    var watchingSection by rememberSaveable { mutableStateOf("hall") }
+    var librarySection by rememberSaveable { mutableStateOf("lists") }
+    var serverSection by rememberSaveable { mutableStateOf("live") }
+    val goToTab: (String, String) -> Unit = { target, tab ->
+        when (target) {
+            ROUTE_WATCHING -> watchingSection = tab
+            ROUTE_LIBRARY -> librarySection = tab
+            ROUTE_SERVER -> serverSection = tab
+        }
+        goTo(target)
+    }
 
     Scaffold(
         bottomBar = {
@@ -216,10 +229,10 @@ private fun SignedIn(container: AppContainer, session: Session) {
             composable(ROUTE_HOME) {
                 HomeScreen(
                     vm = watchVm,
-                    admin = if (adminCards) AdminHome(listsVm, adminVm, container.smartListsProblem, onOpenLists = { goTo(ROUTE_LIBRARY) }, onOpenServer = { goTo(ROUTE_SERVER) }) else null,
+                    admin = if (adminCards) AdminHome(listsVm, adminVm, container.smartListsProblem, onOpenLists = { goToTab(ROUTE_LIBRARY, "lists") }, onOpenServer = { goToTab(ROUTE_SERVER, "live") }, onOpenPlugins = { goToTab(ROUTE_SERVER, "plugins") }) else null,
                     layout = homeLayout,
                     onCustomise = { nav.navigate("customise-home") },
-                    onOpenWatching = { goTo(ROUTE_WATCHING) },
+                    onOpenWatching = { goToTab(ROUTE_WATCHING, "hall") },
                     onOpenSettings = { goTo(ROUTE_SETTINGS) },
                 )
             }
@@ -227,25 +240,23 @@ private fun SignedIn(container: AppContainer, session: Session) {
                 CustomiseHomeScreen(container, administrator = adminCards, onBack = { nav.popBackStack() })
             }
             composable(ROUTE_WATCHING) {
-                var section by rememberSaveable { mutableIntStateOf(0) }
                 GroupTabs(
                     tabs = buildList {
-                        add(SubTab("Hall Monitor") { WatchingEyeScreen(watchVm) })
-                        add(SubTab("Activity") { TracearrTab(tracearrVm, container) })
+                        add(SubTab("hall", "Hall Monitor") { WatchingEyeScreen(watchVm) })
+                        add(SubTab("tracearr", "Activity") { TracearrTab(tracearrVm, container) })
                     },
-                    selected = section,
-                    onSelect = { section = it },
+                    selectedKey = watchingSection,
+                    onSelect = { watchingSection = it },
                 )
             }
             composable(ROUTE_LIBRARY) {
-                var section by rememberSaveable { mutableIntStateOf(0) }
                 if (!smartLists) {
                     NotForRegularAccounts()
                 } else {
                     GroupTabs(
                         tabs = buildList {
                             add(
-                                SubTab("Smart lists") {
+                                SubTab("lists", "Smart lists") {
                                     SmartListsTab(container) {
                                         ListsScreen(
                                             vm = listsVm,
@@ -257,26 +268,25 @@ private fun SignedIn(container: AppContainer, session: Session) {
                                     }
                                 },
                             )
-                            add(SubTab("Libraries") { LibrariesScreen(toolsVm) })
-                            if (BuildConfig.DEBUG) add(SubTab("Tags") { ComingSoon(Icons.Filled.Sell, "Bulk tag editing", "Edit tags for many items at once, including music.") })
+                            add(SubTab("libraries", "Libraries") { LibrariesScreen(toolsVm) })
+                            if (BuildConfig.DEBUG) add(SubTab("tags", "Tags") { ComingSoon(Icons.Filled.Sell, "Bulk tag editing", "Edit tags for many items at once, including music.") })
                         },
-                        selected = section,
-                        onSelect = { section = it },
+                        selectedKey = librarySection,
+                        onSelect = { librarySection = it },
                     )
                 }
             }
             composable(ROUTE_SERVER) {
-                var section by rememberSaveable { mutableIntStateOf(0) }
                 GroupTabs(
                     tabs = buildList {
-                        add(SubTab("Live") { LiveScreen(toolsVm) })
-                        add(SubTab("Tasks") { TasksScreen(toolsVm) })
-                        add(SubTab("Activity") { ActivityScreen(toolsVm) })
-                        add(SubTab("Devices") { DevicesScreen(toolsVm, thisDeviceId = container.deviceId()) })
-                        add(SubTab("Plugins") { PluginManagerTab(pluginVm, adminVm) })
+                        add(SubTab("live", "Live") { LiveScreen(toolsVm) })
+                        add(SubTab("tasks", "Tasks") { TasksScreen(toolsVm) })
+                        add(SubTab("activity", "Activity") { ActivityScreen(toolsVm) })
+                        add(SubTab("devices", "Devices") { DevicesScreen(toolsVm, thisDeviceId = container.deviceId()) })
+                        add(SubTab("plugins", "Plugins") { PluginManagerTab(pluginVm, adminVm) })
                     },
-                    selected = section,
-                    onSelect = { section = it },
+                    selectedKey = serverSection,
+                    onSelect = { serverSection = it },
                     header = { ServerHeader(adminVm, toolsVm) },
                 )
             }

@@ -2,6 +2,7 @@ package com.feerlessleadr.embidextrous.server
 
 import android.text.format.DateUtils
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,6 +46,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -73,7 +75,9 @@ import com.feerlessleadr.embidextrous.home.okColor
 import com.feerlessleadr.embidextrous.home.warnColor
 import com.feerlessleadr.embidextrous.ui.IconBadge
 import com.feerlessleadr.embidextrous.ui.Pill
+import com.feerlessleadr.embidextrous.watching.Avatar
 import com.feerlessleadr.embidextrous.watching.ConfirmDialog
+import com.feerlessleadr.embidextrous.watching.Poster
 import kotlinx.coroutines.delay
 
 private const val ACTIVE_WINDOW_MS = 10 * 60_000L
@@ -152,19 +156,19 @@ fun LiveScreen(vm: ServerToolsViewModel) {
             else -> LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(12.dp)) {
                 if (playing.isNotEmpty()) {
                     item { Heading("Playing now · ${playing.size}") }
-                    items(playing, key = { "p-${it.id}" }) { PlayingCard(it, now) { stopping = it } }
+                    items(playing, key = { "p-${it.id}" }) { PlayingCard(it, now, vm::avatar, vm::poster) { stopping = it } }
                 } else {
                     item { Heading("Nobody is playing right now") }
                 }
                 if (connected.isNotEmpty()) {
                     item { Heading("Connected · ${connected.size}") }
-                    items(connected, key = { "c-${it.id}" }) { ConnectedRow(it, now) }
+                    items(connected, key = { "c-${it.id}" }) { ConnectedRow(it, now, vm::avatar) }
                 }
                 if (others.isNotEmpty()) {
                     item {
                         TextButton(onClick = { showOthers = !showOthers }) { Text(if (showOthers) "Hide other devices" else "Show ${others.size} other devices (speakers, TVs, idle apps)") }
                     }
-                    if (showOthers) items(others, key = { "o-${it.id}" }) { ConnectedRow(it, now) }
+                    if (showOthers) items(others, key = { "o-${it.id}" }) { ConnectedRow(it, now, vm::avatar) }
                 }
             }
         }
@@ -181,7 +185,13 @@ fun LiveScreen(vm: ServerToolsViewModel) {
 }
 
 @Composable
-private fun PlayingCard(session: LiveSession, now: Long, onStop: () -> Unit) {
+private fun PlayingCard(
+    session: LiveSession,
+    now: Long,
+    loadAvatar: suspend (String) -> android.graphics.Bitmap?,
+    loadPoster: suspend (String) -> android.graphics.Bitmap?,
+    onStop: () -> Unit,
+) {
     val p = session.playing ?: return
     val ok = okColor()
     val warn = warnColor()
@@ -194,7 +204,8 @@ private fun PlayingCard(session: LiveSession, now: Long, onStop: () -> Unit) {
     Card(Modifier.fillMaxWidth(), shape = HomeCardShape) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                IconBadge(Icons.Default.PlayArrow, methodColor, size = 44.dp)
+                // The poster of what is playing; with none (a live channel, a song without art) the play badge stands in.
+                if (p.itemId.isNotEmpty()) Poster(p.itemId, p.title, loadPoster) else IconBadge(Icons.Default.PlayArrow, methodColor, size = 44.dp)
                 Column(Modifier.weight(1f)) {
                     Text(p.title.ifEmpty { "Playing" }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     p.subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
@@ -209,7 +220,8 @@ private fun PlayingCard(session: LiveSession, now: Long, onStop: () -> Unit) {
                 val why = listOfNotNull(p.codecs?.let { "to $it" }, p.reasons.takeIf { it.isNotEmpty() }?.joinToString(", ") { reason -> reason.replace(Regex("([a-z])([A-Z])"), "$1 $2").lowercase() })
                 if (why.isNotEmpty()) Text(why.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = warn)
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (session.userId.isNotEmpty()) Avatar(session.userId, session.userName, loadAvatar)
                 Column(Modifier.weight(1f)) {
                     Text(session.userName.ifEmpty { "Unknown user" }, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                     Text(
@@ -228,13 +240,13 @@ private fun PlayingCard(session: LiveSession, now: Long, onStop: () -> Unit) {
 }
 
 @Composable
-private fun ConnectedRow(session: LiveSession, now: Long) {
+private fun ConnectedRow(session: LiveSession, now: Long, loadAvatar: suspend (String) -> android.graphics.Bitmap?) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        IconBadge(Icons.Default.Devices, MaterialTheme.colorScheme.primary, size = 38.dp)
+        if (session.userId.isNotEmpty()) Avatar(session.userId, session.userName, loadAvatar) else IconBadge(Icons.Default.Devices, MaterialTheme.colorScheme.primary, size = 38.dp)
         Column(Modifier.weight(1f)) {
             Text(session.userName.ifEmpty { session.client.ifEmpty { "Device" } }, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
@@ -408,16 +420,27 @@ fun DevicesScreen(vm: ServerToolsViewModel, thisDeviceId: String) {
     LaunchedEffect(vm) { vm.loadDevices() }
     val state by vm.devices.collectAsStateWithLifecycle()
     var asking by remember { mutableStateOf<DeviceInfo?>(null) }
+    var renaming by remember { mutableStateOf<DeviceInfo?>(null) }
     ToolScreen(vm, onRefresh = vm::loadDevices) {
         when {
             !state.loaded -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Loading…", color = MaterialTheme.colorScheme.onSurfaceVariant) }
             state.error != null && state.items.isEmpty() -> EmptyNote(Icons.Default.Warning, "Could not load devices", state.error.orEmpty())
             state.items.isEmpty() -> EmptyNote(Icons.Default.Devices, "No devices", "Apps and browsers show up here after they sign in.")
             else -> LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(12.dp)) {
-                item { Heading("${state.items.size} devices, most recent first") }
-                items(state.items, key = { it.id }) { device -> DeviceCard(device, mine = device.reportedId == thisDeviceId, now = System.currentTimeMillis()) { asking = device } }
+                item { Heading("${state.items.size} devices, most recent first · tap one to rename it") }
+                items(state.items, key = { it.id }) { device ->
+                    DeviceCard(device, mine = device.reportedId == thisDeviceId, now = System.currentTimeMillis(), onRename = { renaming = device }) { asking = device }
+                }
             }
         }
+    }
+    renaming?.let { device ->
+        RenameDeviceDialog(
+            device = device,
+            loadCustomName = { vm.customName(device) },
+            onDismiss = { renaming = null },
+            onSave = { name -> renaming = null; vm.rename(device, name) },
+        )
     }
     asking?.let { device ->
         val mine = device.reportedId == thisDeviceId
@@ -433,10 +456,10 @@ fun DevicesScreen(vm: ServerToolsViewModel, thisDeviceId: String) {
 }
 
 @Composable
-private fun DeviceCard(device: DeviceInfo, mine: Boolean, now: Long, onRevoke: () -> Unit) {
+private fun DeviceCard(device: DeviceInfo, mine: Boolean, now: Long, onRename: () -> Unit, onRevoke: () -> Unit) {
     val ok = okColor()
     val activeNow = (device.lastActivityMs ?: 0L) > now - 5 * 60_000L
-    Card(Modifier.fillMaxWidth(), shape = HomeCardShape) {
+    Card(Modifier.fillMaxWidth().clip(HomeCardShape).clickable(onClick = onRename), shape = HomeCardShape) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             IconBadge(Icons.Default.Devices, if (activeNow) ok else MaterialTheme.colorScheme.primary, size = 44.dp)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -458,6 +481,47 @@ private fun DeviceCard(device: DeviceInfo, mine: Boolean, now: Long, onRevoke: (
             OutlinedButton(onClick = onRevoke) { Text("Sign out") }
         }
     }
+}
+
+/** The longest name Emby is asked to keep for a device. */
+private const val MAX_DEVICE_NAME = 80
+
+/** Gives a device a name of your own, the same thing Emby's dashboard does; Use the original goes back to the name the device reports. */
+@Composable
+private fun RenameDeviceDialog(device: DeviceInfo, loadCustomName: suspend () -> String?, onDismiss: () -> Unit, onSave: (String) -> Unit) {
+    // The name set earlier, if any (the list already shows it), so the box starts with what is there now.
+    val custom by produceState<String?>(null, device.id) { value = loadCustomName() }
+    var text by remember(device.id) { mutableStateOf(device.name) }
+    var touched by remember(device.id) { mutableStateOf(false) }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Name this device") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    listOf(device.appName, device.appVersion).filter { it.isNotEmpty() }.joinToString(" ") + (if (device.userName.isNotEmpty()) " · ${device.userName}" else ""),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                androidx.compose.material3.OutlinedTextField(
+                    value = text,
+                    onValueChange = { if (it.length <= MAX_DEVICE_NAME) { text = it; touched = true } },
+                    label = { Text("Name") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text("Shown here and in Emby instead of the name the device reports.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        },
+        confirmButton = { TextButton(onClick = { onSave(text) }, enabled = text.isNotBlank() && touched) { Text("Save") } },
+        dismissButton = {
+            Row {
+                if (custom != null) TextButton(onClick = { onSave("") }) { Text("Use the original") }
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+            }
+        },
+    )
 }
 
 // ---------------------------------------------------------------------------------------------------------

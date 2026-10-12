@@ -80,7 +80,11 @@ class AlertService : Service() {
                     if (container.session.value == null || container.pluginKey.value == null) {
                         stopSelf()
                     } else if (state.loaded) {
-                        for (user in alerts.newlyBlocked(state.cards)) notifyLimitReached(user)
+                        val changes = alerts.update(state.cards)
+                        // Someone got time (from any phone or the dashboard): their alert is out of date, so it goes on this phone too.
+                        val nm = getSystemService(NotificationManager::class.java)
+                        for (user in changes.cleared) nm.cancel(notificationId(user.userId))
+                        for (user in changes.blocked) notifyLimitReached(user)
                     }
                 }
             }
@@ -91,7 +95,7 @@ class AlertService : Service() {
     private fun notifyLimitReached(user: UserStatus) {
         if (!canNotify(this)) return
         val name = user.username.ifEmpty { "A user" }
-        val id = user.userId.hashCode() and 0x7fffffff
+        val id = notificationId(user.userId)
         val builder = NotificationCompat.Builder(this, CHANNEL_ALERTS)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("$name reached their ${user.periodLabel} limit")
@@ -138,6 +142,9 @@ class AlertService : Service() {
         const val CHANNEL_ALERTS = "alerts"
         private const val MONITOR_ID = 1
         val QUICK_MINUTES = intArrayOf(15, 30, 60)
+
+        /** One alert per person: the same id every time, so it can be replaced or cancelled. */
+        fun notificationId(userId: String): Int = userId.hashCode() and 0x7fffffff
 
         fun canNotify(context: Context): Boolean =
             Build.VERSION.SDK_INT < 33 ||

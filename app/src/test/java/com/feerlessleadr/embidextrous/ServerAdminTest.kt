@@ -12,8 +12,8 @@ import org.junit.Test
 class ServerAdminTest {
     @Test fun parsesAPlayingAndAnIdleSession() {
         val text = """[
-            {"Id":"s1","UserName":"Sam","Client":"Emby Web","DeviceName":"Chrome","ApplicationVersion":"4.10","RemoteEndPoint":"10.0.0.5","LastActivityDate":"2026-10-10T11:59:00Z",
-             "NowPlayingItem":{"Name":"Pilot","Type":"Episode","SeriesName":"A Show","ParentIndexNumber":2,"IndexNumber":5,"RunTimeTicks":27000000000},
+            {"Id":"s1","UserId":"user-1","UserName":"Sam","Client":"Emby Web","DeviceName":"Chrome","ApplicationVersion":"4.10","RemoteEndPoint":"10.0.0.5","LastActivityDate":"2026-10-10T11:59:00Z",
+             "NowPlayingItem":{"Id":"77","Name":"Pilot","Type":"Episode","SeriesName":"A Show","ParentIndexNumber":2,"IndexNumber":5,"RunTimeTicks":27000000000},
              "PlayState":{"PositionTicks":9000000000,"IsPaused":true,"PlayMethod":"Transcode"},
              "TranscodingInfo":{"VideoCodec":"h264","AudioCodec":"aac","TranscodeReasons":["VideoCodecNotSupported","ContainerNotSupported"]}},
             {"Id":"s2","Client":"Emby Server DLNA","DeviceName":"Speaker"}
@@ -22,6 +22,8 @@ class ServerAdminTest {
         assertEquals(2, sessions.size)
         val p = sessions[0].playing!!
         assertEquals("Pilot", p.title)
+        assertEquals("77", p.itemId)
+        assertEquals("user-1", sessions[0].userId)
         assertEquals("A Show · S2E5", p.subtitle)
         assertEquals(PlayMethod.Transcode, p.method)
         assertTrue(p.paused)

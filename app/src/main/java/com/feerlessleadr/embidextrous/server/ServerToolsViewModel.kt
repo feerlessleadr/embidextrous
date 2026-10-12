@@ -118,6 +118,23 @@ class ServerToolsViewModel(private val container: AppContainer) : ViewModel() {
         loadTasks()
     }
 
+    /** The picture of a person, cached for the session; null when they have none. */
+    suspend fun avatar(userId: String): android.graphics.Bitmap? = container.api()?.let { container.avatars.load(it, userId) }
+
+    /** The poster of what someone is playing; null when it has none. */
+    suspend fun poster(itemId: String): android.graphics.Bitmap? = container.api()?.let { container.covers.load(it, itemId, null) }
+
+    suspend fun customName(device: DeviceInfo): String? = try {
+        container.api()?.deviceCustomName(device.id)
+    } catch (e: ApiException) {
+        null
+    }
+
+    fun rename(device: DeviceInfo, name: String) = act(if (name.isBlank()) "Back to the name the device reports" else "Renamed to ${name.trim()}") {
+        setDeviceCustomName(device.id, name)
+        loadDevices()
+    }
+
     fun revoke(device: DeviceInfo) = act("Signed ${device.name} out") {
         revokeDevice(device.id)
         loadDevices()
