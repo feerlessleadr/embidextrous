@@ -198,7 +198,7 @@ private fun PlayingCard(
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 // The poster of what is playing; with none (a live channel, a song without art) the play badge stands in.
-                if (p.itemId.isNotEmpty()) Poster(p.itemId, p.title, loadPoster) else IconBadge(Icons.Default.PlayArrow, methodColor, size = 44.dp)
+                if (p.posterId.isNotEmpty()) Poster(p.posterId, p.title, loadPoster) else IconBadge(Icons.Default.PlayArrow, methodColor, size = 44.dp)
                 Column(Modifier.weight(1f)) {
                     Text(p.title.ifEmpty { "Playing" }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     p.subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }

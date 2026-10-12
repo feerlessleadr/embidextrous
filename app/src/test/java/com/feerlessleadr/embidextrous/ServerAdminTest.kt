@@ -107,4 +107,12 @@ Sunday","Type":"user.created"}]}""").single().detail)
         assertTrue(ServerAdminParser.devices("{}").isEmpty())
         assertTrue(ServerAdminParser.libraries("{}").isEmpty())
     }
+
+    @Test fun anEpisodeShowsItsShowsPosterAndAMovieItsOwn() {
+        val text = """[{"Id":"a","NowPlayingItem":{"Id":"77","Type":"Episode","SeriesId":"500","SeriesName":"A Show"}},
+            {"Id":"b","NowPlayingItem":{"Id":"88","Type":"Movie"}},
+            {"Id":"c","NowPlayingItem":{"Id":"99","Type":"Episode"}}]"""
+        val posters = ServerAdminParser.sessions(text).map { it.playing!!.posterId }
+        assertEquals(listOf("500", "88", "99"), posters)
+    }
 }

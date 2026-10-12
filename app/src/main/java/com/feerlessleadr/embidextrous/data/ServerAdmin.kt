@@ -22,6 +22,8 @@ data class PlayingNow(
     val method: PlayMethod,
     val reasons: List<String>,
     val codecs: String?,
+    /** The picture to show: an episode shows its show's poster, anything else its own. */
+    val posterId: String = itemId,
 )
 
 /** Someone or something connected to the server (GET /Sessions). [userName] is empty for devices with no user, such as speakers and TVs found on the network. */
@@ -131,6 +133,7 @@ object ServerAdminParser {
         val codecs = listOfNotNull(transcoding?.stringAt("VideoCodec"), transcoding?.stringAt("AudioCodec")).joinToString(" + ").ifEmpty { null }
         return PlayingNow(
             itemId = item.stringAt("Id").orEmpty(),
+            posterId = (if (type == "Episode") item.stringAt("SeriesId") else null) ?: item.stringAt("Id").orEmpty(),
             title = item.stringAt("Name").orEmpty(),
             subtitle = subtitle,
             positionTicks = (state?.get("PositionTicks") as? JsonPrimitive)?.longOrNull ?: 0L,

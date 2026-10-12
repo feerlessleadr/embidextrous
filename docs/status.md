@@ -181,3 +181,6 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 
 ## 2026-10-12: Embidextrous 0.4.0 released
 - Tag `v0.4.0` on `327a9e5` (CI and both CodeQL jobs green); the `Release v0.4.0` run succeeded (tests, build, pinned signing fingerprint check, provenance attestation, immutable release). Asset `Embidextrous-0.4.0.apk`, 2,406,454 bytes, SHA-256 `f88e63799f13276f846495a2b98aff2b149529e2291be9427d28216cabd8a609`. `gh attestation verify` was not run on this machine (no `gh`).
+
+## 2026-10-12: Live shows the show's poster (after 0.4.0, not released)
+- Server > Live now shows the poster of the show for an episode (its series poster) instead of the episode's thumbnail; movies and other items keep their own. Unit-tested (204 tests); not yet looked at on the emulator.
