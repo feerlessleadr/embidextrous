@@ -11,10 +11,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -34,10 +38,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.feerlessleadr.embidextrous.BuildConfig
 
@@ -46,87 +52,110 @@ fun SignInScreen(vm: SignInViewModel) {
     val focus = LocalFocusManager.current
     var showPassword by remember { mutableStateOf(false) }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    BrandBackdrop(Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .safeDrawingPadding()
                 .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+                .padding(horizontal = 20.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Spacer(Modifier.height(24.dp))
-            Text("Embidextrous", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
+            LogoMark(92.dp)
+            Spacer(Modifier.height(18.dp))
+            Text("Embidextrous", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = Brand.OnDark)
+            Text("Both hands on your Emby server", style = MaterialTheme.typography.titleMedium, color = Brand.Mint, modifier = Modifier.padding(top = 4.dp))
+            Spacer(Modifier.height(10.dp))
             Text(
-                "Watch-time limits and smart lists for your Emby server. Sign in with your Emby account: an administrator gets every tool, a regular account gets Hall Monitor.",
+                "Watch-time limits for the kids and smart lists, in one app.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Brand.OnDarkMuted,
+                textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(28.dp))
 
-            OutlinedTextField(
-                value = vm.server,
-                onValueChange = { vm.server = it },
-                label = { Text("Server address") },
-                placeholder = { Text("https://emby.example.com") },
-                singleLine = true,
-                enabled = !vm.busy,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Down) }),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = vm.userName,
-                onValueChange = { vm.userName = it },
-                label = { Text("User name") },
-                singleLine = true,
-                enabled = !vm.busy,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Down) }),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = vm.password,
-                onValueChange = { vm.password = it },
-                label = { Text("Password") },
-                singleLine = true,
-                enabled = !vm.busy,
-                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    IconButton(onClick = { showPassword = !showPassword }) {
-                        Icon(
-                            if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (showPassword) "Hide password" else "Show password",
-                        )
+            Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text("Sign in", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Use your Emby account. An administrator gets every tool, a regular account gets Hall Monitor.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    OutlinedTextField(
+                        value = vm.server,
+                        onValueChange = { vm.server = it },
+                        label = { Text("Server address") },
+                        placeholder = { Text("https://emby.example.com") },
+                        leadingIcon = { Icon(Icons.Default.Dns, contentDescription = null) },
+                        singleLine = true,
+                        enabled = !vm.busy,
+                        shape = RoundedCornerShape(16.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next),
+                        keyboardActions = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Down) }),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = vm.userName,
+                        onValueChange = { vm.userName = it },
+                        label = { Text("User name") },
+                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                        singleLine = true,
+                        enabled = !vm.busy,
+                        shape = RoundedCornerShape(16.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
+                        keyboardActions = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Down) }),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = vm.password,
+                        onValueChange = { vm.password = it },
+                        label = { Text("Password") },
+                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                        singleLine = true,
+                        enabled = !vm.busy,
+                        shape = RoundedCornerShape(16.dp),
+                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { showPassword = !showPassword }) {
+                                Icon(
+                                    if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = if (showPassword) "Hide password" else "Show password",
+                                )
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Go),
+                        keyboardActions = KeyboardActions(onGo = {
+                            focus.clearFocus()
+                            vm.signIn()
+                        }),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+
+                    vm.error?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
                     }
-                },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Go),
-                keyboardActions = KeyboardActions(onGo = {
-                    focus.clearFocus()
-                    vm.signIn()
-                }),
-                modifier = Modifier.fillMaxWidth(),
-            )
 
-            vm.error?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
-            }
-
-            Button(
-                onClick = {
-                    focus.clearFocus()
-                    vm.signIn()
-                },
-                enabled = !vm.busy && vm.server.isNotBlank() && vm.userName.isNotBlank(),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (vm.busy) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                } else {
-                    Text("Sign in")
+                    Button(
+                        onClick = {
+                            focus.clearFocus()
+                            vm.signIn()
+                        },
+                        enabled = !vm.busy && vm.server.isNotBlank() && vm.userName.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                    ) {
+                        if (vm.busy) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                        } else {
+                            Text("Sign in", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
 
+            Spacer(Modifier.height(18.dp))
             Text(
                 if (BuildConfig.DEBUG) {
                     "Debug build: plain http:// addresses are allowed for a local test server."
@@ -134,8 +163,9 @@ fun SignInScreen(vm: SignInViewModel) {
                     "This app connects over HTTPS only. Your password is sent to your server once; only an access token is kept on the phone, encrypted."
                 },
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.Start),
+                color = Brand.OnDarkMuted,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 12.dp),
             )
         }
     }

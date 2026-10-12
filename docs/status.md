@@ -106,3 +106,12 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 - Emulator check (Android 37, debug build, local Emby 4.10.1.0, throw-away administrator and limited user, deleted afterwards, plugin reset): first-run choice, Home with the three new cards in the default order, hiding a card, moving a card up, the Hall Monitor key saved and Kids today, Bedtime and the live status appearing.
 - Not checked: the widget on a device (only its headline text is unit tested), Refresh all (the test server's lists were left alone because it is shared), a server with failed tasks, a pending restart or plugin updates (only the parsers are tested; the shape of `Packages/Updates` is unverified because the test server had none), the Parent profile hiding the cards on a device (unit tested), a real phone.
 - Limits: a plugin installed from GitHub is not checked yet (phase 9 adds that); the "connected" count is Emby sessions active in the last 10 minutes.
+
+## 2026-10-12: a more designed look (sign-in, profile choice, Home, the other tabs)
+- A shared look in `ui/Brand.kt`: the Hall Monitor colours for the always-dark parts, a backdrop with the icon's two soft circles, the logo tile, icon badges and pills.
+- **Sign-in** and **profile choice** are full dark-violet screens with the logo; sign-in has the form in a rounded card with field icons; each profile is a glassy card with an icon and chips showing the tabs it gives.
+- **Home**: a greeting hero ("Good evening", All good / what needs attention), kids with a progress ring of time left around their picture and a status pill, a Bedtime card with a moon, rounded cards with icon badges; on a dark screen the hero and Bedtime cards are brighter with a thin violet outline.
+- **Hall Monitor tab**: the same rings and pills on rounded cards, nicer empty and key-entry states. **Smart Lists**: rounder cards and a proper empty state. **Settings**: grouped into rounded cards with icons (Appearance, This phone, Hall Monitor, Smart lists, Account, About).
+- The selected tab's indicator is now violet (it was a muddy green in dark mode).
+- Behaviour is unchanged. 156 unit tests pass (one new, for the greeting).
+- Checked on an emulator (Android 37) in light and dark mode: sign-in, profile choice, Home, Hall Monitor, Smart Lists (empty), Settings. Not checked: the "Watching now" and "needs attention" Home states with the new look, large fonts, the Smart Lists cards with real lists, a real phone.

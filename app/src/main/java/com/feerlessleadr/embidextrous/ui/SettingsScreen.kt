@@ -1,11 +1,11 @@
 package com.feerlessleadr.embidextrous.ui
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -15,17 +15,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
+import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
@@ -40,6 +46,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.feerlessleadr.embidextrous.AppContainer
@@ -49,6 +57,20 @@ import com.feerlessleadr.embidextrous.data.Density
 import com.feerlessleadr.embidextrous.data.Profiles
 import com.feerlessleadr.embidextrous.data.Swatch
 import com.feerlessleadr.embidextrous.data.ThemeMode
+
+/** One group of settings: a rounded card with an icon and a title. */
+@Composable
+private fun SettingsCard(title: String, icon: ImageVector, tint: Color, content: @Composable ColumnScope.() -> Unit) {
+    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                IconBadge(icon, tint, size = 40.dp)
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+            content()
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -66,9 +88,8 @@ fun SettingsScreen(container: AppContainer, onBackups: () -> Unit) {
             )
         },
     ) { padding ->
-        Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Appearance", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SettingsCard("Appearance", Icons.Default.Palette, Brand.Violet) {
                 ThemeMode.entries.forEach { mode ->
                     Row(
                         Modifier.fillMaxWidth().clickable { container.settings.setThemeMode(mode) },
@@ -78,10 +99,8 @@ fun SettingsScreen(container: AppContainer, onBackups: () -> Unit) {
                         Text(mode.label, style = MaterialTheme.typography.bodyLarge)
                     }
                 }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Accent colour", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                Text("Accent colour", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Swatch.entries.forEach { swatch ->
                         SwatchDot(swatch, selected = !dynamic && accent == swatch, onClick = {
@@ -106,11 +125,8 @@ fun SettingsScreen(container: AppContainer, onBackups: () -> Unit) {
                 }
             }
 
-            HorizontalDivider()
-
             if (session?.isAdministrator == true) {
                 ProfileSection(container)
-                HorizontalDivider()
             }
 
             WatchingEyeKeySection(container)
@@ -118,37 +134,31 @@ fun SettingsScreen(container: AppContainer, onBackups: () -> Unit) {
             val profile by container.settings.profile.collectAsStateWithLifecycle()
             val customSmartLists by container.settings.customSmartLists.collectAsStateWithLifecycle()
             if (Profiles.showsSmartLists(profile, session?.isAdministrator == true, customSmartLists)) {
-                HorizontalDivider()
-
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Smart lists overview", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                SettingsCard("Smart lists", Icons.AutoMirrored.Filled.PlaylistPlay, Brand.Violet) {
+                    Text("Overview", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Density.entries.forEach { d ->
                         Row(Modifier.fillMaxWidth().clickable { container.settings.setDensity(d) }, verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(selected = density == d, onClick = { container.settings.setDensity(d) })
                             Text(d.label, style = MaterialTheme.typography.bodyLarge)
                         }
                     }
-                }
-
-                HorizontalDivider()
-
-                Row(Modifier.fillMaxWidth().clickable(onClick = onBackups).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Backup, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
-                        Text("Backups", style = MaterialTheme.typography.titleMedium)
-                        Text("Back up, restore or save a copy of all your smart lists", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                    Row(Modifier.fillMaxWidth().clickable(onClick = onBackups).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Backup, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
+                            Text("Backups", style = MaterialTheme.typography.titleMedium)
+                            Text("Back up, restore or save a copy of all your smart lists", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Icon(Icons.Default.ChevronRight, contentDescription = null)
                     }
-                    Icon(Icons.Default.ChevronRight, contentDescription = null)
                 }
             }
 
-            HorizontalDivider()
-
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Account", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                Text(
-                    "Signed in as ${session?.userName.orEmpty()} (${if (session?.isAdministrator == true) "administrator: every tool" else "regular account: Hall Monitor only"})",
-                    style = MaterialTheme.typography.bodyLarge,
+            SettingsCard("Account", Icons.Default.Person, Brand.Mint) {
+                Text(session?.userName.orEmpty(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Pill(
+                    if (session?.isAdministrator == true) "Administrator: every tool" else "Regular account: Hall Monitor only",
+                    if (session?.isAdministrator == true) Brand.Violet else Brand.Mint,
                 )
                 Text(session?.serverUrl.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedButton(onClick = container::signOut, modifier = Modifier.padding(top = 6.dp)) {
@@ -162,10 +172,7 @@ fun SettingsScreen(container: AppContainer, onBackups: () -> Unit) {
                 )
             }
 
-            HorizontalDivider()
-
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("About", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            SettingsCard("About", Icons.Default.Info, Brand.Amber) {
                 Text("Embidextrous ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodyLarge)
                 Text(
                     "Watch-time limits and smart lists for your Emby server, from one app. Open source (MIT): github.com/feerlessleadr/embidextrous",
@@ -192,13 +199,13 @@ fun SwatchDot(swatch: Swatch, selected: Boolean, onClick: () -> Unit, size: andr
         if (selected) Icon(Icons.Default.Check, contentDescription = "${swatch.label}, selected", tint = Color.White, modifier = Modifier.size(size * 0.55f))
     }
 }
+
 /** How this phone uses the app: which tabs and Home cards it shows. Not a lock: it can be changed here at any time. */
 @Composable
 private fun ProfileSection(container: AppContainer) {
     val profile by container.settings.profile.collectAsStateWithLifecycle()
     val customSmartLists by container.settings.customSmartLists.collectAsStateWithLifecycle()
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("How this phone uses the app", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+    SettingsCard("How this phone uses the app", Icons.Default.PhoneAndroid, Brand.Amber) {
         AppProfile.entries.forEach { p ->
             Row(Modifier.fillMaxWidth().clickable { container.settings.setProfile(p) }, verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(selected = profile == p, onClick = { container.settings.setProfile(p) })
@@ -224,8 +231,7 @@ private fun ProfileSection(container: AppContainer) {
 private fun WatchingEyeKeySection(container: AppContainer) {
     val key by container.pluginKey.collectAsStateWithLifecycle()
     var text by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Hall Monitor", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+    SettingsCard("Hall Monitor", Icons.Default.Timer, Brand.Mint) {
         Text(
             if (key == null) "Not set. Paste the key from the plugin page (External API tab)." else "Key is set (stored encrypted on this phone).",
             style = MaterialTheme.typography.bodyMedium,
@@ -235,6 +241,7 @@ private fun WatchingEyeKeySection(container: AppContainer) {
             onValueChange = { text = it },
             label = { Text(if (key == null) "Hall Monitor key" else "Replace the key") },
             singleLine = true,
+            shape = RoundedCornerShape(16.dp),
             visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -252,6 +259,7 @@ private fun WatchingEyeKeySection(container: AppContainer) {
             permissionDenied = !granted
             container.setAlertsEnabled(granted)
         }
+        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
         SettingRow(
             title = "Background alerts",
             subtitle = if (permissionDenied) "Notifications are blocked for this app, so alerts cannot be turned on."

@@ -213,3 +213,16 @@ class AdminHomeTest {
         assertFalse(WidgetText.summary(listOf(user("Sam", "TimeLimitExceeded", enabled = false)), now).needsAttention)
     }
 }
+
+class GreetingTest {
+    @Test fun greetingFollowsTheHour() {
+        assertEquals("Good evening", com.feerlessleadr.embidextrous.home.Greeting.forHour(0))
+        assertEquals("Good evening", com.feerlessleadr.embidextrous.home.Greeting.forHour(4))
+        assertEquals("Good morning", com.feerlessleadr.embidextrous.home.Greeting.forHour(5))
+        assertEquals("Good morning", com.feerlessleadr.embidextrous.home.Greeting.forHour(11))
+        assertEquals("Good afternoon", com.feerlessleadr.embidextrous.home.Greeting.forHour(12))
+        assertEquals("Good afternoon", com.feerlessleadr.embidextrous.home.Greeting.forHour(17))
+        assertEquals("Good evening", com.feerlessleadr.embidextrous.home.Greeting.forHour(18))
+        assertEquals("Good evening", com.feerlessleadr.embidextrous.home.Greeting.forHour(23))
+    }
+}

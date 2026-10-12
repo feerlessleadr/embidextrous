@@ -202,7 +202,7 @@ private fun HomeContent(
                 for (card in cardsToShow) {
                     when (card) {
                         HomeCard.WatchingNow -> if (watching.isNotEmpty()) {
-                            item(key = "watching") { SectionTitle("Watching now") }
+                            item(key = "watching") { SectionTitle("Watching now", HomeIcons.Watching) }
                             for (c in watching) {
                                 item(key = "watch-${c.status.userId}") {
                                     WatchingNowCard(
@@ -225,7 +225,7 @@ private fun HomeContent(
                                 )
                             }
                         } else if (state.cards.isNotEmpty()) {
-                            item(key = "kids-title") { SectionTitle("Kids today") }
+                            item(key = "kids-title") { SectionTitle("Kids today", HomeIcons.Kids) }
                             item(key = "kids") { KidsCard(state.cards, now, vm::avatar, onOpenWatching) }
                         }
                         HomeCard.Bedtime -> if (candidates.isNotEmpty()) {
@@ -270,191 +270,6 @@ private fun HomeContent(
     }
 }
 
-@Composable
-private fun SectionTitle(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
-}
-
-/** "All good", or what needs attention, each with the one action that helps. */
-@Composable
-private fun StatusCard(attention: List<Attention>, watchingCount: Int, loaded: Boolean, onAdd: (UserStatus) -> Unit, onOpenSettings: () -> Unit) {
-    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    val ok = if (dark) Color(0xFF81C784) else Color(0xFF2E7D32)
-    val warn = if (dark) Color(0xFFFFB74D) else Color(0xFF9A5B00)
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (attention.isEmpty()) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ok, modifier = Modifier.size(28.dp))
-                    Column {
-                        Text(if (loaded) "All good" else "Checking…", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        Text(
-                            when {
-                                !loaded -> "Loading the latest from the server."
-                                watchingCount == 0 -> "Nobody is watching right now."
-                                watchingCount == 1 -> "One person is watching."
-                                else -> "$watchingCount people are watching."
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            } else {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(Icons.Default.Warning, contentDescription = null, tint = warn, modifier = Modifier.size(28.dp))
-                    Text(
-                        if (attention.size == 1) "1 thing needs attention" else "${attention.size} things need attention",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-                for (item in attention) {
-                    AttentionRow(item, onAdd, onOpenSettings)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AttentionRow(item: Attention, onAdd: (UserStatus) -> Unit, onOpenSettings: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-        val text = when (item) {
-            Attention.NeedsKey -> "The Hall Monitor key is not set on this phone."
-            is Attention.KeyRefused -> item.detail
-            is Attention.Offline -> item.detail.ifEmpty { "Can't reach the server." } + " Retrying…"
-            is Attention.AtLimit -> "${item.user.username} reached their ${item.user.periodLabel} limit."
-        }
-        Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        when (item) {
-            Attention.NeedsKey, is Attention.KeyRefused -> FilledTonalButton(onClick = onOpenSettings) { Text("Settings") }
-            is Attention.AtLimit -> FilledTonalButton(onClick = { onAdd(item.user) }) { Text("+$QUICK_ADD_MINUTES min") }
-            is Attention.Offline -> Unit
-        }
-    }
-}
-
-/** Someone who is playing right now: what, how long they have left, and the two actions a parent reaches for. */
-@Composable
-private fun WatchingNowCard(
-    card: UserCard,
-    nowMs: Long,
-    loadAvatar: suspend (String) -> android.graphics.Bitmap?,
-    loadPoster: suspend (String) -> android.graphics.Bitmap?,
-    onAdd: () -> Unit,
-    onStop: () -> Unit,
-) {
-    val status = card.status
-    val np = status.nowPlaying
-    val remaining = card.remainingNow(nowMs)
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (np != null) Poster(np.itemId, np.itemName, loadPoster)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Avatar(status.userId, status.username, loadAvatar)
-                        Text(status.username, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    }
-                    if (np != null) {
-                        Text(np.itemName.ifEmpty { "Playing" } + if (np.isPaused) " (paused)" else "", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                        Text("${np.client.ifEmpty { "Unknown" }} · ${np.deviceName.ifEmpty { "Device" }}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Text(
-                        if (remaining < 0) "No time limit" else if (remaining <= 0) "No time left" else "${WatchText.durationLeft(remaining)} left",
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                FilledTonalButton(onClick = onAdd, modifier = Modifier.weight(1f)) { Text("+$QUICK_ADD_MINUTES min") }
-                OutlinedButton(onClick = onStop, modifier = Modifier.weight(1f)) { Text("Stop stream") }
-            }
-        }
-    }
-}
-
-/** One compact row per limited user: picture, name and state, time left, this week's total. Tapping opens the full card. */
-@Composable
-private fun KidsCard(cards: List<UserCard>, nowMs: Long, loadAvatar: suspend (String) -> android.graphics.Bitmap?, onOpen: () -> Unit) {
-    val now = Instant.ofEpochMilli(nowMs)
-    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    val ok = if (dark) Color(0xFF81C784) else Color(0xFF2E7D32)
-    val warn = if (dark) Color(0xFFFFB74D) else Color(0xFF9A5B00)
-    val bad = MaterialTheme.colorScheme.error
-    Card(Modifier.fillMaxWidth().clickable(onClick = onOpen)) {
-        Column(Modifier.padding(vertical = 8.dp)) {
-            cards.forEachIndexed { index, card ->
-                val s = card.status
-                val timeout = s.activeTimeOutEnd(now)
-                val remaining = card.remainingNow(nowMs)
-                val reason = s.block(now)
-                val (state, color) = when {
-                    !s.enabled -> "Limit switched off" to MaterialTheme.colorScheme.onSurfaceVariant
-                    timeout != null -> "Timed out until ${DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withZone(ZoneId.systemDefault()).format(timeout)}" to bad
-                    reason == "TimeLimitExceeded" -> "Limit reached" to bad
-                    reason == "OutsideTimeWindow" -> "Outside allowed hours" to warn
-                    card.paused -> "Paused" to warn
-                    card.playing -> "Watching now" to ok
-                    else -> "Not watching" to MaterialTheme.colorScheme.onSurfaceVariant
-                }
-                Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Avatar(s.userId, s.username, loadAvatar)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(s.username, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text(state, style = MaterialTheme.typography.bodyMedium, color = color, fontWeight = FontWeight.Bold)
-                        if (s.secondsWatchedWeekly > 0) {
-                            Text("This week: ${WatchText.duration(s.secondsWatchedWeekly)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        when {
-                            !s.enabled || remaining < 0 -> Text("No limit", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            else -> {
-                                Text(
-                                    if (remaining <= 0) "0 min" else WatchText.durationLeft(remaining),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (remaining <= 0) bad else if (remaining < 300) warn else MaterialTheme.colorScheme.onSurface,
-                                )
-                                Text("left", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                    }
-                }
-                if (s.enabled && remaining >= 0) {
-                    val allowed = s.allowedSeconds
-                    val used = maxOf(0.0, allowed - remaining)
-                    LinearProgressIndicator(
-                        progress = { if (allowed > 0) (used / allowed).toFloat().coerceIn(0f, 1f) else 1f },
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    )
-                }
-                if (index < cards.lastIndex) Box(Modifier.padding(top = 6.dp))
-            }
-        }
-    }
-}
-
-/** Bedtime: stop everyone for a while. Always asks first (the dialog) and can be undone. */
-@Composable
-private fun BedtimeCard(anyTimedOut: Boolean, onBedtime: () -> Unit, onEndTimeOuts: () -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Bedtime", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(
-                "Stops playback and blocks watching for the people you choose, for an hour or until the morning.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                Button(onClick = onBedtime, modifier = Modifier.weight(1f)) { Text("Bedtime…") }
-                if (anyTimedOut) OutlinedButton(onClick = onEndTimeOuts, modifier = Modifier.weight(1f)) { Text("End time-outs") }
-            }
-        }
-    }
-}
 
 private enum class BedtimeChoice { OneHour, UntilMorning }
 

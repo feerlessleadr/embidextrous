@@ -2,10 +2,15 @@ package com.feerlessleadr.embidextrous.home
 
 import android.text.format.DateUtils
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
@@ -21,22 +26,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.feerlessleadr.embidextrous.data.PluginChecks
+import com.feerlessleadr.embidextrous.ui.Brand
+import com.feerlessleadr.embidextrous.ui.IconBadge
 
 @Composable
-private fun warnColor(): Color = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) Color(0xFFFFB74D) else Color(0xFF9A5B00)
-
-@Composable
-private fun okColor(): Color = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) Color(0xFF81C784) else Color(0xFF2E7D32)
-
-@Composable
-private fun AdminCard(title: String, content: @Composable () -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
+private fun AdminCard(title: String, icon: ImageVector, tint: Color, content: @Composable () -> Unit) {
+    Card(Modifier.fillMaxWidth(), shape = HomeCardShape) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                IconBadge(icon, tint, size = 40.dp)
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
             content()
         }
     }
@@ -57,7 +63,7 @@ fun SmartListsCard(admin: AdminHome, nowMs: Long) {
     val state by admin.lists.state.collectAsStateWithLifecycle()
     val problem by admin.problem.collectAsStateWithLifecycle()
     val warn = warnColor()
-    AdminCard("Smart lists") {
+    AdminCard("Smart lists", Icons.AutoMirrored.Filled.PlaylistPlay, Brand.Violet) {
         val snapshot = AdminModel.lists(state.lists, state.status)
         when {
             problem != null -> Detail(problem.orEmpty(), warn)
@@ -99,7 +105,7 @@ fun ServerCard(vm: AdminHomeViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     val snapshot = state.snapshot
     val warn = warnColor()
-    AdminCard("Server") {
+    AdminCard("Server", Icons.Default.Dns, Brand.Mint) {
         when {
             snapshot == null -> Detail(if (state.loading) "Loading…" else "Could not read the server's state.")
             else -> {
@@ -136,7 +142,7 @@ fun PluginsCard(vm: AdminHomeViewModel) {
     val warn = warnColor()
     val ok = okColor()
     var showAll by remember { mutableStateOf(false) }
-    AdminCard("Plugins") {
+    AdminCard("Plugins", Icons.Default.Extension, Brand.Amber) {
         val plugins = snapshot?.plugins
         if (plugins == null) {
             Detail(if (state.loading) "Loading…" else "Could not read the plugins.", if (state.loading) MaterialTheme.colorScheme.onSurfaceVariant else warn)

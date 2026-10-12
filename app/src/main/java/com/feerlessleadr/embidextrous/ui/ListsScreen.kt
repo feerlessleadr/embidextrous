@@ -176,12 +176,7 @@ fun ListsScreen(
                     state.error != null && state.lists.isEmpty() -> ErrorState(state.error.orEmpty(), onRetry = vm::reload, modifier = Modifier.align(Alignment.Center))
                     else -> PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = vm::reload, modifier = Modifier.fillMaxSize()) {
                         if (state.lists.isEmpty()) {
-                            Text(
-                                "No smart lists yet. Tap \"New list\" to create one.",
-                                modifier = Modifier.align(Alignment.Center).padding(32.dp),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            EmptyLists(Modifier.align(Alignment.Center))
                         } else if (shown.isEmpty()) {
                             Text(
                                 "No lists match.",
@@ -310,6 +305,7 @@ private fun ListCard(
 
     Card(
         modifier = modifier.fillMaxWidth().animateContentSize(),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (doc.enabled) 0.55f else 0.3f)),
     ) {
         Column {
@@ -418,5 +414,19 @@ private fun DetailLine(label: String, text: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 2.dp).size(width = 52.dp, height = 20.dp))
         Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+    }
+}
+/** Shown when there are no smart lists yet. */
+@Composable
+private fun EmptyLists(modifier: Modifier = Modifier) {
+    Column(modifier.padding(32.dp), verticalArrangement = Arrangement.spacedBy(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        IconBadge(Icons.AutoMirrored.Filled.PlaylistPlay, Brand.Violet, size = 88.dp)
+        Text("No smart lists yet", style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+        Text(
+            "A smart list fills itself from rules, like \"unwatched comedies under 30 minutes\". Tap New list to make your first one.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
     }
 }

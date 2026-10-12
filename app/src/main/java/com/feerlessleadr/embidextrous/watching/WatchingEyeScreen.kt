@@ -18,6 +18,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -65,6 +67,11 @@ import com.feerlessleadr.embidextrous.data.MAX_MINUTES
 import com.feerlessleadr.embidextrous.data.UserCard
 import com.feerlessleadr.embidextrous.data.UserStatus
 import com.feerlessleadr.embidextrous.data.WatchText
+import com.feerlessleadr.embidextrous.home.HomeCardShape
+import com.feerlessleadr.embidextrous.home.TimeRing
+import com.feerlessleadr.embidextrous.ui.Brand
+import com.feerlessleadr.embidextrous.ui.IconBadge
+import com.feerlessleadr.embidextrous.ui.Pill
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -231,10 +238,14 @@ internal fun Banner(text: String, background: Color, content: Color) {
 
 @Composable
 private fun EmptyHint() {
-    Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
+    Column(Modifier.fillMaxSize().padding(32.dp), verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically), horizontalAlignment = Alignment.CenterHorizontally) {
+        IconBadge(Icons.Default.Group, Brand.Mint, size = 88.dp)
+        Text("No limited users yet", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Text(
-            "No limited users yet. Add users on the Hall Monitor plugin page in the Emby dashboard.",
+            "Add users on the Hall Monitor plugin page in the Emby dashboard, and they will show up here.",
             style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
     }
 }
@@ -243,6 +254,7 @@ private fun EmptyHint() {
 private fun KeyPrompt(onSave: (String) -> Unit) {
     var key by remember { mutableStateOf("") }
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        IconBadge(Icons.Default.Key, Brand.Mint, size = 88.dp)
         Text("Enter the Hall Monitor key", style = MaterialTheme.typography.titleLarge)
         Text(
             "On the plugin page in the Emby dashboard, open the External API tab, tick Enable Public API, generate a key and save. " +
@@ -296,13 +308,23 @@ private fun UserCardView(
         else -> "Not watching" to MaterialTheme.colorScheme.onSurfaceVariant
     }
 
-    Card(Modifier.fillMaxWidth()) {
+    val limited = status.enabled && remaining >= 0
+    val allowedSeconds = status.allowedSeconds
+    val ringFraction = if (!limited) 1f else if (allowedSeconds > 0) (remaining / allowedSeconds).toFloat() else 0f
+    val ringColor = when {
+        !limited -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+        remaining <= 0 -> bad
+        remaining < 300 -> warn
+        else -> ok
+    }
+
+    Card(Modifier.fillMaxWidth(), shape = HomeCardShape) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Avatar(status.userId, status.username, loadAvatar)
-                Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                TimeRing(ringFraction, ringColor) { Avatar(status.userId, status.username, loadAvatar) }
+                Column(Modifier.weight(1f).padding(start = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(status.username, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(chipText, style = MaterialTheme.typography.bodyMedium, color = chipColor, fontWeight = FontWeight.Bold)
+                    Pill(chipText, chipColor)
                 }
                 var menuOpen by remember { mutableStateOf(false) }
                 Box {
