@@ -192,12 +192,12 @@ private fun ListPreviewRow(row: ListRow, nowMs: Long) {
 
 /** Emby itself: version, who is connected, scheduled tasks. Read only. */
 @Composable
-fun ServerCard(vm: AdminHomeViewModel) {
+fun ServerCard(vm: AdminHomeViewModel, onOpen: (() -> Unit)? = null) {
     val state by vm.state.collectAsStateWithLifecycle()
     val snapshot = state.snapshot
     val warn = warnColor()
     val ok = okColor()
-    AdminCard("Server", Icons.Default.Dns) {
+    AdminCard("Server", Icons.Default.Dns, onClick = onOpen) {
         val info = snapshot?.info
         when {
             snapshot == null -> Text(if (state.loading) "Loading…" else "Could not read the server's state.", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -232,14 +232,14 @@ fun ServerCard(vm: AdminHomeViewModel) {
 
 /** Installed plugins: the two this app works with, whether Emby's catalog has updates, and the full list on request. */
 @Composable
-fun PluginsCard(vm: AdminHomeViewModel) {
+fun PluginsCard(vm: AdminHomeViewModel, onOpen: (() -> Unit)? = null) {
     val state by vm.state.collectAsStateWithLifecycle()
     val snapshot = state.snapshot
     val warn = warnColor()
     val ok = okColor()
     var showAll by remember { mutableStateOf(false) }
     val plugins = snapshot?.plugins
-    AdminCard("Plugins", Icons.Default.Extension, trailing = { if (plugins != null) Pill("${plugins.size} installed", MaterialTheme.colorScheme.primary) }) {
+    AdminCard("Plugins", Icons.Default.Extension, onClick = onOpen, trailing = { if (plugins != null) Pill("${plugins.size} installed", MaterialTheme.colorScheme.primary) }) {
         if (plugins == null) {
             Text(if (state.loading) "Loading…" else "Could not read the plugins.", color = if (state.loading) MaterialTheme.colorScheme.onSurfaceVariant else warn)
         } else {

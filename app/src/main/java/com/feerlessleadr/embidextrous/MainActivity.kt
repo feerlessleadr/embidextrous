@@ -16,6 +16,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.Sell
+import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +33,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +58,10 @@ import com.feerlessleadr.embidextrous.home.AdminHome
 import com.feerlessleadr.embidextrous.home.AdminHomeViewModel
 import com.feerlessleadr.embidextrous.home.CustomiseHomeScreen
 import com.feerlessleadr.embidextrous.home.HomeScreen
+import com.feerlessleadr.embidextrous.home.ServerOverviewScreen
+import com.feerlessleadr.embidextrous.ui.ComingSoon
+import com.feerlessleadr.embidextrous.ui.GroupTabs
+import com.feerlessleadr.embidextrous.ui.SubTab
 import com.feerlessleadr.embidextrous.ui.ProfileChoiceScreen
 import com.feerlessleadr.embidextrous.ui.BackupsScreen
 import com.feerlessleadr.embidextrous.ui.EmbidextrousTheme
@@ -119,7 +132,8 @@ private data class Tab(val route: String, val label: String, val icon: ImageVect
 
 private const val ROUTE_HOME = "home"
 private const val ROUTE_WATCHING = "watching"
-private const val ROUTE_LISTS = "lists"
+private const val ROUTE_LIBRARY = "library"
+private const val ROUTE_SERVER = "server"
 private const val ROUTE_SETTINGS = "settings"
 
 @Composable
@@ -139,8 +153,9 @@ private fun SignedIn(container: AppContainer, session: Session) {
     val homeLayout by container.settings.homeLayout.collectAsStateWithLifecycle()
     val tabs = buildList {
         add(Tab(ROUTE_HOME, "Home", Icons.Filled.Home))
-        add(Tab(ROUTE_WATCHING, "Hall Monitor", Icons.Filled.Timer))
-        if (smartLists) add(Tab(ROUTE_LISTS, "Smart Lists", Icons.AutoMirrored.Filled.PlaylistPlay))
+        add(Tab(ROUTE_WATCHING, "Watching", Icons.Filled.Visibility))
+        if (smartLists) add(Tab(ROUTE_LIBRARY, "Library", Icons.Filled.VideoLibrary))
+        if (adminCards) add(Tab(ROUTE_SERVER, "Server", Icons.Filled.Dns))
         add(Tab(ROUTE_SETTINGS, "Settings", Icons.Filled.Settings))
     }
     val entry by nav.currentBackStackEntryAsState()
@@ -187,7 +202,7 @@ private fun SignedIn(container: AppContainer, session: Session) {
             composable(ROUTE_HOME) {
                 HomeScreen(
                     vm = watchVm,
-                    admin = if (adminCards) AdminHome(listsVm, adminVm, container.smartListsProblem, onOpenLists = { goTo(ROUTE_LISTS) }) else null,
+                    admin = if (adminCards) AdminHome(listsVm, adminVm, container.smartListsProblem, onOpenLists = { goTo(ROUTE_LIBRARY) }, onOpenServer = { goTo(ROUTE_SERVER) }) else null,
                     layout = homeLayout,
                     onCustomise = { nav.navigate("customise-home") },
                     onOpenWatching = { goTo(ROUTE_WATCHING) },
@@ -198,22 +213,54 @@ private fun SignedIn(container: AppContainer, session: Session) {
                 CustomiseHomeScreen(container, administrator = adminCards, onBack = { nav.popBackStack() })
             }
             composable(ROUTE_WATCHING) {
-                WatchingEyeScreen(watchVm)
+                var section by rememberSaveable { mutableIntStateOf(0) }
+                GroupTabs(
+                    tabs = buildList {
+                        add(SubTab("Hall Monitor") { WatchingEyeScreen(watchVm) })
+                        if (BuildConfig.DEBUG) add(SubTab("Activity") { ComingSoon(Icons.Filled.Timeline, "Activity from Tracearr", "History, trends and violations for each child, from your Tracearr server.") })
+                    },
+                    selected = section,
+                    onSelect = { section = it },
+                )
             }
-            composable(ROUTE_LISTS) {
+            composable(ROUTE_LIBRARY) {
+                var section by rememberSaveable { mutableIntStateOf(0) }
                 if (!smartLists) {
                     NotForRegularAccounts()
                 } else {
-                    SmartListsTab(container) {
-                        ListsScreen(
-                            vm = listsVm,
-                            container = container,
-                            onNew = { nav.navigate("editor/new") },
-                            onEdit = { id -> nav.navigate("editor/$id") },
-                            onDuplicate = { id -> nav.navigate("editor/copy-$id") },
-                        )
-                    }
+                    GroupTabs(
+                        tabs = buildList {
+                            add(
+                                SubTab("Smart lists") {
+                                    SmartListsTab(container) {
+                                        ListsScreen(
+                                            vm = listsVm,
+                                            container = container,
+                                            onNew = { nav.navigate("editor/new") },
+                                            onEdit = { id -> nav.navigate("editor/$id") },
+                                            onDuplicate = { id -> nav.navigate("editor/copy-$id") },
+                                        )
+                                    }
+                                },
+                            )
+                            add(SubTab("Backups") { BackupsScreen(container, onBack = { section = 0 }) })
+                            if (BuildConfig.DEBUG) add(SubTab("Tags") { ComingSoon(Icons.Filled.Sell, "Bulk tag editing", "Edit tags for many items at once, including music.") })
+                        },
+                        selected = section,
+                        onSelect = { section = it },
+                    )
                 }
+            }
+            composable(ROUTE_SERVER) {
+                var section by rememberSaveable { mutableIntStateOf(0) }
+                GroupTabs(
+                    tabs = buildList {
+                        add(SubTab("Overview") { ServerOverviewScreen(adminVm) })
+                        if (BuildConfig.DEBUG) add(SubTab("Plugins") { ComingSoon(Icons.Filled.Extension, "Plugin manager", "Check, update, add and remove the plugins installed from GitHub.") })
+                    },
+                    selected = section,
+                    onSelect = { section = it },
+                )
             }
             composable("editor/{id}") { backEntry ->
                 val raw = backEntry.arguments?.getString("id").orEmpty()

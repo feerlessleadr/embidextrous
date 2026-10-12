@@ -90,6 +90,7 @@ class AdminHome(
     val server: AdminHomeViewModel,
     val problem: StateFlow<String?>,
     val onOpenLists: () -> Unit,
+    val onOpenServer: (() -> Unit)? = null,
 )
 
 @Composable
@@ -238,8 +239,8 @@ private fun HomeContent(
                             }
                         }
                         HomeCard.SmartLists -> if (admin != null) item(key = "smart-lists") { SmartListsCard(admin, now) }
-                        HomeCard.Server -> if (admin != null) item(key = "server") { ServerCard(admin.server) }
-                        HomeCard.Plugins -> if (admin != null) item(key = "plugins") { PluginsCard(admin.server) }
+                        HomeCard.Server -> if (admin != null) item(key = "server") { ServerCard(admin.server, admin.onOpenServer) }
+                        HomeCard.Plugins -> if (admin != null) item(key = "plugins") { PluginsCard(admin.server, admin.onOpenServer) }
                     }
                 }
             }
