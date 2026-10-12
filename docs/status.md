@@ -211,3 +211,6 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 - **Live no longer shuffles.** Emby sends sessions in a changing order, so the list swapped places every second or so; sessions are now always ordered by person (sessions with no person last), then device, then id. Unit-tested. Not confirmed on a real phone with two streams (the owner's report was a direct play plus a transcode; the order change came from Emby's list, not from the play method, as far as the code shows).
 - **Home "Watching now" shows the show's poster** for an episode, like Live: the app asks Emby once per item which show it belongs to (`Items?Ids=...&Fields=SeriesId`), remembers the answer, and falls back to the item's own picture. Unit-tested parser; not seen on a screen.
 - Plugin 2.0.1.0 (see the plugin's PROGRESS.md section 15): the settings page is listed in the dashboard's Advanced menu again.
+
+## 2026-10-12: releasing plugin 2.0.1.0 and app 0.5.1 (in progress)
+- The owner said "publish it". Plugin tag `v2.0.1.0` pushed on `3b975bb` (checks green). App notes `docs/releases/v0.5.1.md` pushed next; then CI and both CodeQL jobs must be green on that commit before tag `v0.5.1`.
