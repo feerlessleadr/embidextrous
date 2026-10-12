@@ -121,3 +121,8 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 - The accent picker (Settings, Appearance) changes all of it, including "Match my wallpaper". Good and warning colours (green, amber, red) keep their meaning and do not change with the accent.
 - 156 unit tests pass (the "logo palette" test was replaced by one that checks every swatch has a neutral dark background and that tonal containers follow the accent).
 - Checked on an emulator (dark, Hall Monitor purple and teal): Home, Hall Monitor, Settings. Not checked: light mode and the other swatches on a device, the sign-in and profile screens with a non-purple accent, the home-screen widget (still the fixed violet and mint look).
+
+## 2026-10-12: widgets follow the accent; light mode, sign-in and profile screens checked
+- Both home-screen widgets now use the neutral look and follow the chosen accent (title, headline, refresh icon), and follow the phone's light or dark setting (new `WidgetColors`, night colour resources). A change of accent redraws the Hall Monitor widget at once.
+- The sign-in and profile screens use the vivid light form of the accent in both modes (a `LocalAccentOnDark` set by the theme), the sign-in card is lifted off the dark backdrop with a border, and their status and navigation bar icons stay light in light mode too (`DarkBackdrops`).
+- Checked on an emulator (Android 37): the widget in dark and light, Home, Hall Monitor and Settings in light, sign-in and profile screens in light and dark with the teal accent. Not checked: the other swatches, the Refresh-all widget on a device, light mode with large fonts, a real phone. The widget picker still shows a blank preview (no preview layout yet).

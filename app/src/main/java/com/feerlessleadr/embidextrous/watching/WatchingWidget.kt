@@ -92,15 +92,17 @@ object WidgetUpdater {
 
     @Synchronized
     private fun draw(context: Context, lines: List<String>, footer: String, summary: WidgetText.Summary?) {
+        val accent = WidgetColors.accent(context)
         val manager = AppWidgetManager.getInstance(context)
         val ids = widgetIds(context, manager)
         if (ids.isEmpty()) return
         // The footer carries a clock; only redraw when the lines changed, so a stream of identical pushes costs nothing.
-        val signature = summary?.text.orEmpty() + "|" + lines.joinToString("|")
+        val signature = WidgetColors.accent(context).toString() + "|" + summary?.text.orEmpty() + "|" + lines.joinToString("|")
         if (signature == lastSignature && footer.startsWith("Live")) return
         lastSignature = signature
 
         val views = RemoteViews(context.packageName, R.layout.widget_status)
+        views.setTextColor(R.id.widgetTitle, accent)
         for (i in ROWS.indices) {
             if (i < lines.size) {
                 views.setViewVisibility(ROWS[i], View.VISIBLE)
@@ -114,7 +116,7 @@ object WidgetUpdater {
         } else {
             views.setViewVisibility(R.id.widgetSummary, View.VISIBLE)
             views.setTextViewText(R.id.widgetSummary, summary.text)
-            views.setTextColor(R.id.widgetSummary, if (summary.needsAttention) 0xFFFFB74D.toInt() else 0xFF5CF2C0.toInt())
+            views.setTextColor(R.id.widgetSummary, if (summary.needsAttention) WidgetColors.warning(context) else accent)
         }
         views.setTextViewText(R.id.widgetFooter, if (lines.size > ROWS.size) "+${lines.size - ROWS.size} more · $footer" else footer)
         val open = Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)

@@ -145,7 +145,7 @@ class AppContainer(context: Context) {
     init {
         // The home-screen widget follows the live data (whenever a screen or the alert service keeps it flowing) and the name setting.
         appScope.launch {
-            combine(watchingEye.state, settings.widgetHideNames) { state, _ -> state }.collect { state ->
+            combine(watchingEye.state, settings.widgetHideNames, settings.accent) { state, _, _ -> state }.collect { state ->
                 if (state.loaded && _session.value != null) {
                     WidgetUpdater.render(appContext, state.cards.map { it.status }, live = state.link == Link.LIVE)
                 }

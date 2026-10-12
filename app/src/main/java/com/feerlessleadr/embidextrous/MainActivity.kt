@@ -52,6 +52,7 @@ import com.feerlessleadr.embidextrous.home.HomeScreen
 import com.feerlessleadr.embidextrous.ui.ProfileChoiceScreen
 import com.feerlessleadr.embidextrous.ui.BackupsScreen
 import com.feerlessleadr.embidextrous.ui.EmbidextrousTheme
+import com.feerlessleadr.embidextrous.ui.DarkBackdrops
 import com.feerlessleadr.embidextrous.ui.ListsScreen
 import com.feerlessleadr.embidextrous.ui.ListsViewModel
 import com.feerlessleadr.embidextrous.ui.SettingsScreen
@@ -78,8 +79,9 @@ class MainActivity : ComponentActivity() {
             val dynamic by container.settings.dynamicColor.collectAsStateWithLifecycle()
             val dark = useDarkTheme(mode)
             // Keep the status and navigation bar icons readable when the chosen theme differs from the phone's.
-            LaunchedEffect(dark) {
-                val style = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { dark }
+            val onDarkScreen = DarkBackdrops.count > 0
+            LaunchedEffect(dark, onDarkScreen) {
+                val style = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { dark || onDarkScreen }
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
             }
             EmbidextrousTheme(mode, accent, dynamic) {

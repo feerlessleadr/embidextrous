@@ -15,6 +15,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,12 +46,12 @@ object Brand {
     val OnDarkMuted = Color(0xFFB9B7C2)
 }
 
-/** The chosen accent, light enough to stand on a dark area (on a dark screen that is the accent itself; on a light screen a lightened copy). */
+/** The chosen accent in its light form, set by the theme (the dark scheme's primary), for use on always-dark areas in either mode. */
+val LocalAccentOnDark = androidx.compose.runtime.compositionLocalOf { Brand.Violet }
+
+/** The chosen accent, light enough to stand on a dark area. */
 @Composable
-fun accentOnDark(): Color {
-    val scheme = MaterialTheme.colorScheme
-    return if (scheme.background.luminance() < 0.5f) scheme.primary else lerp(scheme.primary, Color.White, 0.45f)
-}
+fun accentOnDark(): Color = LocalAccentOnDark.current
 
 /** Text or icon colour that reads on top of [accent] (used on filled accent buttons over dark areas). */
 fun onAccent(accent: Color): Color = if (accent.luminance() > 0.3f) Color(0xFF1B1030) else Color.White
@@ -76,6 +78,7 @@ fun Modifier.heroSurface(shape: androidx.compose.ui.graphics.Shape): Modifier {
 @Composable
 fun BrandBackdrop(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
     val accent = accentOnDark()
+    DarkSystemBars()
     Box(
         modifier
             .background(Brush.verticalGradient(listOf(Color(0xFF0E0E12), Color(0xFF17171D), Color(0xFF0E0E12))))
@@ -86,6 +89,20 @@ fun BrandBackdrop(modifier: Modifier = Modifier, content: @Composable BoxScope.(
             },
         content = content,
     )
+}
+
+/** How many always-dark screens are showing right now; the activity draws light status and navigation bar icons while it is above zero. */
+object DarkBackdrops {
+    var count by androidx.compose.runtime.mutableIntStateOf(0)
+}
+
+/** Counts this screen as an always-dark one while it is shown. */
+@Composable
+private fun DarkSystemBars() {
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        DarkBackdrops.count++
+        onDispose { DarkBackdrops.count-- }
+    }
 }
 
 /** The app icon as a rounded tile. */

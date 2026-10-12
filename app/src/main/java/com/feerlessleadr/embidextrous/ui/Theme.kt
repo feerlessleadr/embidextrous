@@ -219,5 +219,9 @@ fun EmbidextrousTheme(
     } else {
         colorSchemeFor(accent, dark)
     }
-    MaterialTheme(colorScheme = scheme, content = content)
+    // The accent in its light form, for the always-dark screens: the dark scheme's primary (the wallpaper one when that is chosen).
+    val onDark = if (dynamic && dynamicColorSupported) dynamicDarkColorScheme(context).primary else colorSchemeFor(accent, true).primary
+    androidx.compose.runtime.CompositionLocalProvider(LocalAccentOnDark provides onDark) {
+        MaterialTheme(colorScheme = scheme, content = content)
+    }
 }

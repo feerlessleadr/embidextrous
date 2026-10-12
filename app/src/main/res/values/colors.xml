@@ -2,6 +2,7 @@
 <resources>
     <color name="window_background">#FFF7F7F9</color>
     <color name="ic_launcher_background">#140B2E</color>
-    <color name="widget_background">#FFE9DDFF</color>
-    <color name="widget_foreground">#FF1B1730</color>
+    <color name="widget_background">#F2F2F2F5</color>
+    <color name="widget_foreground">#FF1B1B1F</color>
+    <color name="hm_widget_muted">#FF5B5B66</color>
 </resources>

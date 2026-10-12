@@ -20,6 +20,7 @@ class RefreshWidget : AppWidgetProvider() {
         // Draws the widget with an optional status line; its tap sends an explicit, immutable intent to RefreshReceiver.
         fun views(context: Context, status: String?): RemoteViews {
             val views = RemoteViews(context.packageName, R.layout.widget_refresh)
+            views.setInt(R.id.widget_icon, "setColorFilter", com.feerlessleadr.embidextrous.watching.WidgetColors.accent(context))
             if (status != null) views.setTextViewText(R.id.widget_status, status)
             val click = Intent(context, RefreshReceiver::class.java).setAction(RefreshReceiver.ACTION_REFRESH)
             views.setOnClickPendingIntent(
