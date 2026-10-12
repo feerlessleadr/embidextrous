@@ -108,7 +108,7 @@ class ApiClient(
 
     suspend fun installedPlugins(): List<InstalledPlugin> = ServerStatusParser.plugins(get("$server/emby/Plugins"))
 
-    suspend fun failedTasks(): List<FailedTask> = ServerStatusParser.failedTasks(get("$server/emby/ScheduledTasks"))
+    suspend fun scheduledTasks(): TaskSummary = ServerStatusParser.tasks(get("$server/emby/ScheduledTasks"))
 
     suspend fun sessionCounts(): SessionCounts = ServerStatusParser.sessions(get("$server/emby/Sessions"), System.currentTimeMillis())
 

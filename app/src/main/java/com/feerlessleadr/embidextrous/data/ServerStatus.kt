@@ -21,6 +21,9 @@ data class InstalledPlugin(val id: String, val name: String, val version: String
 /** A scheduled task whose last run failed (GET /ScheduledTasks). */
 data class FailedTask(val name: String, val endedUtc: String?)
 
+/** How many scheduled tasks the server has and which of them failed last time. */
+data class TaskSummary(val total: Int, val failed: List<FailedTask>)
+
 /** What is connected to the server right now (GET /Sessions). */
 data class SessionCounts(val active: Int, val playing: Int, val transcoding: Int)
 
@@ -29,7 +32,7 @@ data class ServerSnapshot(
     val info: ServerInfo?,
     val plugins: List<InstalledPlugin>?,
     val pluginUpdates: List<String>?,
-    val failedTasks: List<FailedTask>?,
+    val tasks: TaskSummary?,
     val sessions: SessionCounts?,
 )
 
@@ -51,6 +54,8 @@ object ServerStatusParser {
             val name = o.stringAt("Name") ?: return@mapNotNull null
             InstalledPlugin(o.stringAt("Id").orEmpty(), name, o.stringAt("Version").orEmpty())
         }.sortedBy { it.name.lowercase() }
+
+    fun tasks(text: String): TaskSummary = TaskSummary(objects(text).size, failedTasks(text))
 
     /** Only runs that ended in "Failed" count: a cancelled or aborted run is not a fault. */
     fun failedTasks(text: String): List<FailedTask> =

@@ -34,7 +34,7 @@ class AdminHomeViewModel(private val container: AppContainer) : ViewModel() {
                 val info = async { attempt { api.systemInfo() } }
                 val plugins = async { attempt { api.installedPlugins() } }
                 val updates = async { attempt { api.pluginUpdates() } }
-                val tasks = async { attempt { api.failedTasks() } }
+                val tasks = async { attempt { api.scheduledTasks() } }
                 val sessions = async { attempt { api.sessionCounts() } }
                 ServerSnapshot(info.await(), plugins.await(), updates.await(), tasks.await(), sessions.await())
             }

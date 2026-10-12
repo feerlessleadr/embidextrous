@@ -226,3 +226,33 @@ class GreetingTest {
         assertEquals("Good evening", com.feerlessleadr.embidextrous.home.Greeting.forHour(23))
     }
 }
+
+class AdminCardsModelTest {
+    private fun doc(id: String, name: String, items: Int?, enabled: Boolean = true): com.feerlessleadr.embidextrous.data.SmartListDoc {
+        val count = if (items == null) "" else ""","ItemCount":$items"""
+        return com.feerlessleadr.embidextrous.data.SmartListDoc(
+            kotlinx.serialization.json.Json.parseToJsonElement("""{"Id":"$id","Name":"$name","Enabled":$enabled$count}""") as kotlinx.serialization.json.JsonObject,
+        )
+    }
+
+    @Test fun rowsPutTroubleFirstAndOffLast() {
+        val lists = listOf(doc("a", "Alpha", 10), doc("b", "Bravo", 20, enabled = false), doc("c", "Charlie", 5), doc("d", "Delta", 7), doc("e", "Echo", null))
+        val status = com.feerlessleadr.embidextrous.data.RefreshStatus(
+            running = mapOf("d" to com.feerlessleadr.embidextrous.data.RunningRefresh(1, 4)),
+            last = mapOf("c" to com.feerlessleadr.embidextrous.data.RefreshOutcome(false, "x", null)),
+        )
+        val snapshot = com.feerlessleadr.embidextrous.home.AdminModel.lists(lists, status)
+        assertEquals(listOf("Charlie", "Delta", "Alpha"), snapshot.rows.map { it.name })
+        assertEquals(com.feerlessleadr.embidextrous.home.ListState.Failed, snapshot.rows[0].state)
+        assertEquals(com.feerlessleadr.embidextrous.home.ListState.Refreshing, snapshot.rows[1].state)
+        assertEquals(10 + 5 + 7, snapshot.totalItems) // the disabled list does not count; a list with no count adds nothing
+        assertEquals(5, snapshot.total)
+    }
+
+    @Test fun taskSummaryCountsAllAndFailed() {
+        val text = """[{"Name":"A","LastExecutionResult":{"Status":"Completed"}},{"Name":"B","LastExecutionResult":{"Status":"Failed"}},{"Name":"C"}]"""
+        val summary = ServerStatusParser.tasks(text)
+        assertEquals(3, summary.total)
+        assertEquals(listOf("B"), summary.failed.map { it.name })
+    }
+}
