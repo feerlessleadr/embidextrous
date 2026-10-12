@@ -187,3 +187,6 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 
 ## 2026-10-12: releasing 0.4.1 (in progress)
 - The owner said "publish it". Release notes `docs/releases/v0.4.1.md` pushed; next: CI and both CodeQL jobs green on that commit, tag `v0.4.1`, watch the run, record the SHA-256. Emulator check of the Live poster done (episode thumbnail gone; the test shows have no posters). The throw-away players `we-p7-live*` were deleted again.
+
+## 2026-10-12: Embidextrous 0.4.1 released
+- Tag `v0.4.1` on `3391a80` (CI and both CodeQL jobs green); the `Release v0.4.1` run succeeded. Asset `Embidextrous-0.4.1.apk`, 2,406,454 bytes, SHA-256 `99cda972c239cdcabe36189865f2a6bcecaf8a7c32781c4a3857ebdabdb3defa`. `gh attestation verify` not run locally (no `gh`). Contains: Live shows the series poster for episodes.
