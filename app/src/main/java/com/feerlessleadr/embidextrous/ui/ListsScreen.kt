@@ -127,7 +127,7 @@ fun ListsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Smart Lists") },
+                title = { if (!com.feerlessleadr.embidextrous.ui.LocalInTabbedGroup.current) Text("Smart Lists") },
                 actions = {
                     IconButton(onClick = {
                         searching = !searching

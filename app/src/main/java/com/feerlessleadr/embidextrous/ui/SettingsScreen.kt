@@ -146,8 +146,8 @@ fun SettingsScreen(container: AppContainer, onBackups: () -> Unit) {
                     Row(Modifier.fillMaxWidth().clickable(onClick = onBackups).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Backup, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
-                            Text("Backups", style = MaterialTheme.typography.titleMedium)
-                            Text("Back up, restore or save a copy of all your smart lists", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Smart list backups", style = MaterialTheme.typography.titleMedium)
+                            Text("Back up, restore or save a copy of your smart lists. This is not a backup of the app or of Emby itself.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Icon(Icons.Default.ChevronRight, contentDescription = null)
                     }

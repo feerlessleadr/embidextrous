@@ -191,7 +191,7 @@ fun BackupsScreen(container: AppContainer, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Backups") },
+                title = { Text("Smart list backups") },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
             )
         },

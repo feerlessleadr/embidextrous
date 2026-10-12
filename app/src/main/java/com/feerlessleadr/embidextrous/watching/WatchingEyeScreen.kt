@@ -132,7 +132,7 @@ private fun WatchingEyeContent(vm: WatchingEyeViewModel) {
         topBar = {
             TopAppBar(title = {
                 Column {
-                    Text("Hall Monitor")
+                    if (!com.feerlessleadr.embidextrous.ui.LocalInTabbedGroup.current) Text("Hall Monitor")
                     Text(subtitle(state, now), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             })

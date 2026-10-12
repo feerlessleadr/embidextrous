@@ -24,7 +24,7 @@ fun ServerOverviewScreen(vm: AdminHomeViewModel) {
         vm.load()
         onStopOrDispose { }
     }
-    Scaffold(topBar = { TopAppBar(title = { Text("Server") }) }) { padding ->
+    Scaffold(topBar = { TopAppBar(title = { if (!com.feerlessleadr.embidextrous.ui.LocalInTabbedGroup.current) Text("Server") }) }) { padding ->
         PullToRefreshBox(isRefreshing = false, onRefresh = { vm.load(force = true) }, modifier = Modifier.padding(padding).fillMaxSize()) {
             LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(12.dp)) {
                 item { ServerCard(vm) }

@@ -243,7 +243,6 @@ private fun SignedIn(container: AppContainer, session: Session) {
                                     }
                                 },
                             )
-                            add(SubTab("Backups") { BackupsScreen(container, onBack = { section = 0 }) })
                             if (BuildConfig.DEBUG) add(SubTab("Tags") { ComingSoon(Icons.Filled.Sell, "Bulk tag editing", "Edit tags for many items at once, including music.") })
                         },
                         selected = section,

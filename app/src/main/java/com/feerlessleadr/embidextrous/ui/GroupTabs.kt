@@ -21,6 +21,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
+/** True inside a group that shows a tab row: the tabs already say where you are, so the screens inside leave their own title out. */
+val LocalInTabbedGroup = androidx.compose.runtime.compositionLocalOf { false }
+
 /** One section inside a bottom-bar group, shown as a tab along the top of that group. */
 class SubTab(val label: String, val content: @Composable () -> Unit)
 
@@ -47,7 +50,7 @@ fun GroupTabs(tabs: List<SubTab>, selected: Int, onSelect: (Int) -> Unit) {
         }
         // The screens inside bring their own top bars; the tab row has already taken the status bar space.
         Box(Modifier.weight(1f).let { if (tabs.size > 1) it.consumeWindowInsets(WindowInsets.statusBars) else it }) {
-            tabs[index].content()
+            androidx.compose.runtime.CompositionLocalProvider(LocalInTabbedGroup provides (tabs.size > 1)) { tabs[index].content() }
         }
     }
 }
