@@ -60,6 +60,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.feerlessleadr.embidextrous.AppContainer
 import com.feerlessleadr.embidextrous.data.TrGate
 import com.feerlessleadr.embidextrous.data.TrPlay
@@ -92,7 +93,9 @@ fun TracearrTab(vm: TracearrViewModel, container: AppContainer) {
     val connection by container.tracearr.collectAsStateWithLifecycle()
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    LaunchedEffect(connection) { vm.load() }
+    val owner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    // Tracearr pushes live events while this tab is on screen; it is asked again only while that push is down.
+    LaunchedEffect(connection) { owner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) { vm.keepFresh() } }
     LaunchedEffect(vm) { vm.messages.collect { snackbar.showSnackbar(it) } }
     Scaffold(snackbarHost = { SnackbarHost(snackbar) }, containerColor = Color.Transparent) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {

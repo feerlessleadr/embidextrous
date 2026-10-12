@@ -62,6 +62,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.feerlessleadr.embidextrous.data.GhPlugin
 import com.feerlessleadr.embidextrous.data.GhOrder
 import com.feerlessleadr.embidextrous.data.GhRun
@@ -84,8 +85,9 @@ private enum class ManagerPage { Main, Add, History, Settings }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PluginManagerTab(vm: PluginManagerViewModel, adminVm: AdminHomeViewModel) {
-    LaunchedEffect(vm) { vm.load() }
-    LaunchedEffect(adminVm) { adminVm.load() }
+    val owner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    LaunchedEffect(vm) { owner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) { vm.keepFresh() } }
+    LaunchedEffect(adminVm) { owner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) { adminVm.keepFresh() } }
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(vm) { vm.messages.collect { snackbar.showSnackbar(it) } }

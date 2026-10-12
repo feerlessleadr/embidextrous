@@ -9,8 +9,12 @@ import com.feerlessleadr.embidextrous.data.ApiException
 import com.feerlessleadr.embidextrous.data.DeviceInfo
 import com.feerlessleadr.embidextrous.data.LibraryInfo
 import com.feerlessleadr.embidextrous.data.LiveSession
+import com.feerlessleadr.embidextrous.data.ServerAdminParser
 import com.feerlessleadr.embidextrous.data.ServerTask
+import com.feerlessleadr.embidextrous.push.EmbyTopic
+import com.feerlessleadr.embidextrous.push.keepFresh
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +34,9 @@ data class LibraryRow(val library: LibraryInfo, val count: Int?)
 /** How many activity entries one page holds. */
 const val ACTIVITY_PAGE = 50
 
+/** The most activity entries kept in memory (older ones are loaded again on request). */
+const val MAX_ACTIVITY_KEPT = 500
+
 /** The Server group's tools (live sessions, tasks, activity, devices) and Library's library list. Each section loads when its tab is shown; actions report back through [messages]. */
 class ServerToolsViewModel(private val container: AppContainer) : ViewModel() {
     private val _live = MutableStateFlow(Section<LiveSession>())
@@ -48,7 +55,89 @@ class ServerToolsViewModel(private val container: AppContainer) : ViewModel() {
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val messages: SharedFlow<String> = _messages.asSharedFlow()
 
+    // ----- staying up to date: Emby pushes, and these look again by asking only while it is not -----------------
+
+    private val push get() = container.push
+    @Volatile private var activityDirty = false
+    private var activityJob: kotlinx.coroutines.Job? = null
+
+    /** Live sessions: pushed every moment they change; asked for every 5 seconds only while the push is down. */
+    suspend fun keepLiveFresh() = push.keepFresh(
+        arrayOf(EmbyTopic.Sessions), fallbackEveryMs = 5_000,
+        accept = { it.type == "Sessions" },
+        onPush = { e -> e.data?.let { d -> _live.value = Section(ServerAdminParser.sessions(d.toString()), loaded = true) } },
+        refresh = { loadLiveNow() },
+    )
+
+    /** Scheduled tasks: pushed while they run; asked for every 30 seconds only while the push is down. */
+    suspend fun keepTasksFresh() = push.keepFresh(
+        arrayOf(EmbyTopic.ScheduledTasks), fallbackEveryMs = 30_000,
+        accept = { it.type == "ScheduledTasksInfo" },
+        onPush = { e -> e.data?.let { d -> _tasks.value = Section(ServerAdminParser.tasks(d.toString()), loaded = true) } },
+        refresh = { loadTasksNow() },
+    )
+
+    /** The activity log: new entries are pushed and put on top; the log is asked for again every 30 seconds only while the push is down. */
+    suspend fun keepActivityFresh() = push.keepFresh(
+        arrayOf(EmbyTopic.Activity), fallbackEveryMs = 30_000,
+        accept = { it.type == "ActivityLogEntry" },
+        onPush = { e ->
+            val text = e.data?.toString().orEmpty()
+            val array = if (text.trimStart().startsWith("[")) text else "[$text]"
+            val fresh = ServerAdminParser.activity("""{"Items":$array}""")
+            if (fresh.isNotEmpty()) {
+                _activity.update { s -> Section((fresh + s.items).distinctBy { it.id }.sortedByDescending { it.id }.take(MAX_ACTIVITY_KEPT), loaded = true) }
+            } else {
+                // Emby says something was logged without saying what: fetch the newest entries now, and once more after a short pause if more
+                // pushes arrived meanwhile (a burst of entries is one or two looks, never one per entry).
+                activityDirty = true
+                if (activityJob?.isActive != true) {
+                    activityJob = viewModelScope.launch {
+                        while (activityDirty) {
+                            activityDirty = false
+                            loadActivityNow()
+                            delay(2_000)
+                        }
+                    }
+                }
+            }
+        },
+        refresh = { loadActivityNow() },
+    )
+
+    /** The device list: a sign-in shows up in the activity push, which is the cue to look again; asked for every minute only while the push is down. */
+    suspend fun keepDevicesFresh() = push.keepFresh(
+        arrayOf(EmbyTopic.Activity), fallbackEveryMs = 60_000,
+        accept = { it.type == "ActivityLogEntry" && it.data?.toString()?.contains("user.authenticated") == true },
+        onPush = { loadDevicesNow() },
+        refresh = { loadDevicesNow() },
+    )
+
     // ----- loading -----------------------------------------------------------------------------------------
+
+    private suspend fun loadLiveNow() = loadNow(_live) { liveSessions() }
+    private suspend fun loadTasksNow() = loadNow(_tasks) { allTasks() }
+    private suspend fun loadDevicesNow() = loadNow(_devices) { devices() }
+
+    private suspend fun loadActivityNow() {
+        val api = container.api() ?: return
+        try {
+            val page = api.activity(0, ACTIVITY_PAGE)
+            _activityHasMore.value = page.size >= ACTIVITY_PAGE || _activity.value.items.size > page.size
+            _activity.update { s -> Section((page + s.items).distinctBy { it.id }.sortedByDescending { it.id }.take(MAX_ACTIVITY_KEPT), loaded = true) }
+        } catch (e: ApiException) {
+            failed(e) { m -> _activity.update { it.copy(loaded = true, error = m) } }
+        }
+    }
+
+    private suspend fun <T> loadNow(target: MutableStateFlow<Section<T>>, call: suspend ApiClient.() -> List<T>) {
+        val api = container.api() ?: return
+        try {
+            target.value = Section(api.call(), loaded = true)
+        } catch (e: ApiException) {
+            failed(e) { m -> target.update { it.copy(loaded = true, error = m) } }
+        }
+    }
 
     fun loadLive() = load(_live) { liveSessions() }
 

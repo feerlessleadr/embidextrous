@@ -16,6 +16,7 @@ import com.feerlessleadr.embidextrous.data.TracearrConnection
 import com.feerlessleadr.embidextrous.data.TracearrRules
 import com.feerlessleadr.embidextrous.data.UrlRules
 import com.feerlessleadr.embidextrous.data.WatchingEyeClient
+import com.feerlessleadr.embidextrous.push.EmbyPush
 import com.feerlessleadr.embidextrous.watching.AlertService
 import com.feerlessleadr.embidextrous.watching.UserAvatars
 import com.feerlessleadr.embidextrous.watching.Link
@@ -60,6 +61,9 @@ class AppContainer(context: Context) {
         _listsChanged.tryEmit(Unit)
     }
     private val http = ApiClient.defaultHttpClient()
+
+    /** The shared HTTP client (no redirects, sensible timeouts) for the live connections. */
+    val httpClient: okhttp3.OkHttpClient get() = http
 
     private val _session = MutableStateFlow(sessions.load())
     val session: StateFlow<Session?> = _session.asStateFlow()
@@ -165,6 +169,9 @@ class AppContainer(context: Context) {
         settings.setAlertsEnabled(on)
         AlertService.sync(appContext)
     }
+
+    /** One shared websocket to Emby for everything pushed (live sessions, tasks, the activity log, plugin events); screens lease the topics they need. */
+    val push: EmbyPush by lazy { EmbyPush(appScope, { _session.value }, { sessions.deviceId() }, http) }
 
     /** The Hall Monitor part of the app: live status, kept up to date only while a screen needs it. */
     val watchingEye: WatchingEyeRepository by lazy { WatchingEyeRepository(this, appScope, http) }

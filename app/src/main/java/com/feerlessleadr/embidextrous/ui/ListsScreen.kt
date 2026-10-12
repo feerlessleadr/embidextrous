@@ -88,6 +88,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.feerlessleadr.embidextrous.AppContainer
 import com.feerlessleadr.embidextrous.data.Catalog
 import com.feerlessleadr.embidextrous.data.Density
@@ -105,6 +106,8 @@ fun ListsScreen(
     onEdit: (String) -> Unit,
     onDuplicate: (String) -> Unit,
 ) {
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    LaunchedEffect(vm) { lifecycleOwner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) { vm.keepFresh() } }
     val state by vm.state.collectAsStateWithLifecycle()
     val density by container.settings.density.collectAsStateWithLifecycle()
     val colors by container.settings.listColors.collectAsStateWithLifecycle()

@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import com.feerlessleadr.embidextrous.push.EmbyTopic
+import com.feerlessleadr.embidextrous.push.keepFresh
 import kotlinx.coroutines.launch
 
 data class PluginManagerState(
@@ -59,25 +61,43 @@ class PluginManagerViewModel(private val container: AppContainer) : ViewModel() 
 
     /** Looks at the plugin: is it there, is its API on, is it a version this app can talk to. Then loads the dashboard and the list. */
     fun load() {
-        viewModelScope.launch {
-            val api = container.api() ?: return@launch
-            val gate = try {
-                GhrpiGate.of(api.ghInfo())
-            } catch (e: ApiException) {
-                when {
-                    e.isUnauthorized -> { container.signOut(); return@launch }
-                    e.status == 404 -> GhrpiGate.NotInstalled
-                    e.status == 403 -> GhrpiGate.Off(null)
-                    else -> GhrpiGate.Unreachable(e.message.orEmpty())
-                }
-            }
-            _state.update { it.copy(gate = gate) }
-            if (gate is GhrpiGate.Ready) {
-                refresh(api)
-                if (_state.value.status?.run?.isRunning == true) follow()
+        viewModelScope.launch { loadNow() }
+    }
+
+    private suspend fun loadNow() {
+        val api = container.api() ?: return
+        val gate = try {
+            GhrpiGate.of(api.ghInfo())
+        } catch (e: ApiException) {
+            when {
+                e.isUnauthorized -> { container.signOut(); return }
+                e.status == 404 -> GhrpiGate.NotInstalled
+                e.status == 403 -> GhrpiGate.Off(null)
+                else -> GhrpiGate.Unreachable(e.message.orEmpty())
             }
         }
+        _state.update { it.copy(gate = gate) }
+        if (gate is GhrpiGate.Ready) {
+            refresh(api)
+            if (_state.value.status?.run?.isRunning == true) follow()
+        }
     }
+
+    /**
+     * Keeps the manager fresh while its tab is on screen. The plugin pushes its own events through Emby's websocket (a run starting, each plugin it
+     * finishes, a restart becoming pending, a change made elsewhere) and each one is the cue to look again. Only while that push is down is the whole picture
+     * asked for again, every 30 seconds (and every 1.5 seconds during a run).
+     */
+    suspend fun keepFresh() = container.push.keepFresh(
+        arrayOf(EmbyTopic.Events),
+        fallbackEveryMs = 30_000,
+        accept = { it.type.startsWith("GitHubRepoPluginInstall.") || it.type in INSTALL_EVENTS },
+        onPush = { e ->
+            val api = container.api()
+            if (api != null && _state.value.gate is GhrpiGate.Ready) refresh(api) else loadNow()
+        },
+        refresh = { loadNow() },
+    )
 
     private suspend fun refresh(api: ApiClient) {
         try {
@@ -89,7 +109,10 @@ class PluginManagerViewModel(private val container: AppContainer) : ViewModel() 
         }
     }
 
-    /** Looks again every couple of seconds while a run is going, then once more when it is over. */
+    /**
+     * Follows a run to its end. The plugin pushes each step (the screen's [keepFresh] applies them), so while the push is up this only looks once more now;
+     * while it is down it looks again every 1.5 seconds until the run is over.
+     */
     private fun follow() {
         if (followJob?.isActive == true) return
         followJob = viewModelScope.launch {
@@ -97,7 +120,7 @@ class PluginManagerViewModel(private val container: AppContainer) : ViewModel() 
             var rounds = 0
             while (rounds < 300) {
                 refresh(api)
-                if (_state.value.status?.run?.isRunning != true) break
+                if (container.push.connected.value || _state.value.status?.run?.isRunning != true) break
                 delay(1_500)
                 rounds++
             }
@@ -312,5 +335,10 @@ class PluginManagerViewModel(private val container: AppContainer) : ViewModel() 
 
     private fun failed(e: ApiException) {
         if (e.isUnauthorized) container.signOut() else _messages.tryEmit(e.message ?: "Something went wrong.")
+    }
+
+    private companion object {
+        /** Messages Emby itself sends when plugins are installed, removed or the server needs a restart: also the cue to look at the manager again. */
+        val INSTALL_EVENTS = setOf("PackageInstallationCompleted", "PackageInstallationFailed", "PackageUninstalled", "RestartRequired")
     }
 }

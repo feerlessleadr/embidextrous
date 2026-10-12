@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.feerlessleadr.embidextrous.push.keepFresh
 
 data class ListsUiState(
     val lists: List<SmartListDoc> = emptyList(),
@@ -112,6 +113,19 @@ class ListsViewModel(private val container: AppContainer) : ViewModel() {
             }
         }
     }
+
+    /**
+     * Keeps the overview fresh while the Smart Lists tab is on screen. Emby pushes "library changed" when a list refresh rewrites a playlist or collection, which
+     * is the cue to look again; the plugin offers no push for a refresh's progress, so that is still looked at every few seconds while one is running
+     * (see pollWhileRunning). Only while the push is down is the overview asked for again by timer, every minute.
+     */
+    suspend fun keepFresh() = container.push.keepFresh(
+        arrayOf(com.feerlessleadr.embidextrous.push.EmbyTopic.Events),
+        fallbackEveryMs = 60_000,
+        accept = { it.type == "LibraryChanged" },
+        onPush = { load(Load.Silent) },
+        refresh = { load(Load.Silent) },
+    )
 
     fun setQuery(query: String) = _state.update { it.copy(query = query) }
 

@@ -129,18 +129,11 @@ private fun Heading(text: String) {
 // Live
 // ---------------------------------------------------------------------------------------------------------
 
-/** Who is connected right now and what they are playing; looks again every few seconds while it is on screen. */
+/** Who is connected right now and what they are playing; Emby pushes every change while this is on screen, and it asks for the list only if the push is down. */
 @Composable
 fun LiveScreen(vm: ServerToolsViewModel) {
     val owner = LocalLifecycleOwner.current
-    LaunchedEffect(vm) {
-        owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            while (true) {
-                vm.loadLive()
-                delay(5_000)
-            }
-        }
-    }
+    LaunchedEffect(vm) { owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { vm.keepLiveFresh() } }
     val state by vm.live.collectAsStateWithLifecycle()
     var stopping by remember { mutableStateOf<LiveSession?>(null) }
     var showOthers by rememberSaveable { mutableStateOf(false) }
@@ -269,16 +262,8 @@ private fun ConnectedRow(session: LiveSession, now: Long, loadAvatar: suspend (S
 fun TasksScreen(vm: ServerToolsViewModel) {
     val owner = LocalLifecycleOwner.current
     val state by vm.tasks.collectAsStateWithLifecycle()
-    // Look again every few seconds while something runs, so its progress moves.
-    LaunchedEffect(vm) {
-        owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            vm.loadTasks()
-            while (true) {
-                delay(4_000)
-                if (vm.tasks.value.items.any { it.running }) vm.loadTasks()
-            }
-        }
-    }
+    // Emby pushes the tasks as they change (a running task's progress moves by itself); it is asked only while the push is down.
+    LaunchedEffect(vm) { owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { vm.keepTasksFresh() } }
     var showHidden by rememberSaveable { mutableStateOf(false) }
     var asking by remember { mutableStateOf<ServerTask?>(null) }
     val shown = state.items.filter { showHidden || !it.hidden || it.running || it.lastStatus == "Failed" }
@@ -354,7 +339,9 @@ private enum class ActivityFilter(val label: String) { All("All"), Problems("Pro
 /** The server's recent log: sign-ins (and failed ones), playback, plugin and user changes, warnings. */
 @Composable
 fun ActivityScreen(vm: ServerToolsViewModel) {
-    LaunchedEffect(vm) { vm.loadActivity() }
+    val owner = LocalLifecycleOwner.current
+    // New entries are pushed and appear on top by themselves; the log is asked for again only while the push is down.
+    LaunchedEffect(vm) { owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { vm.keepActivityFresh() } }
     val state by vm.activity.collectAsStateWithLifecycle()
     val hasMore by vm.activityHasMore.collectAsStateWithLifecycle()
     var filter by rememberSaveable { mutableStateOf(ActivityFilter.All) }
@@ -417,7 +404,9 @@ private fun ActivityRow(entry: ActivityEntry, now: Long) {
 /** Every app and browser that has signed in, with the option to sign one out for good. */
 @Composable
 fun DevicesScreen(vm: ServerToolsViewModel, thisDeviceId: String) {
-    LaunchedEffect(vm) { vm.loadDevices() }
+    val owner = LocalLifecycleOwner.current
+    // A device signing in is pushed (as an activity entry) and is the cue to look again; asked for every minute only while the push is down.
+    LaunchedEffect(vm) { owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { vm.keepDevicesFresh() } }
     val state by vm.devices.collectAsStateWithLifecycle()
     var asking by remember { mutableStateOf<DeviceInfo?>(null) }
     var renaming by remember { mutableStateOf<DeviceInfo?>(null) }

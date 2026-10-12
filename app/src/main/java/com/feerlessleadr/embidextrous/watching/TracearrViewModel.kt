@@ -24,6 +24,12 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import java.util.concurrent.atomic.AtomicBoolean
+import com.feerlessleadr.embidextrous.data.stringAt
+import com.feerlessleadr.embidextrous.push.TracearrLive
+import com.feerlessleadr.embidextrous.push.TracearrLiveListener
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 
@@ -56,30 +62,126 @@ class TracearrViewModel(private val container: AppContainer) : ViewModel() {
 
     private val posters = ConcurrentHashMap<String, Bitmap>()
 
+    private companion object {
+        /** Events arrive in bursts (a stream sends progress often): they are gathered into one look this often at most. */
+        const val DEBOUNCE_MS = 3_000L
+
+        /** After the push has been down this long, start asking by timer. */
+        const val FALLBACK_GRACE_MS = 10_000L
+        const val FALLBACK_STREAMS_MS = 15_000L
+    }
+
     private fun client(): TracearrClient? = container.tracearrClient()
 
     /** Looks at the connection (and so the server list) and then loads what the Activity tab shows. */
     fun load() {
-        viewModelScope.launch {
-            val c = client()
-            if (c == null) {
-                _state.update { TracearrState(gate = TrGate.NotConfigured) }
-                return@launch
+        viewModelScope.launch { loadNow() }
+    }
+
+    /** Looks at the connection and loads everything. Returns true when Tracearr answered and the key was accepted. */
+    private suspend fun loadNow(): Boolean {
+        val c = client()
+        if (c == null) {
+            _state.update { TracearrState(gate = TrGate.NotConfigured) }
+            return false
+        }
+        _state.update { it.copy(gate = if (it.gate is TrGate.Ready) it.gate else TrGate.Checking) }
+        try {
+            val servers = c.servers()
+            _state.update { it.copy(gate = TrGate.Ready(servers.tracearrVersion, servers.servers)) }
+        } catch (e: ApiException) {
+            _state.update { it.copy(gate = gateFor(e)) }
+            return false
+        }
+        coroutineScope {
+            launch { loadStreams(c) }
+            launch { loadHistory(c, more = false) }
+            launch { loadViolations(c, more = false) }
+            launch { loadUsers(c) }
+        }
+        return true
+    }
+
+    /**
+     * Keeps the Activity tab fresh while it is on screen. Tracearr pushes live events down one open connection (a stream starting or stopping, a violation, a
+     * server going down or up) and each is applied or is the cue to look again; the first frame of every connection means "fetch the starting state", since
+     * nothing is replayed. Tracearr gives each key a shared budget of requests, so looking again is gathered into one look every few seconds at most.
+     * Only while the push is down is anything asked for again by timer: streams every 15 seconds, the rest every minute.
+     */
+    suspend fun keepFresh() = coroutineScope {
+        if (!loadNow()) return@coroutineScope
+        val connection = container.tracearr.value ?: return@coroutineScope
+        val c = client() ?: return@coroutineScope
+        val streamsDirty = AtomicBoolean(false)
+        val violationsDirty = AtomicBoolean(false)
+        val historyDirty = AtomicBoolean(false)
+        val up = MutableStateFlow(false)
+        val scope = this
+        launch {
+            TracearrLive(connection, container.httpClient).run(object : TracearrLiveListener {
+                override fun onConnected(connected: Boolean) {
+                    up.value = connected
+                }
+
+                override fun onReady() {
+                    // A new connection: whatever happened while it was down is not replayed, so fetch the starting state again.
+                    streamsDirty.set(true)
+                    violationsDirty.set(true)
+                    historyDirty.set(true)
+                }
+
+                override fun onEvent(type: String, data: String) {
+                    when {
+                        type.startsWith("stream.") -> {
+                            streamsDirty.set(true)
+                            if (type == "stream.stopped") historyDirty.set(true) // a finished play appears in the history
+                        }
+                        type == "violation.created" -> violationsDirty.set(true)
+                        type == "server.health" -> scope.launch { applyServerHealth(data) }
+                    }
+                }
+
+                override fun onKeyRejected() {
+                    _state.update { it.copy(gate = TrGate.KeyRejected) }
+                }
+            })
+        }
+        launch {
+            while (true) {
+                delay(DEBOUNCE_MS)
+                if (streamsDirty.getAndSet(false)) loadStreams(c)
+                if (violationsDirty.getAndSet(false)) loadViolations(c, more = false)
+                if (historyDirty.getAndSet(false)) loadHistory(c, more = false)
             }
-            _state.update { it.copy(gate = if (it.gate is TrGate.Ready) it.gate else TrGate.Checking) }
-            try {
-                val servers = c.servers()
-                _state.update { it.copy(gate = TrGate.Ready(servers.tracearrVersion, servers.servers)) }
-            } catch (e: ApiException) {
-                _state.update { it.copy(gate = gateFor(e)) }
-                return@launch
+        }
+        launch {
+            up.collectLatest { connected ->
+                if (!connected) {
+                    delay(FALLBACK_GRACE_MS)
+                    var round = 0
+                    while (true) {
+                        loadStreams(c)
+                        if (round % 4 == 0) {
+                            loadViolations(c, more = false)
+                            loadHistory(c, more = false)
+                        }
+                        round++
+                        delay(FALLBACK_STREAMS_MS)
+                    }
+                }
             }
-            coroutineScope {
-                launch { loadStreams(c) }
-                launch { loadHistory(c, more = false) }
-                launch { loadViolations(c, more = false) }
-                launch { loadUsers(c) }
-            }
+        }
+    }
+
+    /** A "server.health" event: the server's id and new status, applied to the pill without asking again. */
+    private fun applyServerHealth(text: String) {
+        val data = (runCatching { com.feerlessleadr.embidextrous.data.AppJson.parseToJsonElement(text) }.getOrNull() as? kotlinx.serialization.json.JsonObject)?.get("data") as? kotlinx.serialization.json.JsonObject
+            ?: return
+        val id = data.stringAt("server_id") ?: return
+        val status = data.stringAt("status") ?: return
+        _state.update { s ->
+            val gate = s.gate as? TrGate.Ready ?: return@update s
+            s.copy(gate = gate.copy(servers = gate.servers.map { if (it.id == id) it.copy(status = status) else it }))
         }
     }
 
