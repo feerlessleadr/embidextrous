@@ -11,7 +11,7 @@ labels: bug
 **Versions**
 - App version (Settings screen):
 - Emby server version:
-- Plugins involved and their versions (Watching Eye / SmartLists):
+- Plugins involved and their versions (Hall Monitor / SmartLists):
 - Phone and Android version:
 
 Please do not paste API keys, tokens, passwords or your server address.

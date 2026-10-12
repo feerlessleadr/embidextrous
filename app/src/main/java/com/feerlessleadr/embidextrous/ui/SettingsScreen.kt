@@ -129,7 +129,7 @@ fun SettingsScreen(container: AppContainer, onBackups: () -> Unit) {
                 ProfileSection(container)
             }
 
-            WatchingEyeKeySection(container)
+            HallMonitorKeySection(container)
             com.feerlessleadr.embidextrous.watching.TracearrConnectionCard(container, showTitle = true)
 
             val profile by container.settings.profile.collectAsStateWithLifecycle()
@@ -229,7 +229,7 @@ private fun ProfileSection(container: AppContainer) {
 
 /** The Hall Monitor plugin's key: shown as "set" or "not set"; a new one can be entered or the key removed. */
 @Composable
-private fun WatchingEyeKeySection(container: AppContainer) {
+private fun HallMonitorKeySection(container: AppContainer) {
     val key by container.pluginKey.collectAsStateWithLifecycle()
     var text by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
     SettingsCard("Hall Monitor", Icons.Default.Timer, MaterialTheme.colorScheme.primary) {

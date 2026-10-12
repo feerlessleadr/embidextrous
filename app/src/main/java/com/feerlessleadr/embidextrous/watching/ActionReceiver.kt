@@ -35,7 +35,7 @@ class ActionReceiver : BroadcastReceiver() {
                 var ok = false
                 var alreadyHandled = false
                 val result = try {
-                    val client = container.watchingEyeClient() ?: throw ApiException(0, "Sign in and enter the Hall Monitor key in the app first.")
+                    val client = container.hallMonitorClient() ?: throw ApiException(0, "Sign in and enter the Hall Monitor key in the app first.")
                     // Time may already have been added from another phone: look first, so a stale button can never add it twice.
                     val current = runBlocking { client.status() }.firstOrNull { it.userId == userId }
                     if (current != null && current.enabled && current.block(java.time.Instant.now()) != "TimeLimitExceeded") {

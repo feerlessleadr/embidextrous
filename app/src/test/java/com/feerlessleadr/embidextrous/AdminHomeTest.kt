@@ -139,9 +139,9 @@ class AdminHomeTest {
 
     @Test fun hallMonitorVersionVerdicts() {
         assertEquals(PluginChecks.Verdict.Missing, PluginChecks.hallMonitor(emptyList()))
-        assertEquals(PluginChecks.Verdict.TooOld("1.8.0.0"), PluginChecks.hallMonitor(listOf(plugin("Watching Eye", "1.8.0.0"))))
-        assertEquals(PluginChecks.Verdict.Fine("1.9.0.0"), PluginChecks.hallMonitor(listOf(plugin("Watching Eye", "1.9.0.0"))))
-        assertEquals(PluginChecks.Verdict.Fine("1.10.0.0"), PluginChecks.hallMonitor(listOf(plugin("Hall Monitor", "1.10.0.0"))))
+        assertEquals(PluginChecks.Verdict.TooOld("1.10.0.0"), PluginChecks.hallMonitor(listOf(plugin("Hall Monitor", "1.10.0.0"))))
+        assertEquals(PluginChecks.Verdict.Fine("2.0.0.0"), PluginChecks.hallMonitor(listOf(plugin("Hall Monitor", "2.0.0.0"))))
+        assertEquals(PluginChecks.Verdict.Fine("2.1.0.0"), PluginChecks.hallMonitor(listOf(plugin("Hall Monitor", "2.1.0.0"))))
     }
 
     @Test fun versionsCompareNumerically() {

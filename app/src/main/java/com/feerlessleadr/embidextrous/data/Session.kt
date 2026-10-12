@@ -28,7 +28,14 @@ class SessionRepository(private val store: SecureStore) {
     }
 
     /** The Hall Monitor plugin's own key (Public API tab on the plugin page), kept encrypted like the token. */
-    fun loadPluginKey(): String? = store.getSecret(KEY_PLUGIN_KEY)?.takeIf { it.isNotBlank() }
+    fun loadPluginKey(): String? {
+        store.getSecret(KEY_PLUGIN_KEY)?.takeIf { it.isNotBlank() }?.let { return it }
+        // Before 0.5 the key was stored under another name: move it over once so nobody has to type it again.
+        val old = store.getSecret(KEY_PLUGIN_KEY_BEFORE_0_5)?.takeIf { it.isNotBlank() } ?: return null
+        store.putSecret(KEY_PLUGIN_KEY, old)
+        store.putSecret(KEY_PLUGIN_KEY_BEFORE_0_5, "")
+        return old
+    }
 
     fun savePluginKey(key: String) {
         if (key.isBlank()) store.putSecret(KEY_PLUGIN_KEY, "") else store.putSecret(KEY_PLUGIN_KEY, key.trim())
@@ -80,7 +87,8 @@ class SessionRepository(private val store: SecureStore) {
         const val KEY_USER_ID = "userId"
         const val KEY_USER_NAME = "userName"
         const val KEY_IS_ADMIN = "isAdmin"
-        const val KEY_PLUGIN_KEY = "watchingEyeKey"
+        const val KEY_PLUGIN_KEY = "hallMonitorKey"
+        const val KEY_PLUGIN_KEY_BEFORE_0_5 = "watchingEyeKey"
         const val KEY_TOKEN = "token"
         const val KEY_TRACEARR_URL = "tracearrUrl"
         const val KEY_TRACEARR_KEY = "tracearrKey"

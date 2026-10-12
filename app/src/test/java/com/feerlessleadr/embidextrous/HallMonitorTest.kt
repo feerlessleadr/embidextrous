@@ -5,7 +5,7 @@ import com.feerlessleadr.embidextrous.data.AppJson
 import com.feerlessleadr.embidextrous.data.UserCard
 import com.feerlessleadr.embidextrous.data.UserStatus
 import com.feerlessleadr.embidextrous.data.WatchText
-import com.feerlessleadr.embidextrous.data.WatchingEyeClient
+import com.feerlessleadr.embidextrous.data.HallMonitorClient
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -20,7 +20,7 @@ import org.junit.Before
 import org.junit.Test
 import java.time.Instant
 
-class WatchingEyeTest {
+class HallMonitorTest {
     private lateinit var server: MockWebServer
     private val now = Instant.parse("2026-10-10T12:00:00Z")
 
@@ -35,7 +35,7 @@ class WatchingEyeTest {
         server.shutdown()
     }
 
-    private fun client() = WatchingEyeClient(server.url("/").toString().trimEnd('/'), "tok-123", "plugin-key-abc")
+    private fun client() = HallMonitorClient(server.url("/").toString().trimEnd('/'), "tok-123", "plugin-key-abc")
 
     private fun row(extra: String = "") =
         AppJson.decodeFromString(UserStatus.serializer(), """{"UserId":"u1","Username":"Kid","TimeOutUntil":"0001-01-01T00:00:00Z","BlockReason":"Allowed"$extra}""")
@@ -125,9 +125,9 @@ class WatchingEyeTest {
         val rows = client().status()
         assertEquals(1, rows.size)
         val request = server.takeRequest()
-        assertEquals("/emby/WatchingEye/Public/Status", request.path)
+        assertEquals("/emby/HallMonitor/Public/Status", request.path)
         assertEquals("tok-123", request.getHeader("X-Emby-Token"))
-        assertEquals("plugin-key-abc", request.getHeader("X-WatchingEye-Api-Key"))
+        assertEquals("plugin-key-abc", request.getHeader("X-HallMonitor-Api-Key"))
         assertFalse(request.path!!.contains("tok-123"))
         assertFalse(request.path!!.contains("plugin-key-abc"))
     }
@@ -144,7 +144,7 @@ class WatchingEyeTest {
         c.stopStream("u1")
         val paths = (1..6).map { server.takeRequest() }
         assertEquals(
-            listOf("ExtendTime", "ReduceTime", "TimeOutUser", "ClearTimeOut", "ResetUserTime", "StopStream").map { "/emby/WatchingEye/Public/$it" },
+            listOf("ExtendTime", "ReduceTime", "TimeOutUser", "ClearTimeOut", "ResetUserTime", "StopStream").map { "/emby/HallMonitor/Public/$it" },
             paths.map { it.path },
         )
         assertTrue(paths[0].body.readUtf8().let { it.contains("\"UserId\":\"u1\"") && it.contains("\"Minutes\":15") })

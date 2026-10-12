@@ -15,12 +15,12 @@ import com.feerlessleadr.embidextrous.data.TracearrClient
 import com.feerlessleadr.embidextrous.data.TracearrConnection
 import com.feerlessleadr.embidextrous.data.TracearrRules
 import com.feerlessleadr.embidextrous.data.UrlRules
-import com.feerlessleadr.embidextrous.data.WatchingEyeClient
+import com.feerlessleadr.embidextrous.data.HallMonitorClient
 import com.feerlessleadr.embidextrous.push.EmbyPush
 import com.feerlessleadr.embidextrous.watching.AlertService
 import com.feerlessleadr.embidextrous.watching.UserAvatars
 import com.feerlessleadr.embidextrous.watching.Link
-import com.feerlessleadr.embidextrous.watching.WatchingEyeRepository
+import com.feerlessleadr.embidextrous.watching.HallMonitorRepository
 import com.feerlessleadr.embidextrous.watching.WidgetUpdater
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.CoroutineScope
@@ -174,19 +174,19 @@ class AppContainer(context: Context) {
     val push: EmbyPush by lazy { EmbyPush(appScope, { _session.value }, { sessions.deviceId() }, http) }
 
     /** The Hall Monitor part of the app: live status, kept up to date only while a screen needs it. */
-    val watchingEye: WatchingEyeRepository by lazy { WatchingEyeRepository(this, appScope, http) }
+    val hallMonitor: HallMonitorRepository by lazy { HallMonitorRepository(this, appScope, http) }
 
     /** A client for the Hall Monitor plugin with the held sign-in and key, or null when either is missing. */
-    fun watchingEyeClient(): WatchingEyeClient? {
+    fun hallMonitorClient(): HallMonitorClient? {
         val session = _session.value ?: return null
         val key = _pluginKey.value ?: return null
-        return WatchingEyeClient(session.serverUrl, session.token, key, http)
+        return HallMonitorClient(session.serverUrl, session.token, key, http)
     }
 
     init {
         // The home-screen widget follows the live data (whenever a screen or the alert service keeps it flowing) and the name setting.
         appScope.launch {
-            combine(watchingEye.state, settings.widgetHideNames, settings.accent) { state, _, _ -> state }.collect { state ->
+            combine(hallMonitor.state, settings.widgetHideNames, settings.accent) { state, _, _ -> state }.collect { state ->
                 if (state.loaded && _session.value != null) {
                     WidgetUpdater.render(appContext, state.cards.map { it.status }, live = state.link == Link.LIVE)
                 }

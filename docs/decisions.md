@@ -62,3 +62,10 @@ A running log of what was decided about the app, when and why. Newest at the bot
 - **New smart lists use the SmartLists plugin's defaults** (its "defaults for new lists" settings), not the app's own; a template keeps what it decides.
 - **Secrets stay with the owner.** The Tracearr `trr_pub_` key is typed by the owner on their own phone over their VPN and never sent to the assistant; the GitHub plugin's two API switches are flipped only by the owner on the plugin's Emby page (the assistant must not edit its settings file); keystores and tokens are never shared.
 - **Release rule.** A release is made only when the owner says "publish it"; 0.4.0 contains everything on `main` since 0.3.0. The Hall Monitor plugin needs no new release (1.10.0.0 unchanged).
+
+## 2026-10-12: nothing is called Watching Eye any more (owner's decision)
+- The plugin's original author re-released the plugin as a closed-source app, so to avoid any confusion every name goes: the plugin file becomes `HallMonitor.dll` (plugin 2.0.0.0), its web addresses `/emby/HallMonitor/...`, its key header `X-HallMonitor-Api-Key`, its live messages `HallMonitorStatus`, its settings files `HallMonitor*`, and the app's classes, screens and tests are renamed to match. No old names are answered or recognised (the owner chose a clean break over a transition): the old Watching Eye v1.6 app stops working with plugin 2.0, and this app needs plugin 2.0 or newer from 0.5 on.
+- The plugin keeps its ID, and its first start copies the old settings, watch-time data and log to the new file names once (it never overwrites). The owner deletes the old plugin file on the server by hand, because two copies of one plugin stop Emby from loading it.
+- The app moves a Hall Monitor key saved under the old storage name to the new one on first use, so it is not typed again.
+- History is left as written: past release notes, `status.md` and the plugin's `PROGRESS.md` keep the old name where they describe what happened. The README of the plugin keeps a factual provenance note (the code was recovered from a compiled plugin).
+- Supersedes the 2026-10-11 decision to keep `WatchingEye.dll`.

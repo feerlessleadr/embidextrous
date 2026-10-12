@@ -20,8 +20,8 @@ data class WatchEvent(
     val undo: (suspend () -> Unit)? = null,
 )
 
-class WatchingEyeViewModel(private val container: AppContainer) : ViewModel() {
-    private val repository = container.watchingEye
+class HallMonitorViewModel(private val container: AppContainer) : ViewModel() {
+    private val repository = container.hallMonitor
 
     val state: StateFlow<WatchState> = repository.state
 

@@ -66,8 +66,8 @@ import com.feerlessleadr.embidextrous.watching.ConfirmDialog
 import com.feerlessleadr.embidextrous.watching.HomeModel
 import com.feerlessleadr.embidextrous.watching.Link
 import com.feerlessleadr.embidextrous.watching.Poster
-import com.feerlessleadr.embidextrous.watching.WatchingEyeTheme
-import com.feerlessleadr.embidextrous.watching.WatchingEyeViewModel
+import com.feerlessleadr.embidextrous.watching.HallMonitorTheme
+import com.feerlessleadr.embidextrous.watching.HallMonitorViewModel
 import com.feerlessleadr.embidextrous.ui.ListsViewModel
 import kotlinx.coroutines.flow.StateFlow
 import com.feerlessleadr.embidextrous.watching.subtitle
@@ -97,14 +97,14 @@ class AdminHome(
 
 @Composable
 fun HomeScreen(
-    vm: WatchingEyeViewModel,
+    vm: HallMonitorViewModel,
     admin: AdminHome?,
     layout: HomeLayout,
     onCustomise: () -> Unit,
     onOpenWatching: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    WatchingEyeTheme { HomeContent(vm, admin, layout, onCustomise, onOpenWatching, onOpenSettings) }
+    HallMonitorTheme { HomeContent(vm, admin, layout, onCustomise, onOpenWatching, onOpenSettings) }
 }
 
 private sealed interface HomeDialog {
@@ -116,7 +116,7 @@ private sealed interface HomeDialog {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeContent(
-    vm: WatchingEyeViewModel,
+    vm: HallMonitorViewModel,
     admin: AdminHome?,
     layout: HomeLayout,
     onCustomise: () -> Unit,

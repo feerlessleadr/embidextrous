@@ -5,7 +5,7 @@ import com.feerlessleadr.embidextrous.data.ApiException
 import com.feerlessleadr.embidextrous.data.Session
 import com.feerlessleadr.embidextrous.data.UserCard
 import com.feerlessleadr.embidextrous.data.UserStatus
-import com.feerlessleadr.embidextrous.data.WatchingEyeClient
+import com.feerlessleadr.embidextrous.data.HallMonitorClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
@@ -37,7 +37,7 @@ data class WatchState(
  * the safety net while that connection is down. Screens call [acquire] while they are visible and [release] when they are not,
  * and the connection exists only while somebody holds it.
  */
-class WatchingEyeRepository(
+class HallMonitorRepository(
     private val container: AppContainer,
     private val scope: CoroutineScope,
     private val http: OkHttpClient,
@@ -105,7 +105,7 @@ class WatchingEyeRepository(
 
     private suspend fun runSession(session: Session, key: String) = coroutineScope {
         val live = LiveConnection(session.serverUrl, session.token, key, container.deviceId(), http)
-        launch { live.run(this@WatchingEyeRepository) }
+        launch { live.run(this@HallMonitorRepository) }
         launch {
             fetchRest()
             while (isActive) {
@@ -140,7 +140,7 @@ class WatchingEyeRepository(
             return
         }
         try {
-            val users = WatchingEyeClient(session.serverUrl, session.token, key, http).status()
+            val users = HallMonitorClient(session.serverUrl, session.token, key, http).status()
             val now = System.currentTimeMillis()
             val isLive = synchronized(lock) {
                 lastRestOkMs = now
@@ -182,11 +182,11 @@ class WatchingEyeRepository(
     // ---- actions ---------------------------------------------------------------------------------------------
 
     /** Runs one plugin call and, when the live connection is not up to bring the change, asks the server so the screen is not stale. */
-    suspend fun act(call: suspend WatchingEyeClient.() -> Unit) {
+    suspend fun act(call: suspend HallMonitorClient.() -> Unit) {
         val (session, key) = credentials ?: throw ApiException(0, "Enter the Hall Monitor key in Settings first.")
         if (keyGuard.isBlocked(System.currentTimeMillis())) throw ApiException(403, KeyGuard.MESSAGE)
         try {
-            WatchingEyeClient(session.serverUrl, session.token, key, http).call()
+            HallMonitorClient(session.serverUrl, session.token, key, http).call()
         } catch (e: ApiException) {
             if (e.status == 403) keyGuard.refused(System.currentTimeMillis())
             throw e

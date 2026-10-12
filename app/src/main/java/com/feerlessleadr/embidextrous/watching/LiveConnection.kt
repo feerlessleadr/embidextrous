@@ -47,7 +47,7 @@ object LiveMessages {
 
     /** Sent right after connecting. The plugin key travels in the message body, never in the URL. */
     fun subscribe(pluginKey: String): String = buildJsonObject {
-        put("MessageType", "WatchingEyeStatusStart")
+        put("MessageType", "HallMonitorStatusStart")
         put("Data", "0,30000,$pluginKey")
     }.toString()
 
@@ -58,7 +58,7 @@ object LiveMessages {
         val type = (root?.get("MessageType") as? JsonPrimitive)?.contentOrNull.orEmpty()
         val data = root?.get("Data")
         when (type) {
-            "WatchingEyeStatus" -> {
+            "HallMonitorStatus" -> {
                 val obj = data as? JsonObject
                 val error = (obj?.get("Error") as? JsonPrimitive)?.contentOrNull
                 if (error != null) {

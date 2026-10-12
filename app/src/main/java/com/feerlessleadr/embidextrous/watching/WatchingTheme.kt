@@ -7,4 +7,4 @@ import androidx.compose.runtime.Composable
  * Hall Monitor screens need no special treatment any more. Kept as a wrapper so the screens do not change.
  */
 @Composable
-internal fun WatchingEyeTheme(content: @Composable () -> Unit) = content()
+internal fun HallMonitorTheme(content: @Composable () -> Unit) = content()

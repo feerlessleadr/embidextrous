@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
   - name: Plugin problems (server side)
-    url: https://github.com/feerlessleadr/watching-eye-emby/issues
-    about: Problems inside the Watching Eye plugin belong in its repository; SmartLists plugin problems in feerlessleadr/emby.smartlists.
+    url: https://github.com/feerlessleadr/hall-monitor-emby/issues
+    about: Problems inside the Hall Monitor plugin belong in its repository; SmartLists plugin problems in feerlessleadr/emby.smartlists.

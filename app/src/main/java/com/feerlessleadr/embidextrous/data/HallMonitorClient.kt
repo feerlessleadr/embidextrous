@@ -13,17 +13,17 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 
 /**
- * Talks to the Hall Monitor plugin's key-protected routes (`/WatchingEye/Public/...`). Two credentials travel in headers, never
+ * Talks to the Hall Monitor plugin's key-protected routes (`/HallMonitor/Public/...`). Two credentials travel in headers, never
  * in a URL: the Emby sign-in token (`X-Emby-Token`, any account works, an administrator is not needed) and the plugin's own
- * key (`X-WatchingEye-Api-Key`).
+ * key (`X-HallMonitor-Api-Key`).
  */
-class WatchingEyeClient(
+class HallMonitorClient(
     serverUrl: String,
     private val token: String,
     private val pluginKey: String,
     private val http: OkHttpClient = ApiClient.defaultHttpClient(),
 ) {
-    private val base = "${serverUrl.trimEnd('/')}/emby/WatchingEye/Public"
+    private val base = "${serverUrl.trimEnd('/')}/emby/HallMonitor/Public"
 
     suspend fun status(): List<UserStatus> {
         val text = call("GET", "Status", null, "Loading status")
@@ -52,7 +52,7 @@ class WatchingEyeClient(
         call("POST", "ResetUserTime", idBody(userId), "Reset")
     }
 
-    /** Stops whatever the user is playing. Plugin 1.9 or newer (older plugins answer 404). */
+    /** Stops whatever the user is playing. Plugin 2.0 or newer. */
     suspend fun stopStream(userId: String) {
         call("POST", "StopStream", idBody(userId), "Stop stream")
     }
@@ -71,7 +71,7 @@ class WatchingEyeClient(
         val builder = Request.Builder()
             .url("$base/$path".toHttpUrl())
             .header("X-Emby-Token", token)
-            .header("X-WatchingEye-Api-Key", pluginKey)
+            .header("X-HallMonitor-Api-Key", pluginKey)
             .header("Accept", "application/json")
         if (method == "POST") builder.post((json ?: "").toRequestBody(JSON)) else builder.get()
         try {

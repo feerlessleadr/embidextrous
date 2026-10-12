@@ -85,9 +85,9 @@ import com.feerlessleadr.embidextrous.ui.editor.EditorScreen
 import com.feerlessleadr.embidextrous.ui.editor.EditorViewModel
 import com.feerlessleadr.embidextrous.ui.useDarkTheme
 import com.feerlessleadr.embidextrous.watching.AlertService
-import com.feerlessleadr.embidextrous.watching.WatchingEyeScreen
-import com.feerlessleadr.embidextrous.watching.WatchingEyeTheme
-import com.feerlessleadr.embidextrous.watching.WatchingEyeViewModel
+import com.feerlessleadr.embidextrous.watching.HallMonitorScreen
+import com.feerlessleadr.embidextrous.watching.HallMonitorTheme
+import com.feerlessleadr.embidextrous.watching.HallMonitorViewModel
 import com.feerlessleadr.embidextrous.watching.TracearrTab
 import com.feerlessleadr.embidextrous.watching.TracearrViewModel
 import kotlinx.coroutines.launch
@@ -154,7 +154,7 @@ private fun SignedIn(container: AppContainer, session: Session) {
     val token = session.token
     val nav = rememberNavController()
     val listsVm: ListsViewModel = viewModel(key = "lists-$token", factory = viewModelFactory { initializer { ListsViewModel(container) } })
-    val watchVm: WatchingEyeViewModel = viewModel(key = "watching-$token", factory = viewModelFactory { initializer { WatchingEyeViewModel(container) } })
+    val watchVm: HallMonitorViewModel = viewModel(key = "watching-$token", factory = viewModelFactory { initializer { HallMonitorViewModel(container) } })
     val adminVm: AdminHomeViewModel = viewModel(key = "admin-$token", factory = viewModelFactory { initializer { AdminHomeViewModel(container) } })
     val toolsVm: ServerToolsViewModel = viewModel(key = "tools-$token", factory = viewModelFactory { initializer { ServerToolsViewModel(container) } })
     val pluginVm: PluginManagerViewModel = viewModel(key = "plugins-$token", factory = viewModelFactory { initializer { PluginManagerViewModel(container) } })
@@ -217,7 +217,7 @@ private fun SignedIn(container: AppContainer, session: Session) {
                         }
                     }
                 }
-                if (route == ROUTE_WATCHING || route == ROUTE_HOME) WatchingEyeTheme(bar) else bar()
+                if (route == ROUTE_WATCHING || route == ROUTE_HOME) HallMonitorTheme(bar) else bar()
             }
         },
     ) { padding ->
@@ -242,7 +242,7 @@ private fun SignedIn(container: AppContainer, session: Session) {
             composable(ROUTE_WATCHING) {
                 GroupTabs(
                     tabs = buildList {
-                        add(SubTab("hall", "Hall Monitor") { WatchingEyeScreen(watchVm) })
+                        add(SubTab("hall", "Hall Monitor") { HallMonitorScreen(watchVm) })
                         add(SubTab("tracearr", "Activity") { TracearrTab(tracearrVm, container) })
                     },
                     selectedKey = watchingSection,

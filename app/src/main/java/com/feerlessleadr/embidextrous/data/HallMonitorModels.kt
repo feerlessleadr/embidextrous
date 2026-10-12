@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.time.Instant
 
-/** What the Hall Monitor plugin (1.9+) says a user is playing right now. */
+/** What the Hall Monitor plugin (2.0+) says a user is playing right now. */
 @Serializable
 data class NowPlaying(
     @SerialName("SessionId") val sessionId: String = "",
@@ -159,7 +159,7 @@ object WatchText {
         400 -> "$what: the plugin rejected the request. Minutes must be 1-43200, and the user must be an enabled limited user (time-outs also need the limiter turned on)."
         401 -> "$what: Emby did not accept your sign-in. Sign in again."
         403 -> "$what: refused. Check that \"Enable Public API\" is ticked on the plugin page and that the Hall Monitor key matches. Repeated wrong keys lock the plugin API for 5 minutes."
-        404 -> "$what: not found. Is the Hall Monitor plugin installed (version 1.9 or newer for stop-stream and undo), and is the server address right?"
+        404 -> "$what: not found. Is the Hall Monitor plugin installed (version 2.0 or newer), and is the server address right?"
         else -> "$what failed: HTTP $code"
     }
 }

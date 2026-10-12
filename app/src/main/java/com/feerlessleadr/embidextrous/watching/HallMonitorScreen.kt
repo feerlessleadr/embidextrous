@@ -90,13 +90,13 @@ private sealed interface WatchDialog {
 }
 
 @Composable
-fun WatchingEyeScreen(vm: WatchingEyeViewModel) {
-    WatchingEyeTheme { WatchingEyeContent(vm) }
+fun HallMonitorScreen(vm: HallMonitorViewModel) {
+    HallMonitorTheme { HallMonitorContent(vm) }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun WatchingEyeContent(vm: WatchingEyeViewModel) {
+private fun HallMonitorContent(vm: HallMonitorViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()

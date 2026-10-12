@@ -73,9 +73,9 @@ class AlertService : Service() {
         val container = (application as App).container
         if (!holding) {
             holding = true
-            container.watchingEye.acquire()
+            container.hallMonitor.acquire()
             collector = scope.launch {
-                container.watchingEye.state.collect { state ->
+                container.hallMonitor.state.collect { state ->
                     // Nothing to watch once signed out, or without a key: stop instead of holding a notification for nothing.
                     if (container.session.value == null || container.pluginKey.value == null) {
                         stopSelf()
@@ -128,7 +128,7 @@ class AlertService : Service() {
     override fun onDestroy() {
         collector?.cancel()
         if (holding) {
-            (application as App).container.watchingEye.release()
+            (application as App).container.hallMonitor.release()
             holding = false
         }
         scope.cancel()

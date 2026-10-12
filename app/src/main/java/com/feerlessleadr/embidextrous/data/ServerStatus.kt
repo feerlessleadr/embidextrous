@@ -98,9 +98,9 @@ object ServerStatusParser {
 
 /** What the plugin versions mean for this app. */
 object PluginChecks {
-    /** Hall Monitor was called "Watching Eye" before 1.10; the app needs 1.9 or newer (regular accounts and now-playing). */
-    val HALL_MONITOR_NAMES = setOf("Hall Monitor", "Watching Eye")
-    const val HALL_MONITOR_MIN = "1.9"
+    /** The app talks to the plugin by the names it got in 2.0 (web addresses, key header, live messages), so it needs 2.0 or newer. */
+    val HALL_MONITOR_NAMES = setOf("Hall Monitor")
+    const val HALL_MONITOR_MIN = "2.0"
 
     sealed interface Verdict {
         data object Missing : Verdict

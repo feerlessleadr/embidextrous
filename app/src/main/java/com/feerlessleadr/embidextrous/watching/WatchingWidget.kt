@@ -28,7 +28,7 @@ class WatchingWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, appWidgetIds: IntArray) {
         val app = context.applicationContext
         val container = (app as App).container
-        val state = container.watchingEye.state.value
+        val state = container.hallMonitor.state.value
         if (state.loaded) {
             WidgetUpdater.render(app, state.cards.map { it.status }, live = state.link == Link.LIVE)
             return
@@ -55,7 +55,7 @@ object WidgetUpdater {
     /** One quick request to the server, for when nothing else keeps the data fresh (the widget's own 30-minute refresh). */
     fun refreshOnce(context: Context) {
         val container = (context.applicationContext as App).container
-        val client = container.watchingEyeClient()
+        val client = container.hallMonitorClient()
         if (client == null) {
             renderMessage(context, "Open the app, sign in and enter the Hall Monitor key.")
             return

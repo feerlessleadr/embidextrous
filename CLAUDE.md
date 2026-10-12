@@ -1,6 +1,6 @@
 # Embidextrous (Android)
 
-One Android app for the owner's Emby administration: smart lists (the SmartLists plugin) and watch-time limits (the Hall Monitor plugin, formerly Watching Eye), with more to come (a plugin manager for GitHub downloads, bulk tag editing, explicit-tag editing for music). Kotlin, Jetpack Compose, Material 3, OkHttp, kotlinx.serialization. Package `com.feerlessleadr.embidextrous`, repo `feerlessleadr/embidextrous` (public, MIT).
+One Android app for the owner's Emby administration: smart lists (the SmartLists plugin) and watch-time limits (the Hall Monitor plugin), with more to come (a plugin manager for GitHub downloads, bulk tag editing, explicit-tag editing for music). Kotlin, Jetpack Compose, Material 3, OkHttp, kotlinx.serialization. Package `com.feerlessleadr.embidextrous`, repo `feerlessleadr/embidextrous` (public, MIT).
 
 Origin: this code began as a copy of `C:\dev\emby.smartlists.android` (v0.4.1, commit 79444cb) and is being merged with `C:\dev\watching-eye-android-app` (Java/XML, being ported to Kotlin/Compose). Those repos stay untouched until this app replaces them. Their notes: `C:\dev\emby.smartlists.android\HANDOFF.md`, `C:\dev\watching-eye\PROGRESS.md`.
 
