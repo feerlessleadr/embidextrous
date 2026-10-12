@@ -255,11 +255,7 @@ fun PluginsCard(vm: AdminHomeViewModel, onOpen: (() -> Unit)? = null) {
                 if (updates.isEmpty()) StatusRow(Icons.Default.SystemUpdate, ok, "No updates in Emby's catalog")
                 else StatusRow(Icons.Default.SystemUpdate, warn, "${updates.size} update${if (updates.size == 1) "" else "s"} in Emby's catalog", names(updates))
             }
-            Text(
-                "Plugins installed from GitHub are not checked here yet.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            GithubLine(snapshot.github)
             TextButton(onClick = { showAll = !showAll }) { Text(if (showAll) "Hide the list" else "Show all ${plugins.size} plugins") }
             if (showAll) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -279,5 +275,26 @@ fun PluginsCard(vm: AdminHomeViewModel, onOpen: (() -> Unit)? = null) {
                 }
             }
         }
+    }
+}
+
+/** The GitHub plugins line of the Plugins card: their update numbers when the plugin manager is usable, otherwise why not. */
+@Composable
+private fun GithubLine(github: com.feerlessleadr.embidextrous.data.GithubSummary?) {
+    val ok = okColor()
+    val warn = warnColor()
+    val gate = github?.gate
+    val status = github?.status
+    when {
+        github == null -> Unit
+        gate is com.feerlessleadr.embidextrous.data.GhrpiGate.Ready && status != null -> when {
+            status.counts.failed > 0 -> StatusRow(Icons.Default.Warning, warn, "${status.counts.failed} GitHub plugin${if (status.counts.failed == 1) "" else "s"} failed to check", "Open the Server tab for the reason.")
+            status.updatesReady > 0 -> StatusRow(Icons.Default.SystemUpdate, warn, "${status.updatesReady} GitHub plugin update${if (status.updatesReady == 1) "" else "s"} ready", "Open the Server tab to update.")
+            status.counts.total == 0 -> StatusRow(Icons.Default.SystemUpdate, MaterialTheme.colorScheme.primary, "No GitHub plugins added yet")
+            else -> StatusRow(Icons.Default.SystemUpdate, ok, "GitHub plugins are all current", "${status.counts.total} checked.")
+        }
+        gate is com.feerlessleadr.embidextrous.data.GhrpiGate.Off -> StatusRow(Icons.Default.SystemUpdate, MaterialTheme.colorScheme.onSurfaceVariant, "GitHub plugin updates are not checked", "Switch on the phone API in the GitHub Repo Plugin Install plugin's settings.")
+        gate is com.feerlessleadr.embidextrous.data.GhrpiGate.NotInstalled -> Text("Plugins installed from GitHub are not checked here: the GitHub Repo Plugin Install plugin is not on this server.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        else -> Text("GitHub plugin updates could not be checked right now.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

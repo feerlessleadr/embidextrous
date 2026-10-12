@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.feerlessleadr.embidextrous.AppContainer
 import com.feerlessleadr.embidextrous.data.ApiException
 import com.feerlessleadr.embidextrous.data.ServerSnapshot
+import com.feerlessleadr.embidextrous.data.GhrpiGate
+import com.feerlessleadr.embidextrous.data.GithubSummary
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,10 +38,28 @@ class AdminHomeViewModel(private val container: AppContainer) : ViewModel() {
                 val updates = async { attempt { api.pluginUpdates() } }
                 val tasks = async { attempt { api.scheduledTasks() } }
                 val sessions = async { attempt { api.sessionCounts() } }
-                ServerSnapshot(info.await(), plugins.await(), updates.await(), tasks.await(), sessions.await())
+                val github = async { githubSummary(api) }
+                ServerSnapshot(info.await(), plugins.await(), updates.await(), tasks.await(), sessions.await(), github.await())
             }
             _state.update { it.copy(snapshot = snapshot, loading = false) }
         }
+    }
+
+    /** Asks the GitHub plugin manager how it is doing; the gate says why when it cannot be used. */
+    private suspend fun githubSummary(api: com.feerlessleadr.embidextrous.data.ApiClient): GithubSummary {
+        val gate = try {
+            GhrpiGate.of(api.ghInfo())
+        } catch (e: ApiException) {
+            when (e.status) {
+                404 -> GhrpiGate.NotInstalled
+                403 -> GhrpiGate.Off(null)
+                else -> GhrpiGate.Unreachable(e.message.orEmpty())
+            }
+        } catch (e: Exception) {
+            GhrpiGate.Unreachable(e.message.orEmpty())
+        }
+        val status = if (gate is GhrpiGate.Ready) attempt { api.ghStatus() } else null
+        return GithubSummary(gate, status)
     }
 
     private suspend fun <T> attempt(call: suspend () -> T): T? = try {

@@ -27,6 +27,9 @@ data class TaskSummary(val total: Int, val failed: List<FailedTask>)
 /** What is connected to the server right now (GET /Sessions). */
 data class SessionCounts(val active: Int, val playing: Int, val transcoding: Int)
 
+/** What the GitHub plugin manager says, for the Plugins card on Home: its gate, and its dashboard numbers when it is ready. */
+data class GithubSummary(val gate: GhrpiGate, val status: GhStatusResponse?)
+
 /** Everything the administrator cards on Home show. A part is null when its call failed, so one failure hides only its own line. */
 data class ServerSnapshot(
     val info: ServerInfo?,
@@ -34,6 +37,7 @@ data class ServerSnapshot(
     val pluginUpdates: List<String>?,
     val tasks: TaskSummary?,
     val sessions: SessionCounts?,
+    val github: GithubSummary? = null,
 )
 
 /** Turns the Emby answers into the small models above. Tolerant: unknown or missing fields give defaults, never a crash. No Android classes: unit tested. */

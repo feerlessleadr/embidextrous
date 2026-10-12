@@ -18,7 +18,7 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /** A failed call. [status] is the HTTP status, or 0 when the server could not be reached. */
-class ApiException(val status: Int, message: String) : Exception(message) {
+class ApiException(val status: Int, message: String, val code: String? = null) : Exception(message) {
     val isUnauthorized: Boolean get() = status == 401
 }
 
@@ -163,6 +163,83 @@ class ApiClient(
 
     suspend fun restartServer() {
         send("POST", "$server/emby/System/Restart", "")
+    }
+
+    // ----- GitHub Repo Plugin Install (the plugin manager's phone API) ---------------------------------------
+
+    private val ghBase get() = "$server/emby/Plugins/GitHubRepoPluginInstall"
+
+    suspend fun ghInfo(): GhrpiInfo = GhrpiParser.info(get("$ghBase/info"))
+
+    suspend fun ghStatus(): GhStatusResponse = GhrpiParser.status(get("$ghBase/status"))
+
+    suspend fun ghPlugins(): List<GhPlugin> = GhrpiParser.pluginList(get("$ghBase/plugins"))
+
+    suspend fun ghPlugin(id: String): GhPlugin? = GhrpiParser.singlePlugin(get("$ghBase/plugins/${seg(id)}"))
+
+    suspend fun ghHistory(limit: Int = 10): List<GhRun> = GhrpiParser.history(get("$ghBase/history?Limit=${limit.coerceIn(1, 20)}"))
+
+    suspend fun ghRegistries(): List<GhRegistry> = GhrpiParser.registries(get("$ghBase/registries"))
+
+    /** Plugins the enabled registries offer. Asks GitHub, so it can take a while. */
+    suspend fun ghAvailable(): List<GhAvailable> = GhrpiParser.available(get("$ghBase/registries/plugins"))
+
+    suspend fun ghSettings(): GhSettings = GhrpiParser.settings(get("$ghBase/settings"))
+
+    suspend fun ghRun(mode: GhRunMode) {
+        send("POST", "$ghBase/run", buildJsonObject { put("Mode", mode.name) }.toString())
+    }
+
+    suspend fun ghUpdate(id: String) {
+        send("POST", "$ghBase/plugins/${seg(id)}/update", "")
+    }
+
+    suspend fun ghCheck(id: String) {
+        send("POST", "$ghBase/plugins/${seg(id)}/check", "")
+    }
+
+    suspend fun ghRestore(id: String): GhActionResult = GhrpiParser.action(send("POST", "$ghBase/plugins/${seg(id)}/restore", ""))
+
+    /** Only the fields given are sent, so only those change. */
+    suspend fun ghPluginSettings(id: String, autoUpdate: Boolean? = null, allowPreRelease: Boolean? = null, assetNameFilter: String? = null): GhActionResult {
+        val body = buildJsonObject {
+            if (autoUpdate != null) put("AutoUpdate", autoUpdate)
+            if (allowPreRelease != null) put("AllowPreRelease", allowPreRelease)
+            if (assetNameFilter != null) put("AssetNameFilter", assetNameFilter)
+        }
+        return GhrpiParser.action(send("POST", "$ghBase/plugins/${seg(id)}/settings", body.toString()))
+    }
+
+    suspend fun ghAdd(address: String, autoUpdate: Boolean = true): GhActionResult {
+        val body = buildJsonObject {
+            put("Url", address.trim())
+            put("AutoUpdate", autoUpdate)
+        }
+        return GhrpiParser.action(send("POST", "$ghBase/plugins", body.toString()))
+    }
+
+    suspend fun ghRemove(id: String): GhActionResult = GhrpiParser.action(send("DELETE", "$ghBase/plugins/${seg(id)}", null))
+
+    suspend fun ghRestart() {
+        send("POST", "$ghBase/restart", "")
+    }
+
+    suspend fun ghDismissRestart() {
+        send("POST", "$ghBase/restart/dismiss", "")
+    }
+
+    /** The GitHub token is write-only: it goes to the plugin and is never read back. */
+    suspend fun ghSaveToken(token: String): GhSettings = GhrpiParser.settings(send("POST", "$ghBase/settings", buildJsonObject { put("Token", token) }.toString()))
+
+    suspend fun ghClearToken(): GhSettings = GhrpiParser.settings(send("POST", "$ghBase/settings", buildJsonObject { put("ClearToken", true) }.toString()))
+
+    suspend fun ghSetRestartAfterInstall(on: Boolean): GhSettings =
+        GhrpiParser.settings(send("POST", "$ghBase/settings", buildJsonObject { put("RestartServerAfterInstall", on) }.toString()))
+
+    suspend fun ghTestToken(): Pair<Boolean, String> = GhrpiParser.tokenTest(send("POST", "$ghBase/settings/testtoken", ""))
+
+    suspend fun ghSetRegistryEnabled(id: String, enabled: Boolean) {
+        send("POST", "$ghBase/registries/${seg(id)}/enabled", buildJsonObject { put("Enabled", enabled) }.toString())
     }
 
     // Ends this session on the server, so the token stops working there. Best effort: the caller ignores failure.
@@ -394,7 +471,7 @@ class ApiClient(
         try {
             http.newCall(builder.build()).execute().use { response ->
                 val text = response.body?.string().orEmpty()
-                if (!response.isSuccessful) throw ApiException(response.code, describeError(response.code, text))
+                if (!response.isSuccessful) throw ApiException(response.code, describeError(response.code, text), GhrpiParser.error(text)?.title)
                 text
             }
         } catch (e: ApiException) {
@@ -426,7 +503,7 @@ class ApiClient(
         /** Turns an error response into a sentence for a person. The plugin sends {title,status,detail}. */
         fun describeError(status: Int, body: String): String {
             val detail = try {
-                (AppJson.parseToJsonElement(body).jsonObject["detail"] as? JsonPrimitive)?.contentOrNull
+                AppJson.parseToJsonElement(body).jsonObject.let { o -> ((o["detail"] ?: o["Detail"]) as? JsonPrimitive)?.contentOrNull }
             } catch (e: Exception) {
                 null
             }

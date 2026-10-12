@@ -62,6 +62,8 @@ import com.feerlessleadr.embidextrous.server.ActivityScreen
 import com.feerlessleadr.embidextrous.server.DevicesScreen
 import com.feerlessleadr.embidextrous.server.LibrariesScreen
 import com.feerlessleadr.embidextrous.server.LiveScreen
+import com.feerlessleadr.embidextrous.server.PluginManagerTab
+import com.feerlessleadr.embidextrous.server.PluginManagerViewModel
 import com.feerlessleadr.embidextrous.server.PluginsTab
 import com.feerlessleadr.embidextrous.server.ServerHeader
 import com.feerlessleadr.embidextrous.server.ServerToolsViewModel
@@ -152,6 +154,7 @@ private fun SignedIn(container: AppContainer, session: Session) {
     val watchVm: WatchingEyeViewModel = viewModel(key = "watching-$token", factory = viewModelFactory { initializer { WatchingEyeViewModel(container) } })
     val adminVm: AdminHomeViewModel = viewModel(key = "admin-$token", factory = viewModelFactory { initializer { AdminHomeViewModel(container) } })
     val toolsVm: ServerToolsViewModel = viewModel(key = "tools-$token", factory = viewModelFactory { initializer { ServerToolsViewModel(container) } })
+    val pluginVm: PluginManagerViewModel = viewModel(key = "plugins-$token", factory = viewModelFactory { initializer { PluginManagerViewModel(container) } })
 
     // The tabs follow the phone's profile; Smart Lists also needs an administrator account (the SmartLists plugin demands one).
     val profile by container.settings.profile.collectAsStateWithLifecycle()
@@ -267,7 +270,7 @@ private fun SignedIn(container: AppContainer, session: Session) {
                         add(SubTab("Tasks") { TasksScreen(toolsVm) })
                         add(SubTab("Activity") { ActivityScreen(toolsVm) })
                         add(SubTab("Devices") { DevicesScreen(toolsVm, thisDeviceId = container.deviceId()) })
-                        add(SubTab("Plugins") { PluginsTab(adminVm) })
+                        add(SubTab("Plugins") { PluginManagerTab(pluginVm, adminVm) })
                     },
                     selected = section,
                     onSelect = { section = it },
