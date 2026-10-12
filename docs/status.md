@@ -214,3 +214,8 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 
 ## 2026-10-12: releasing plugin 2.0.1.0 and app 0.5.1 (in progress)
 - The owner said "publish it". Plugin tag `v2.0.1.0` pushed on `3b975bb` (checks green). App notes `docs/releases/v0.5.1.md` pushed next; then CI and both CodeQL jobs must be green on that commit before tag `v0.5.1`.
+
+## 2026-10-12: Hall Monitor plugin 2.0.1.0 and Embidextrous 0.5.1 released
+- Plugin: tag `v2.0.1.0` on `3b975bb`; run succeeded; `HallMonitor.dll` 216,064 bytes, SHA-256 `13dac2eb9aadfa79326c5904fb2f2e0ca62af376fcd2334c998ac57ae3d4ace1` (the settings page is listed in Server > Advanced again).
+- App: tag `v0.5.1` on `87115d1` (CI and both CodeQL jobs green); run succeeded; `Embidextrous-0.5.1.apk` 2,406,454 bytes, SHA-256 `5ec13237c4f19fef65e2219dbf5b6b5c5f547da098661e88ba9456f4fd36422d` (stable Live order, show poster on the Home watching card). `gh attestation verify` not run locally.
+- Started on the two tagging plugins (designs in `C:\dev\emby-tagging`): reviewed with the owner; the survey script `C:\dev\emby-tagging\scripts\Survey-ExplicitTags.ps1` is written (the owner runs it on the machine that has the music at `V:\Music`, ffprobe at `C:\ffmpeg\bin`) and its CSV decides how much of the Explicit Tagger is needed.
