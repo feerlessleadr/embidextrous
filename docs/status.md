@@ -132,3 +132,8 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 - **Server**: the Emby version as a headline with the server name, an "Up to date" or "Update available" pill (and "Restart pending"), stat tiles for connected, playing and transcoding, and a scheduled-tasks line with the task count.
 - **Plugins**: an "N installed" pill, Hall Monitor and SmartLists rows with a version and an OK / Update / Missing pill, the catalog-updates line, and a list of all plugins with an initial tile and version.
 - 158 unit tests pass (two new: the list rows and the task summary). Checked on an emulator in dark mode with three test smart lists (two on, one off; created on the test server for this check). Not checked: the cards in light mode, a failed or refreshing list, a server with failed tasks or an update available, a pending restart.
+
+## 2026-10-12: 0.3.0 released
+- Embidextrous 0.3.0 (tag `v0.3.0`, commit `0ecfa16`): tests, signing-key check, attestation and the immutable release passed. `Embidextrous-0.3.0.apk`, 2,275,382 bytes, SHA-256 `c72e955b08dc7a4c86770f1a8486d4e7e806f1304b233005ad9f475b37965128`.
+- Contents: the new look (neutral surfaces, accent for highlights), administrator Home cards and Customise Home, grouped navigation (Home, Watching, Library, Server, Settings), the Server tools (Live, Tasks, Activity, Devices, Plugins) and the Libraries tab, the widget headline. Not yet tried on a real phone.
+- Next: phase 9 (plugin manager), phase 8 (Tracearr).
