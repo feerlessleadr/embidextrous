@@ -254,6 +254,66 @@ class ApiClient(
         send("POST", "$ghBase/registries/${seg(id)}/enabled", buildJsonObject { put("Enabled", enabled) }.toString())
     }
 
+    // ----- Hall Pass (explicit-content tagger for music; the plugin's own admin API, called with the signed-in administrator's token) -----
+
+    private val hpBase get() = "$server/emby/HallPass"
+
+    private fun hpUrl(path: String, params: Map<String, String?>): String {
+        val b = "$hpBase/$path".toHttpUrl().newBuilder()
+        params.forEach { (k, v) -> if (!v.isNullOrEmpty()) b.addQueryParameter(k, v) }
+        return b.build().toString()
+    }
+
+    suspend fun hpInfo(): HpInfo = HallPassParser.info(get("$hpBase/Info"))
+
+    suspend fun hpStatus(): HpStatus = HallPassParser.status(get("$hpBase/Status"))
+
+    /** One page of the review list. [decision] is a comma separated list (Review, Explicit, LikelyClean, Clean, Skipped), empty for all. */
+    suspend fun hpReview(decision: String, text: String, artist: String?, album: String?, noAlbum: Boolean, skip: Int, take: Int): Pair<Int, List<HpRow>> =
+        HallPassParser.review(
+            get(hpUrl("Review", mapOf("Decision" to decision, "Text" to text, "Artist" to artist, "Album" to album, "NoAlbum" to if (noAlbum) "true" else null, "Skip" to skip.toString(), "Take" to take.toString()))),
+        )
+
+    suspend fun hpAlbums(decision: String, text: String, skip: Int, take: Int): Pair<Int, List<HpAlbum>> =
+        HallPassParser.albums(get(hpUrl("Review/Albums", mapOf("Decision" to decision, "Text" to text, "Skip" to skip.toString(), "Take" to take.toString()))))
+
+    /** Sets (explicit or clean) or clears (clearOverride) the manual decision of these tracks. */
+    suspend fun hpDecide(ids: List<Long>, decision: String): HpDecideResult =
+        HallPassParser.decide(
+            send("POST", "$hpBase/Items/Decide", buildJsonObject { put("Decision", decision); put("ItemIds", kotlinx.serialization.json.JsonArray(ids.map { JsonPrimitive(it) })) }.toString()),
+        )
+
+    /** The same for a whole album (or every track of an artist's no-album tracks) that matches the filters, however many pages it spans. */
+    suspend fun hpDecideAlbum(decision: String, filterDecision: String, filterText: String, artist: String, album: String): HpDecideResult =
+        HallPassParser.decide(
+            send(
+                "POST", "$hpBase/Items/Decide",
+                buildJsonObject {
+                    put("Decision", decision)
+                    put("AllMatching", true)
+                    put("MatchDecision", filterDecision)
+                    put("MatchText", filterText)
+                    put("MatchArtist", artist)
+                    put("MatchAlbum", album)
+                    put("MatchNoAlbum", album.isEmpty())
+                }.toString(),
+            ),
+        )
+
+    suspend fun hpScan(force: Boolean) {
+        send("POST", "$hpBase/Scan", buildJsonObject { put("Force", force) }.toString())
+    }
+
+    suspend fun hpCancelScan() {
+        send("POST", "$hpBase/Scan/Cancel", "")
+    }
+
+    suspend fun hpPreview(): HpPreview = HallPassParser.preview(get("$hpBase/Apply/Preview"))
+
+    suspend fun hpApply() {
+        send("POST", "$hpBase/Apply", buildJsonObject { put("Confirm", true) }.toString())
+    }
+
     // Ends this session on the server, so the token stops working there. Best effort: the caller ignores failure.
     suspend fun logout() {
         send("POST", "$server/emby/Sessions/Logout", "")

@@ -69,3 +69,6 @@ A running log of what was decided about the app, when and why. Newest at the bot
 - The app moves a Hall Monitor key saved under the old storage name to the new one on first use, so it is not typed again.
 - History is left as written: past release notes, `status.md` and the plugin's `PROGRESS.md` keep the old name where they describe what happened. The README of the plugin keeps a factual provenance note (the code was recovered from a compiled plugin).
 - Supersedes the 2026-10-11 decision to keep `WatchingEye.dll`.
+
+## 2026-10-12: Hall Pass lives in Library, and uses the administrator's own token
+- The Hall Pass plugin's endpoints are admin-only Emby routes, so the app calls them with the signed-in administrator's token like it does SmartLists; no second key and no phone switch to flip (unlike the plugin manager). The tab needs plugin 1.1.0.0 or newer (the first with albums and select-all-matching) and says so when it is older. The settings (word list, online lookups, roll-up tags, dry run) stay on the plugin's Emby page on purpose: they change what is sent online or written to the library, so they are not one tap away on a phone.
