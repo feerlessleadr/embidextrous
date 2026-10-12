@@ -1,9 +1,9 @@
-<p align="center"><img src="assets/logo/embidextrous-512.png" alt="Embidextrous: two Es shaking hands" width="128"></p>
+<p align="center"><img src="assets/logo/embidextrous-512.png" alt="Embidextrous: two overlapping circles, a list on one, text bars on the other, a play button between them" width="128"></p>
 
 # Embidextrous
 
 An Android app for running your **Emby** server with both hands: watch-time limits for the kids, and smart lists, from one place.
-(The name is "ambidextrous" with Emby in the front. The logo is two Es shaking hands, in the app's violet and mint.)
+(The name is "ambidextrous" with Emby in the front. The logo is two overlapping circles, one for each hand: a list on the violet one, text bars on the mint one, and a play button where they meet.)
 
 > **Status: early (0.1.x released, 0.2 in progress).** This app combines the [Emby SmartLists app](https://github.com/feerlessleadr/emby.smartlists.android) and the
 > [Watching Eye app](https://github.com/feerlessleadr/watching-eye-android-app) (its plugin is now called Hall Monitor). It has been tried on an emulator, not yet on a real phone.
@@ -46,4 +46,4 @@ $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'; $env:Path = "$en
 - [CLAUDE.md](CLAUDE.md): working rules for AI assistants on this repository
 
 ## License
-MIT, see [LICENSE](LICENSE). The code starts from the Emby SmartLists app (same author, also MIT). The logo is original artwork made for this app.
+MIT, see [LICENSE](LICENSE). The code starts from the Emby SmartLists app (same author, also MIT). The logo is original artwork made for this app (the Hall Monitor logo was made in the same palette).

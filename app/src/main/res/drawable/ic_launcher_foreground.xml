@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Two Es shaking hands (ambidextrous): a green E and a cream mirrored E whose arms slot between the first one's. Drawn on a 216-unit grid and scaled into the adaptive-icon safe zone. -->
+<!-- Two overlapping circles (both hands, two apps in one): a list on the violet one, text bars on the mint one, a play button where they overlap. Drawn on a 512-unit grid and scaled into the adaptive-icon safe zone. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="216"
-    android:viewportHeight="216">
-    <group android:translateX="19.44" android:translateY="19.44" android:scaleX="0.82" android:scaleY="0.82">
-        <path android:fillColor="#B388FF" android:pathData="M45,38 H51 A9,9 0 0 1 60,47 V169 A9,9 0 0 1 51,178 H45 A9,9 0 0 1 36,169 V47 A9,9 0 0 1 45,38 Z M45,38 H117 A9,9 0 0 1 126,47 V53 A9,9 0 0 1 117,62 H45 A9,9 0 0 1 36,53 V47 A9,9 0 0 1 45,38 Z M45,96 H117 A9,9 0 0 1 126,105 V111 A9,9 0 0 1 117,120 H45 A9,9 0 0 1 36,111 V105 A9,9 0 0 1 45,96 Z M45,154 H117 A9,9 0 0 1 126,163 V169 A9,9 0 0 1 117,178 H45 A9,9 0 0 1 36,169 V163 A9,9 0 0 1 45,154 Z" />
-        <path android:fillColor="#5CF2C0" android:pathData="M165,38 H171 A9,9 0 0 1 180,47 V169 A9,9 0 0 1 171,178 H165 A9,9 0 0 1 156,169 V47 A9,9 0 0 1 165,38 Z M105,67 H171 A9,9 0 0 1 180,76 V82 A9,9 0 0 1 171,91 H105 A9,9 0 0 1 96,82 V76 A9,9 0 0 1 105,67 Z M105,125 H171 A9,9 0 0 1 180,134 V140 A9,9 0 0 1 171,149 H105 A9,9 0 0 1 96,140 V134 A9,9 0 0 1 105,125 Z" />
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <group android:translateX="56.3" android:translateY="56.3" android:scaleX="0.78" android:scaleY="0.78">
+        <path android:fillColor="#B388FF" android:pathData="M66,256 A130,130 0 1 0 326,256 A130,130 0 1 0 66,256 Z" />
+        <path android:fillColor="#5CF2C0" android:pathData="M186,256 A130,130 0 1 0 446,256 A130,130 0 1 0 186,256 Z" />
+        <group>
+            <clip-path android:pathData="M66,256 A130,130 0 1 0 326,256 A130,130 0 1 0 66,256 Z" />
+            <path android:fillColor="#FFFFFF" android:pathData="M186,256 A130,130 0 1 0 446,256 A130,130 0 1 0 186,256 Z" />
+        </group>
+        <path android:fillColor="#FFFFFF" android:pathData="M102,196 A16,16 0 1 0 134,196 A16,16 0 1 0 102,196 Z M102,256 A16,16 0 1 0 134,256 A16,16 0 1 0 102,256 Z M102,316 A16,16 0 1 0 134,316 A16,16 0 1 0 102,316 Z" />
+        <path android:fillColor="#140B2E" android:pathData="M351,183 H411 A13,13 0 0 1 411,209 H351 A13,13 0 0 1 351,183 Z M351,243 H387 A13,13 0 0 1 387,269 H351 A13,13 0 0 1 351,243 Z M351,303 H411 A13,13 0 0 1 411,329 H351 A13,13 0 0 1 351,303 Z" />
+        <path android:fillColor="#140B2E" android:strokeColor="#140B2E" android:strokeWidth="8" android:strokeLineJoin="round" android:pathData="M240,228 L240,284 L282,256 Z" />
     </group>
 </vector>
-

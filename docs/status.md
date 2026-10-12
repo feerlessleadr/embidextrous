@@ -89,3 +89,6 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 - **Launcher icon:** same shape (two Es shaking hands), now violet and mint on deep violet (asset PNG and SVG in `assets/logo/` too). The widgets and the notification icon (a progress ring around a play button) follow the palette; the Smart Lists refresh widget background is a pale lavender.
 - Emulator check (light and dark, Android 37): sign-in, first-run profile choice, Settings (new swatch first, mint selected-tab indicator), Home, the Hall Monitor tab, Smart Lists, widget (violet, mint title), launcher icon. Not checked: the notification icon on a real notification (only built and shipped as a vector), a real phone, large fonts, other accent colours after this change beyond what the existing tests cover.
 - Tests: the default-accent test now expects Hall Monitor; new `PaletteTest` (contrast and the logo colours).
+
+## 2026-10-11: new launcher icon
+- The launcher icon, the themed (monochrome) icon and the README image are now the two-circles design described in `docs/decisions.md`. The old handshake Es are gone from the app (the history keeps them).
