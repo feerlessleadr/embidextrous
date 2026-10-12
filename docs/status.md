@@ -206,3 +206,8 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 - Plugin: tag `v2.0.0.0` on `fe89f32`; release run succeeded; assets `HallMonitor.dll` (216,064 bytes, SHA-256 `13d82caac1ee4f0dc0cab98602239b2c8e285fd619644bff1f2841b830cbc934`) and `HallMonitor.dll.sha256`.
 - App: tag `v0.5.0` on `61cdcd9` (CI and both CodeQL jobs green); release run succeeded; `Embidextrous-0.5.0.apk`, 2,406,454 bytes, SHA-256 `544ab5a276e62cb307c994dbe20e7d835f9f49ee5d649fec4def0f99495bcaf7`. `gh attestation verify` not run locally (no `gh`).
 - To do by the owner: on the server delete `WatchingEye.dll` from `plugins`, add `HallMonitor.dll` (or update through the GitHub plugin and then delete the old file), restart Emby once; update both phones through Obtainium; check the Hall Monitor tab connects and the key is still there.
+
+## 2026-10-12: two fixes after the 0.5.0 update (built, not released)
+- **Live no longer shuffles.** Emby sends sessions in a changing order, so the list swapped places every second or so; sessions are now always ordered by person (sessions with no person last), then device, then id. Unit-tested. Not confirmed on a real phone with two streams (the owner's report was a direct play plus a transcode; the order change came from Emby's list, not from the play method, as far as the code shows).
+- **Home "Watching now" shows the show's poster** for an episode, like Live: the app asks Emby once per item which show it belongs to (`Items?Ids=...&Fields=SeriesId`), remembers the answer, and falls back to the item's own picture. Unit-tested parser; not seen on a screen.
+- Plugin 2.0.1.0 (see the plugin's PROGRESS.md section 15): the settings page is listed in the dashboard's Advanced menu again.

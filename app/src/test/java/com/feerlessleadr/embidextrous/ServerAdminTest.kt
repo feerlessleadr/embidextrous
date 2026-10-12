@@ -115,4 +115,21 @@ Sunday","Type":"user.created"}]}""").single().detail)
         val posters = ServerAdminParser.sessions(text).map { it.playing!!.posterId }
         assertEquals(listOf("500", "88", "99"), posters)
     }
+
+    @Test fun sessionsComeInAFixedOrderWhateverOrderEmbySends() {
+        val a = """{"Id":"s1","UserName":"Zoe","DeviceName":"TV"}"""
+        val b = """{"Id":"s2","UserName":"adam","DeviceName":"Phone"}"""
+        val c = """{"Id":"s3","UserName":"adam","DeviceName":"Laptop"}"""
+        val one = ServerAdminParser.sessions("[$a,$b,$c]").map { it.id }
+        val two = ServerAdminParser.sessions("[$c,$a,$b]").map { it.id }
+        assertEquals(listOf("s3", "s2", "s1"), one) // adam/Laptop, adam/Phone, Zoe (case ignored)
+        assertEquals(one, two)
+    }
+
+    @Test fun readsTheShowAnEpisodeBelongsTo() {
+        assertEquals("500", ServerAdminParser.seriesId("""{"Items":[{"Id":"77","SeriesId":"500"}],"TotalRecordCount":1}"""))
+        assertEquals(null, ServerAdminParser.seriesId("""{"Items":[{"Id":"88"}]}"""))
+        assertEquals(null, ServerAdminParser.seriesId("""{"Items":[]}"""))
+        assertEquals(null, ServerAdminParser.seriesId("not json"))
+    }
 }

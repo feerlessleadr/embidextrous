@@ -32,8 +32,21 @@ class CoverCache {
         return bitmap
     }
 
+    private val seriesOf = ConcurrentHashMap<String, String>()
+
+    /** The picture for what someone is watching: an episode shows its show's poster, anything else its own. Which show an item belongs to is asked once per item. */
+    suspend fun poster(api: ApiClient, itemId: String): Bitmap? {
+        val series = seriesOf[itemId] ?: (try {
+            api.seriesIdOf(itemId).orEmpty().also { seriesOf[itemId] = it }
+        } catch (e: ApiException) {
+            "" // not remembered: the next look asks again
+        })
+        return load(api, series.ifEmpty { itemId }, null)
+    }
+
     fun clear() {
         covers.evictAll()
         missing.clear()
+        seriesOf.clear()
     }
 }

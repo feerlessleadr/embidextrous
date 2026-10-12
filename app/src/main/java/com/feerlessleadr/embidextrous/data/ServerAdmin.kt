@@ -94,7 +94,11 @@ data class LibraryInfo(val id: String, val name: String, val type: String, val p
 
 /** Turns the Emby answers into the models above. Tolerant: missing fields give defaults, never a crash. No Android classes: unit tested. */
 object ServerAdminParser {
-    fun sessions(text: String): List<LiveSession> = objects(text).mapNotNull { o ->
+    /** Emby lists sessions in whatever order it likes (it changes from one push to the next), so they are put in a fixed order: by person (sessions with no person last), then device, then id. */
+    fun sessions(text: String): List<LiveSession> = sessionsInEmbyOrder(text)
+        .sortedWith(compareBy({ it.userName.isEmpty() }, { it.userName.lowercase() }, { it.device.lowercase() }, { it.id }))
+
+    private fun sessionsInEmbyOrder(text: String): List<LiveSession> = objects(text).mapNotNull { o ->
         val id = o.stringAt("Id") ?: return@mapNotNull null
         val item = o["NowPlayingItem"] as? JsonObject
         val state = o["PlayState"] as? JsonObject
@@ -216,6 +220,13 @@ object ServerAdminParser {
 
     private fun objects(text: String): List<JsonObject> =
         ((runCatching { AppJson.parseToJsonElement(text) }.getOrNull()) as? JsonArray).orEmpty().mapNotNull { it as? JsonObject }
+
+    /** The show an episode belongs to, from an Items answer (`{"Items":[{...,"SeriesId":"..."}]}`); null for anything else. */
+    fun seriesId(text: String): String? {
+        val root = runCatching { AppJson.parseToJsonElement(text) }.getOrNull() as? JsonObject ?: return null
+        val item = (root["Items"] as? JsonArray)?.firstOrNull() as? JsonObject ?: return null
+        return item.stringAt("SeriesId")?.takeIf { it.isNotBlank() }
+    }
 
     private fun instant(text: String?): Long? = text?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() }
 }

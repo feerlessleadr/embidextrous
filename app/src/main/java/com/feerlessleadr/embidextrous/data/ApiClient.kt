@@ -354,6 +354,10 @@ class ApiClient(
 
     // ----- cover images --------------------------------------------------------------------------------------
 
+    /** The show an episode belongs to (its series id), or null for anything else or when Emby does not say. */
+    suspend fun seriesIdOf(itemId: String): String? =
+        ServerAdminParser.seriesId(get("$server/emby/Items?Ids=${seg(itemId)}&Fields=SeriesId&Limit=1"))
+
     /** The primary image of an Emby item (a list's playlist or collection), scaled by the server; null when it has none. */
     suspend fun embyCover(itemId: String, maxWidth: Int = 200): ByteArray? = withContext(Dispatchers.IO) {
         val url = "$server/emby/Items/${seg(itemId)}/Images/Primary?maxWidth=$maxWidth&quality=80".toHttpUrl()
