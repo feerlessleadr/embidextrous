@@ -79,7 +79,7 @@ object WidgetUpdater {
         }
         if (lines.isEmpty()) lines.add("No limited users yet.")
         val time = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date())
-        draw(context, lines, if (live) "Live · $time" else "Updated $time")
+        draw(context, lines, if (live) "Live · $time" else "Updated $time", WidgetText.summary(users, now, hideNames))
     }
 
     /** Replaces whatever the widget shows (names, times) once the person has signed out. */
@@ -88,15 +88,15 @@ object WidgetUpdater {
         renderMessage(context, "Signed out. Open the app to sign in.")
     }
 
-    private fun renderMessage(context: Context, message: String) = draw(context, listOf(message), "Tap to open the app")
+    private fun renderMessage(context: Context, message: String) = draw(context, listOf(message), "Tap to open the app", null)
 
     @Synchronized
-    private fun draw(context: Context, lines: List<String>, footer: String) {
+    private fun draw(context: Context, lines: List<String>, footer: String, summary: WidgetText.Summary?) {
         val manager = AppWidgetManager.getInstance(context)
         val ids = widgetIds(context, manager)
         if (ids.isEmpty()) return
         // The footer carries a clock; only redraw when the lines changed, so a stream of identical pushes costs nothing.
-        val signature = lines.joinToString("\n")
+        val signature = summary?.text.orEmpty() + "|" + lines.joinToString("|")
         if (signature == lastSignature && footer.startsWith("Live")) return
         lastSignature = signature
 
@@ -108,6 +108,13 @@ object WidgetUpdater {
             } else {
                 views.setViewVisibility(ROWS[i], View.GONE)
             }
+        }
+        if (summary == null) {
+            views.setViewVisibility(R.id.widgetSummary, View.GONE)
+        } else {
+            views.setViewVisibility(R.id.widgetSummary, View.VISIBLE)
+            views.setTextViewText(R.id.widgetSummary, summary.text)
+            views.setTextColor(R.id.widgetSummary, if (summary.needsAttention) 0xFFFFB74D.toInt() else 0xFF5CF2C0.toInt())
         }
         views.setTextViewText(R.id.widgetFooter, if (lines.size > ROWS.size) "+${lines.size - ROWS.size} more · $footer" else footer)
         val open = Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)

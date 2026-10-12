@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -20,6 +21,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +52,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.feerlessleadr.embidextrous.data.HomeCard
+import com.feerlessleadr.embidextrous.data.HomeLayout
 import com.feerlessleadr.embidextrous.data.UserCard
 import com.feerlessleadr.embidextrous.data.UserStatus
 import com.feerlessleadr.embidextrous.data.WatchText
@@ -63,6 +67,8 @@ import com.feerlessleadr.embidextrous.watching.Link
 import com.feerlessleadr.embidextrous.watching.Poster
 import com.feerlessleadr.embidextrous.watching.WatchingEyeTheme
 import com.feerlessleadr.embidextrous.watching.WatchingEyeViewModel
+import com.feerlessleadr.embidextrous.ui.ListsViewModel
+import kotlinx.coroutines.flow.StateFlow
 import com.feerlessleadr.embidextrous.watching.subtitle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -78,9 +84,24 @@ private const val QUICK_ADD_MINUTES = 15
  * The start screen: is everything fine, and if not, what needs the person? Then who is watching what, each child's time left,
  * and Bedtime. A summary only: the Hall Monitor tab keeps the full cards and every action.
  */
+/** The administrator cards of Home: the smart lists (its own view model, shared with the Smart Lists tab), the server and the plugins. Null on a phone that does not show them. */
+class AdminHome(
+    val lists: ListsViewModel,
+    val server: AdminHomeViewModel,
+    val problem: StateFlow<String?>,
+    val onOpenLists: () -> Unit,
+)
+
 @Composable
-fun HomeScreen(vm: WatchingEyeViewModel, onOpenWatching: () -> Unit, onOpenSettings: () -> Unit) {
-    WatchingEyeTheme { HomeContent(vm, onOpenWatching, onOpenSettings) }
+fun HomeScreen(
+    vm: WatchingEyeViewModel,
+    admin: AdminHome?,
+    layout: HomeLayout,
+    onCustomise: () -> Unit,
+    onOpenWatching: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    WatchingEyeTheme { HomeContent(vm, admin, layout, onCustomise, onOpenWatching, onOpenSettings) }
 }
 
 private sealed interface HomeDialog {
@@ -91,7 +112,14 @@ private sealed interface HomeDialog {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HomeContent(vm: WatchingEyeViewModel, onOpenWatching: () -> Unit, onOpenSettings: () -> Unit) {
+private fun HomeContent(
+    vm: WatchingEyeViewModel,
+    admin: AdminHome?,
+    layout: HomeLayout,
+    onCustomise: () -> Unit,
+    onOpenWatching: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -101,6 +129,11 @@ private fun HomeContent(vm: WatchingEyeViewModel, onOpenWatching: () -> Unit, on
     LifecycleStartEffect(vm) {
         vm.acquire()
         onStopOrDispose { vm.release() }
+    }
+    // The server cards look again when Home comes to the front (not more often than every 30 seconds) and on pull to refresh.
+    LifecycleStartEffect(admin) {
+        admin?.server?.load()
+        onStopOrDispose { }
     }
     LaunchedEffect(vm) {
         vm.events.collect { event ->
@@ -112,6 +145,10 @@ private fun HomeContent(vm: WatchingEyeViewModel, onOpenWatching: () -> Unit, on
             )
             if (result == SnackbarResult.ActionPerformed) event.undo?.let { undo -> scope.launch { undo() } }
         }
+    }
+    // "Refresh all" and the like report through the smart lists' own messages.
+    LaunchedEffect(admin) {
+        admin?.lists?.messages?.collect { snackbar.showSnackbar(it, duration = SnackbarDuration.Short) }
     }
     // One clock for the whole screen, so the countdowns move between updates.
     val now by produceState(System.currentTimeMillis()) {
@@ -125,19 +162,33 @@ private fun HomeContent(vm: WatchingEyeViewModel, onOpenWatching: () -> Unit, on
     val watching = HomeModel.watchingNow(state.cards)
     val timedOut = HomeModel.timedOut(state.cards, instant)
     val candidates = HomeModel.bedtimeCandidates(state.cards)
+    val cardsToShow = layout.visible(HomeCard.availableFor(administrator = admin != null))
 
     Scaffold(
         topBar = {
-            TopAppBar(title = {
-                Column {
-                    Text("Home")
-                    Text(subtitle(state, now), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            })
+            TopAppBar(
+                title = {
+                    Column {
+                        Text("Home")
+                        Text(subtitle(state, now), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onCustomise) { Icon(Icons.Default.Tune, contentDescription = "Customise Home") }
+                },
+            )
         },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
-        PullToRefreshBox(isRefreshing = false, onRefresh = vm::refresh, modifier = Modifier.padding(padding).fillMaxSize()) {
+        PullToRefreshBox(
+            isRefreshing = false,
+            onRefresh = {
+                vm.refresh()
+                admin?.server?.load(force = true)
+                admin?.lists?.reload()
+            },
+            modifier = Modifier.padding(padding).fillMaxSize(),
+        ) {
             LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(12.dp)) {
                 item(key = "status") {
                     StatusCard(
@@ -148,44 +199,47 @@ private fun HomeContent(vm: WatchingEyeViewModel, onOpenWatching: () -> Unit, on
                         onOpenSettings = onOpenSettings,
                     )
                 }
-                if (watching.isNotEmpty()) {
-                    item(key = "watching") {
-                        SectionTitle("Watching now")
-                    }
-                    for (card in watching) {
-                        item(key = "watch-${card.status.userId}") {
-                            WatchingNowCard(
-                                card = card,
-                                nowMs = now,
-                                loadAvatar = vm::avatar,
-                                loadPoster = vm::poster,
-                                onAdd = { vm.extend(card.status, QUICK_ADD_MINUTES) },
-                                onStop = { dialog = HomeDialog.Stop(card.status, card.status.nowPlaying?.itemName.orEmpty()) },
-                            )
+                for (card in cardsToShow) {
+                    when (card) {
+                        HomeCard.WatchingNow -> if (watching.isNotEmpty()) {
+                            item(key = "watching") { SectionTitle("Watching now") }
+                            for (c in watching) {
+                                item(key = "watch-${c.status.userId}") {
+                                    WatchingNowCard(
+                                        card = c,
+                                        nowMs = now,
+                                        loadAvatar = vm::avatar,
+                                        loadPoster = vm::poster,
+                                        onAdd = { vm.extend(c.status, QUICK_ADD_MINUTES) },
+                                        onStop = { dialog = HomeDialog.Stop(c.status, c.status.nowPlaying?.itemName.orEmpty()) },
+                                    )
+                                }
+                            }
                         }
-                    }
-                }
-                if (state.loaded && state.cards.isEmpty()) {
-                    item(key = "empty") {
-                        Text(
-                            "No limited users yet. Add users on the Hall Monitor plugin page in the Emby dashboard.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(8.dp),
-                        )
-                    }
-                } else if (state.cards.isNotEmpty()) {
-                    item(key = "kids-title") { SectionTitle("Kids today") }
-                    item(key = "kids") {
-                        KidsCard(state.cards, now, vm::avatar, onOpenWatching)
-                    }
-                }
-                if (candidates.isNotEmpty()) {
-                    item(key = "bedtime") {
-                        BedtimeCard(
-                            anyTimedOut = timedOut.isNotEmpty(),
-                            onBedtime = { dialog = HomeDialog.Bedtime },
-                            onEndTimeOuts = { dialog = HomeDialog.EndTimeOuts },
-                        )
+                        HomeCard.Kids -> if (state.loaded && state.cards.isEmpty()) {
+                            item(key = "empty") {
+                                Text(
+                                    "No limited users yet. Add users on the Hall Monitor plugin page in the Emby dashboard.",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier.padding(8.dp),
+                                )
+                            }
+                        } else if (state.cards.isNotEmpty()) {
+                            item(key = "kids-title") { SectionTitle("Kids today") }
+                            item(key = "kids") { KidsCard(state.cards, now, vm::avatar, onOpenWatching) }
+                        }
+                        HomeCard.Bedtime -> if (candidates.isNotEmpty()) {
+                            item(key = "bedtime") {
+                                BedtimeCard(
+                                    anyTimedOut = timedOut.isNotEmpty(),
+                                    onBedtime = { dialog = HomeDialog.Bedtime },
+                                    onEndTimeOuts = { dialog = HomeDialog.EndTimeOuts },
+                                )
+                            }
+                        }
+                        HomeCard.SmartLists -> if (admin != null) item(key = "smart-lists") { SmartListsCard(admin, now) }
+                        HomeCard.Server -> if (admin != null) item(key = "server") { ServerCard(admin.server) }
+                        HomeCard.Plugins -> if (admin != null) item(key = "plugins") { PluginsCard(admin.server) }
                     }
                 }
             }

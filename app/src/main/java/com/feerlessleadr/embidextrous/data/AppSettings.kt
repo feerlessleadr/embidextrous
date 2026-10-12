@@ -94,6 +94,16 @@ class AppSettings(private val prefs: SharedPreferences) {
         _customSmartLists.value = on
     }
 
+    private val _homeLayout = MutableStateFlow(HomeLayout.decode(prefs.getString(KEY_HOME_LAYOUT, null)))
+
+    /** Which Home cards show and in what order (kept on this phone). */
+    val homeLayout: StateFlow<HomeLayout> = _homeLayout.asStateFlow()
+
+    fun setHomeLayout(layout: HomeLayout) {
+        prefs.edit().putString(KEY_HOME_LAYOUT, layout.encode()).apply()
+        _homeLayout.value = layout
+    }
+
     private val _alertsEnabled = MutableStateFlow(prefs.getBoolean(KEY_ALERTS, false))
 
     /** Hall Monitor: keep a live connection in the background and notify when someone reaches their limit. */
@@ -159,6 +169,7 @@ class AppSettings(private val prefs: SharedPreferences) {
         const val KEY_LIST_COLORS = "list_colors"
         const val KEY_PROFILE = "profile"
         const val KEY_CUSTOM_SMART_LISTS = "custom_smart_lists"
+        const val KEY_HOME_LAYOUT = "home_layout"
         const val KEY_ALERTS = "watching_alerts"
         const val KEY_WIDGET_HIDE_NAMES = "watching_widget_hide_names"
     }

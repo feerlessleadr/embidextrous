@@ -29,4 +29,8 @@ object Profiles {
             AppProfile.Administrator, null -> true
         }
     }
+
+    /** The Home cards about the server (smart lists, server, plugins) need an administrator account and a profile that wants them: the same rule as the Smart Lists tab. */
+    fun showsAdminCards(profile: AppProfile?, isAdministrator: Boolean, customSmartLists: Boolean): Boolean =
+        showsSmartLists(profile, isAdministrator, customSmartLists)
 }

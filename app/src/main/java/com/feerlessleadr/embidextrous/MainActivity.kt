@@ -44,6 +44,9 @@ import androidx.compose.material.icons.filled.Home
 import com.feerlessleadr.embidextrous.data.AppProfile
 import com.feerlessleadr.embidextrous.data.Profiles
 import com.feerlessleadr.embidextrous.data.Session
+import com.feerlessleadr.embidextrous.home.AdminHome
+import com.feerlessleadr.embidextrous.home.AdminHomeViewModel
+import com.feerlessleadr.embidextrous.home.CustomiseHomeScreen
 import com.feerlessleadr.embidextrous.home.HomeScreen
 import com.feerlessleadr.embidextrous.ui.ProfileChoiceScreen
 import com.feerlessleadr.embidextrous.ui.BackupsScreen
@@ -123,11 +126,14 @@ private fun SignedIn(container: AppContainer, session: Session) {
     val nav = rememberNavController()
     val listsVm: ListsViewModel = viewModel(key = "lists-$token", factory = viewModelFactory { initializer { ListsViewModel(container) } })
     val watchVm: WatchingEyeViewModel = viewModel(key = "watching-$token", factory = viewModelFactory { initializer { WatchingEyeViewModel(container) } })
+    val adminVm: AdminHomeViewModel = viewModel(key = "admin-$token", factory = viewModelFactory { initializer { AdminHomeViewModel(container) } })
 
     // The tabs follow the phone's profile; Smart Lists also needs an administrator account (the SmartLists plugin demands one).
     val profile by container.settings.profile.collectAsStateWithLifecycle()
     val customSmartLists by container.settings.customSmartLists.collectAsStateWithLifecycle()
     val smartLists = Profiles.showsSmartLists(profile, session.isAdministrator, customSmartLists)
+    val adminCards = Profiles.showsAdminCards(profile, session.isAdministrator, customSmartLists)
+    val homeLayout by container.settings.homeLayout.collectAsStateWithLifecycle()
     val tabs = buildList {
         add(Tab(ROUTE_HOME, "Home", Icons.Filled.Home))
         add(Tab(ROUTE_WATCHING, "Hall Monitor", Icons.Filled.Timer))
@@ -171,7 +177,17 @@ private fun SignedIn(container: AppContainer, session: Session) {
             modifier = Modifier.padding(padding).consumeWindowInsets(padding),
         ) {
             composable(ROUTE_HOME) {
-                HomeScreen(watchVm, onOpenWatching = { goTo(ROUTE_WATCHING) }, onOpenSettings = { goTo(ROUTE_SETTINGS) })
+                HomeScreen(
+                    vm = watchVm,
+                    admin = if (adminCards) AdminHome(listsVm, adminVm, container.smartListsProblem, onOpenLists = { goTo(ROUTE_LISTS) }) else null,
+                    layout = homeLayout,
+                    onCustomise = { nav.navigate("customise-home") },
+                    onOpenWatching = { goTo(ROUTE_WATCHING) },
+                    onOpenSettings = { goTo(ROUTE_SETTINGS) },
+                )
+            }
+            composable("customise-home") {
+                CustomiseHomeScreen(container, administrator = adminCards, onBack = { nav.popBackStack() })
             }
             composable(ROUTE_WATCHING) {
                 WatchingEyeScreen(watchVm)

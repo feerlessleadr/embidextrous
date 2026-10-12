@@ -102,6 +102,18 @@ class ApiClient(
         send("POST", "$pluginBase/refresh", "")
     }
 
+    // ----- server state (Emby's own endpoints, administrators only) ------------------------------------------
+
+    suspend fun systemInfo(): ServerInfo = ServerStatusParser.info(get("$server/emby/System/Info"))
+
+    suspend fun installedPlugins(): List<InstalledPlugin> = ServerStatusParser.plugins(get("$server/emby/Plugins"))
+
+    suspend fun failedTasks(): List<FailedTask> = ServerStatusParser.failedTasks(get("$server/emby/ScheduledTasks"))
+
+    suspend fun sessionCounts(): SessionCounts = ServerStatusParser.sessions(get("$server/emby/Sessions"), System.currentTimeMillis())
+
+    suspend fun pluginUpdates(): List<String> = ServerStatusParser.packageUpdates(get("$server/emby/Packages/Updates"))
+
     // Ends this session on the server, so the token stops working there. Best effort: the caller ignores failure.
     suspend fun logout() {
         send("POST", "$server/emby/Sessions/Logout", "")
