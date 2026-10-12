@@ -92,3 +92,8 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 
 ## 2026-10-11: new launcher icon
 - The launcher icon, the themed (monochrome) icon and the README image are now the two-circles design described in `docs/decisions.md`. The old handshake Es are gone from the app (the history keeps them).
+
+## 2026-10-11: 0.2.0 released
+- Embidextrous 0.2.0 (tag `v0.2.0`, commit `ae27362`) published by `release.yml`: tests, signing-key check, provenance attestation and the immutable release all passed. `Embidextrous-0.2.0.apk`, 2,177,310 bytes, SHA-256 `6ea64f1c954f7e3b82c0ac42aa6d3888bbf1d21dcf871f4c7b7eaec67d86a85c`.
+- Hall Monitor plugin 1.10.0.0 (tag `v1.10.0.0`) published the same day: `WatchingEye.dll` 214,528 bytes, SHA-256 `b3b0de8f090abb68bb72915c7caddc6899ae6b11b428bef57eb87a0ad337ec10`.
+- Not yet verified: use on a real phone (see the release notes' known limits). Next: phase 7, and phase 9 (plugin manager, spec from the GitHub Repo Plugin Install plugin).
