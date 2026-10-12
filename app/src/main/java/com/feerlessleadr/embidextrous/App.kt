@@ -11,6 +11,9 @@ import com.feerlessleadr.embidextrous.data.KeystoreSecureStore
 import com.feerlessleadr.embidextrous.data.SUPPORTED_API_VERSION
 import com.feerlessleadr.embidextrous.data.Session
 import com.feerlessleadr.embidextrous.data.SessionRepository
+import com.feerlessleadr.embidextrous.data.TracearrClient
+import com.feerlessleadr.embidextrous.data.TracearrConnection
+import com.feerlessleadr.embidextrous.data.TracearrRules
 import com.feerlessleadr.embidextrous.data.UrlRules
 import com.feerlessleadr.embidextrous.data.WatchingEyeClient
 import com.feerlessleadr.embidextrous.watching.AlertService
@@ -116,6 +119,37 @@ class AppContainer(context: Context) {
         }
     }
 
+    private val _tracearr = MutableStateFlow(readTracearr())
+
+    /** The saved Tracearr connection (address and key), or null until one is set up. */
+    val tracearr: StateFlow<TracearrConnection?> = _tracearr.asStateFlow()
+
+    private fun readTracearr(): TracearrConnection? {
+        val url = sessions.loadTracearrUrl() ?: return null
+        val key = sessions.loadTracearrKey() ?: return null
+        return TracearrConnection(url, key)
+    }
+
+    /** Checks the address (HTTPS only, like the Emby server) and the key, then keeps them. Returns a sentence when something is wrong, or null when saved. */
+    fun saveTracearr(addressInput: String, keyInput: String): String? {
+        val url = when (val result = UrlRules.normalize(addressInput, allowCleartext = BuildConfig.DEBUG)) {
+            is UrlRules.Result.Ok -> result.serverUrl
+            is UrlRules.Result.Rejected -> return result.reason.replace("Emby server", "Tracearr")
+        }
+        TracearrRules.checkKey(keyInput)?.let { return it }
+        sessions.saveTracearr(url, keyInput)
+        _tracearr.value = readTracearr()
+        return null
+    }
+
+    fun clearTracearr() {
+        sessions.clearTracearr()
+        _tracearr.value = null
+    }
+
+    /** A client for the saved Tracearr connection, or null when there is none. */
+    fun tracearrClient(): TracearrClient? = _tracearr.value?.let { TracearrClient(it.url, it.key, http) }
+
     private val _pluginKey = MutableStateFlow(sessions.loadPluginKey())
 
     /** The Hall Monitor plugin's key, or null until it has been entered. */
@@ -162,6 +196,7 @@ class AppContainer(context: Context) {
         covers.clear()
         avatars.clear()
         sessions.signOut()
+        _tracearr.value = null
         _pluginKey.value = null
         _smartListsProblem.value = null
         _session.value = null

@@ -87,6 +87,8 @@ import com.feerlessleadr.embidextrous.watching.AlertService
 import com.feerlessleadr.embidextrous.watching.WatchingEyeScreen
 import com.feerlessleadr.embidextrous.watching.WatchingEyeTheme
 import com.feerlessleadr.embidextrous.watching.WatchingEyeViewModel
+import com.feerlessleadr.embidextrous.watching.TracearrTab
+import com.feerlessleadr.embidextrous.watching.TracearrViewModel
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -155,6 +157,7 @@ private fun SignedIn(container: AppContainer, session: Session) {
     val adminVm: AdminHomeViewModel = viewModel(key = "admin-$token", factory = viewModelFactory { initializer { AdminHomeViewModel(container) } })
     val toolsVm: ServerToolsViewModel = viewModel(key = "tools-$token", factory = viewModelFactory { initializer { ServerToolsViewModel(container) } })
     val pluginVm: PluginManagerViewModel = viewModel(key = "plugins-$token", factory = viewModelFactory { initializer { PluginManagerViewModel(container) } })
+    val tracearrVm: TracearrViewModel = viewModel(key = "tracearr-$token", factory = viewModelFactory { initializer { TracearrViewModel(container) } })
 
     // The tabs follow the phone's profile; Smart Lists also needs an administrator account (the SmartLists plugin demands one).
     val profile by container.settings.profile.collectAsStateWithLifecycle()
@@ -228,7 +231,7 @@ private fun SignedIn(container: AppContainer, session: Session) {
                 GroupTabs(
                     tabs = buildList {
                         add(SubTab("Hall Monitor") { WatchingEyeScreen(watchVm) })
-                        if (BuildConfig.DEBUG) add(SubTab("Activity") { ComingSoon(Icons.Filled.Timeline, "Activity from Tracearr", "History, trends and violations for each child, from your Tracearr server.") })
+                        add(SubTab("Activity") { TracearrTab(tracearrVm, container) })
                     },
                     selected = section,
                     onSelect = { section = it },

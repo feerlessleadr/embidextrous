@@ -130,6 +130,7 @@ fun SettingsScreen(container: AppContainer, onBackups: () -> Unit) {
             }
 
             WatchingEyeKeySection(container)
+            com.feerlessleadr.embidextrous.watching.TracearrConnectionCard(container, showTitle = true)
 
             val profile by container.settings.profile.collectAsStateWithLifecycle()
             val customSmartLists by container.settings.customSmartLists.collectAsStateWithLifecycle()

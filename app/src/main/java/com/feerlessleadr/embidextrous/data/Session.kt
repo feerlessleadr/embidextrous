@@ -34,6 +34,21 @@ class SessionRepository(private val store: SecureStore) {
         if (key.isBlank()) store.putSecret(KEY_PLUGIN_KEY, "") else store.putSecret(KEY_PLUGIN_KEY, key.trim())
     }
 
+    /** The Tracearr connection: its address (not secret) and its API key (kept encrypted like the token). */
+    fun loadTracearrUrl(): String? = store.get(KEY_TRACEARR_URL)?.takeIf { it.isNotBlank() }
+
+    fun loadTracearrKey(): String? = store.getSecret(KEY_TRACEARR_KEY)?.takeIf { it.isNotBlank() }
+
+    fun saveTracearr(url: String, key: String) {
+        store.put(KEY_TRACEARR_URL, url.trim())
+        store.putSecret(KEY_TRACEARR_KEY, key.trim())
+    }
+
+    fun clearTracearr() {
+        store.put(KEY_TRACEARR_URL, "")
+        store.putSecret(KEY_TRACEARR_KEY, "")
+    }
+
     fun save(session: Session) {
         store.put(KEY_SERVER, session.serverUrl)
         store.put(KEY_USER_ID, session.userId)
@@ -67,6 +82,8 @@ class SessionRepository(private val store: SecureStore) {
         const val KEY_IS_ADMIN = "isAdmin"
         const val KEY_PLUGIN_KEY = "watchingEyeKey"
         const val KEY_TOKEN = "token"
+        const val KEY_TRACEARR_URL = "tracearrUrl"
+        const val KEY_TRACEARR_KEY = "tracearrKey"
         const val KEY_DEVICE_ID = "deviceId"
     }
 }
