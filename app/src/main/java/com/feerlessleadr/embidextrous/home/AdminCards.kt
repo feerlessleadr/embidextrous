@@ -103,7 +103,7 @@ private fun names(list: List<String>, max: Int = 3): String =
     if (list.size <= max) list.joinToString(", ") else list.take(max).joinToString(", ") + " and ${list.size - max} more"
 
 private fun ago(epochMs: Long, nowMs: Long): String =
-    DateUtils.getRelativeTimeSpanString(epochMs, nowMs, DateUtils.MINUTE_IN_MILLIS).toString()
+    if (nowMs - epochMs < 60_000L) "just now" else DateUtils.getRelativeTimeSpanString(epochMs, nowMs, DateUtils.MINUTE_IN_MILLIS).toString()
 
 /** How the smart lists are doing: counts, what is wrong, the first few lists, and Refresh all. */
 @Composable

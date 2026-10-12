@@ -32,12 +32,12 @@ class SubTab(val label: String, val content: @Composable () -> Unit)
  * however many services are added. With only one section there is no tab row at all.
  */
 @Composable
-fun GroupTabs(tabs: List<SubTab>, selected: Int, onSelect: (Int) -> Unit) {
+fun GroupTabs(tabs: List<SubTab>, selected: Int, onSelect: (Int) -> Unit, header: (@Composable () -> Unit)? = null) {
     val index = selected.coerceIn(0, tabs.lastIndex)
     Column(Modifier.fillMaxSize()) {
         if (tabs.size > 1) {
             Box(Modifier.statusBarsPadding()) {
-                PrimaryTabRow(selectedTabIndex = index, containerColor = MaterialTheme.colorScheme.background) {
+                val row: @Composable () -> Unit = {
                     tabs.forEachIndexed { i, tab ->
                         Tab(
                             selected = i == index,
@@ -46,8 +46,14 @@ fun GroupTabs(tabs: List<SubTab>, selected: Int, onSelect: (Int) -> Unit) {
                         )
                     }
                 }
+                if (tabs.size > 4) {
+                    androidx.compose.material3.PrimaryScrollableTabRow(selectedTabIndex = index, edgePadding = 8.dp, containerColor = MaterialTheme.colorScheme.background, tabs = row)
+                } else {
+                    PrimaryTabRow(selectedTabIndex = index, containerColor = MaterialTheme.colorScheme.background, tabs = row)
+                }
             }
         }
+        header?.invoke()
         // The screens inside bring their own top bars; the tab row has already taken the status bar space.
         Box(Modifier.weight(1f).let { if (tabs.size > 1) it.consumeWindowInsets(WindowInsets.statusBars) else it }) {
             androidx.compose.runtime.CompositionLocalProvider(LocalInTabbedGroup provides (tabs.size > 1)) { tabs[index].content() }

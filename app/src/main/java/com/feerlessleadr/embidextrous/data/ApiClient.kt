@@ -114,6 +114,57 @@ class ApiClient(
 
     suspend fun pluginUpdates(): List<String> = ServerStatusParser.packageUpdates(get("$server/emby/Packages/Updates"))
 
+    // ----- server tools (administrators only): sessions, tasks, activity, devices, libraries -----------------
+
+    suspend fun liveSessions(): List<LiveSession> = ServerAdminParser.sessions(get("$server/emby/Sessions"))
+
+    /** Asks the session's app to stop playing. The server answers 204 and the app obeys, or does not. */
+    suspend fun stopPlayback(sessionId: String) {
+        send("POST", "$server/emby/Sessions/${seg(sessionId)}/Playing/Stop", "")
+    }
+
+    suspend fun allTasks(): List<ServerTask> = ServerAdminParser.tasks(get("$server/emby/ScheduledTasks"))
+
+    suspend fun runTask(id: String) {
+        send("POST", "$server/emby/ScheduledTasks/Running/${seg(id)}", "")
+    }
+
+    suspend fun stopTask(id: String) {
+        send("DELETE", "$server/emby/ScheduledTasks/Running/${seg(id)}", null)
+    }
+
+    suspend fun activity(start: Int, limit: Int): List<ActivityEntry> =
+        ServerAdminParser.activity(get("$server/emby/System/ActivityLog/Entries?StartIndex=$start&Limit=$limit"))
+
+    suspend fun devices(): List<DeviceInfo> = ServerAdminParser.devices(get("$server/emby/Devices"))
+
+    /** Signs a device out for good: its token stops working and it disappears from the list. */
+    suspend fun revokeDevice(id: String) {
+        send("DELETE", "$server/emby/Devices?Id=${seg(id)}", null)
+    }
+
+    suspend fun mediaLibraries(): List<LibraryInfo> = ServerAdminParser.libraries(get("$server/emby/Library/VirtualFolders"))
+
+    /** How many items of the library's main kind it holds (null when the server would not say). */
+    suspend fun libraryCount(id: String, collectionType: String): Int? {
+        val kind = ServerAdminParser.countFilter(collectionType).first
+        val filter = if (kind != null) "&IncludeItemTypes=$kind" else ""
+        val root = AppJson.parseToJsonElement(get("$server/emby/Items?ParentId=${seg(id)}&Recursive=true&Limit=0$filter")) as? JsonObject
+        return root?.intOrNullAt("TotalRecordCount")
+    }
+
+    suspend fun scanAllLibraries() {
+        send("POST", "$server/emby/Library/Refresh", "")
+    }
+
+    suspend fun refreshLibrary(id: String) {
+        send("POST", "$server/emby/Items/${seg(id)}/Refresh?Recursive=true&ImageRefreshMode=Default&MetadataRefreshMode=Default&ReplaceAllImages=false&ReplaceAllMetadata=false", "")
+    }
+
+    suspend fun restartServer() {
+        send("POST", "$server/emby/System/Restart", "")
+    }
+
     // Ends this session on the server, so the token stops working there. Best effort: the caller ignores failure.
     suspend fun logout() {
         send("POST", "$server/emby/Sessions/Logout", "")

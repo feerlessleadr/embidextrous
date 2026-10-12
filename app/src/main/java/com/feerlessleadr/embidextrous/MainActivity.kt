@@ -58,7 +58,14 @@ import com.feerlessleadr.embidextrous.home.AdminHome
 import com.feerlessleadr.embidextrous.home.AdminHomeViewModel
 import com.feerlessleadr.embidextrous.home.CustomiseHomeScreen
 import com.feerlessleadr.embidextrous.home.HomeScreen
-import com.feerlessleadr.embidextrous.home.ServerOverviewScreen
+import com.feerlessleadr.embidextrous.server.ActivityScreen
+import com.feerlessleadr.embidextrous.server.DevicesScreen
+import com.feerlessleadr.embidextrous.server.LibrariesScreen
+import com.feerlessleadr.embidextrous.server.LiveScreen
+import com.feerlessleadr.embidextrous.server.PluginsTab
+import com.feerlessleadr.embidextrous.server.ServerHeader
+import com.feerlessleadr.embidextrous.server.ServerToolsViewModel
+import com.feerlessleadr.embidextrous.server.TasksScreen
 import com.feerlessleadr.embidextrous.ui.ComingSoon
 import com.feerlessleadr.embidextrous.ui.GroupTabs
 import com.feerlessleadr.embidextrous.ui.SubTab
@@ -144,6 +151,7 @@ private fun SignedIn(container: AppContainer, session: Session) {
     val listsVm: ListsViewModel = viewModel(key = "lists-$token", factory = viewModelFactory { initializer { ListsViewModel(container) } })
     val watchVm: WatchingEyeViewModel = viewModel(key = "watching-$token", factory = viewModelFactory { initializer { WatchingEyeViewModel(container) } })
     val adminVm: AdminHomeViewModel = viewModel(key = "admin-$token", factory = viewModelFactory { initializer { AdminHomeViewModel(container) } })
+    val toolsVm: ServerToolsViewModel = viewModel(key = "tools-$token", factory = viewModelFactory { initializer { ServerToolsViewModel(container) } })
 
     // The tabs follow the phone's profile; Smart Lists also needs an administrator account (the SmartLists plugin demands one).
     val profile by container.settings.profile.collectAsStateWithLifecycle()
@@ -243,6 +251,7 @@ private fun SignedIn(container: AppContainer, session: Session) {
                                     }
                                 },
                             )
+                            add(SubTab("Libraries") { LibrariesScreen(toolsVm) })
                             if (BuildConfig.DEBUG) add(SubTab("Tags") { ComingSoon(Icons.Filled.Sell, "Bulk tag editing", "Edit tags for many items at once, including music.") })
                         },
                         selected = section,
@@ -254,11 +263,15 @@ private fun SignedIn(container: AppContainer, session: Session) {
                 var section by rememberSaveable { mutableIntStateOf(0) }
                 GroupTabs(
                     tabs = buildList {
-                        add(SubTab("Overview") { ServerOverviewScreen(adminVm) })
-                        if (BuildConfig.DEBUG) add(SubTab("Plugins") { ComingSoon(Icons.Filled.Extension, "Plugin manager", "Check, update, add and remove the plugins installed from GitHub.") })
+                        add(SubTab("Live") { LiveScreen(toolsVm) })
+                        add(SubTab("Tasks") { TasksScreen(toolsVm) })
+                        add(SubTab("Activity") { ActivityScreen(toolsVm) })
+                        add(SubTab("Devices") { DevicesScreen(toolsVm, thisDeviceId = container.deviceId()) })
+                        add(SubTab("Plugins") { PluginsTab(adminVm) })
                     },
                     selected = section,
                     onSelect = { section = it },
+                    header = { ServerHeader(adminVm, toolsVm) },
                 )
             }
             composable("editor/{id}") { backEntry ->
