@@ -184,3 +184,6 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 
 ## 2026-10-12: Live shows the show's poster (after 0.4.0, not released)
 - Server > Live now shows the poster of the show for an episode (its series poster) instead of the episode's thumbnail; movies and other items keep their own. Unit-tested (204 tests); not yet looked at on the emulator.
+
+## 2026-10-12: releasing 0.4.1 (in progress)
+- The owner said "publish it". Release notes `docs/releases/v0.4.1.md` pushed; next: CI and both CodeQL jobs green on that commit, tag `v0.4.1`, watch the run, record the SHA-256. Emulator check of the Live poster done (episode thumbnail gone; the test shows have no posters). The throw-away players `we-p7-live*` were deleted again.
