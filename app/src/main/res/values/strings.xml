@@ -4,7 +4,7 @@
     <string name="widget_title">Refresh all lists</string>
     <string name="widget_hint">Tap to refresh your smart lists</string>
     <string name="widget_description">Refreshes all your smart lists with one tap</string>
-    <string name="watching_widget_title">Watching Eye</string>
+    <string name="watching_widget_title">Hall Monitor</string>
     <string name="watching_widget_description">Shows how much watch time each limited user has left</string>
     <string name="tile_label">Refresh lists</string>
 </resources>

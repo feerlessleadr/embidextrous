@@ -106,8 +106,53 @@ private fun ColorScheme.withTintedSurfaces(swatch: Swatch, dark: Boolean): Color
     }
 }
 
-/** A whole colour scheme from one hue: Emby green keeps its hand-tuned colours, the others are generated. */
+/**
+ * The Hall Monitor palette, taken from the Hall Monitor logo: a deep violet night (#140B2E) with violet (#B388FF) for the day
+ * and mint (#5CF2C0) for the week. Dark uses the logo's colours as they are; light keeps the same hues, darkened enough to read
+ * on a pale lavender background.
+ */
+private val HallMonitorDark = darkColorScheme(
+    primary = Color(0xFFB388FF), onPrimary = Color(0xFF2A0B5C),
+    primaryContainer = Color(0xFF3A2A6E), onPrimaryContainer = Color(0xFFE9DDFF),
+    secondary = Color(0xFF5CF2C0), onSecondary = Color(0xFF00382B),
+    secondaryContainer = Color(0xFF12503F), onSecondaryContainer = Color(0xFFB8F8E5),
+    tertiary = Color(0xFFFFA8A8), onTertiary = Color(0xFF5B0D0D),
+    tertiaryContainer = Color(0xFF6B2A2A), onTertiaryContainer = Color(0xFFFFDAD9),
+    background = Color(0xFF140B2E), onBackground = Color(0xFFECE6FF),
+    surface = Color(0xFF140B2E), onSurface = Color(0xFFECE6FF),
+    surfaceVariant = Color(0xFF261A4A), onSurfaceVariant = Color(0xFFC9BFE6),
+    outline = Color(0xFF8C80B0), outlineVariant = Color(0xFF3B2E63),
+    error = Color(0xFFFFB4AB),
+    surfaceTint = Color(0xFFB388FF),
+    surfaceContainerLowest = Color(0xFF0F0824), surfaceContainerLow = Color(0xFF190F38), surfaceContainer = Color(0xFF1D1340),
+    surfaceContainerHigh = Color(0xFF261A4A), surfaceContainerHighest = Color(0xFF2F2258),
+    inverseSurface = Color(0xFFECE6FF), inverseOnSurface = Color(0xFF2A2147), inversePrimary = Color(0xFF6A3DD1),
+)
+
+private val HallMonitorLight = lightColorScheme(
+    primary = Color(0xFF6A3DD1), onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFE9DDFF), onPrimaryContainer = Color(0xFF230B5E),
+    secondary = Color(0xFF00755A), onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFB6F5DF), onSecondaryContainer = Color(0xFF002117),
+    tertiary = Color(0xFFA7364B), onTertiary = Color(0xFFFFFFFF),
+    tertiaryContainer = Color(0xFFFFD9DC), onTertiaryContainer = Color(0xFF40000F),
+    background = Color(0xFFFBF8FF), onBackground = Color(0xFF1B1730),
+    surface = Color(0xFFFBF8FF), onSurface = Color(0xFF1B1730),
+    surfaceVariant = Color(0xFFE8E0F7), onSurfaceVariant = Color(0xFF4A4263),
+    outline = Color(0xFF7C7396), outlineVariant = Color(0xFFCBC2E0),
+    error = Color(0xFFBA1A1A),
+    surfaceTint = Color(0xFF6A3DD1),
+    surfaceContainerLowest = Color(0xFFFFFFFF), surfaceContainerLow = Color(0xFFF6F1FF), surfaceContainer = Color(0xFFF0EAFC),
+    surfaceContainerHigh = Color(0xFFEAE3F8), surfaceContainerHighest = Color(0xFFE4DCF4),
+    inverseSurface = Color(0xFF302A4A), inverseOnSurface = Color(0xFFF3EEFF), inversePrimary = Color(0xFFCDB5FF),
+)
+
+/** True when the whole app wears the Hall Monitor palette, so its tabs need no extra neutral "calm" treatment. */
+val LocalFullPalette = androidx.compose.runtime.compositionLocalOf { false }
+
+/** A whole colour scheme from one hue: Hall Monitor and Emby green keep hand-tuned colours, the others are generated. */
 fun colorSchemeFor(swatch: Swatch, dark: Boolean): ColorScheme {
+    if (swatch == Swatch.HallMonitor) return if (dark) HallMonitorDark else HallMonitorLight
     val base = if (swatch == Swatch.EmbyGreen) {
         if (dark) DarkColors else LightColors
     } else {
@@ -146,7 +191,7 @@ fun colorSchemeFor(swatch: Swatch, dark: Boolean): ColorScheme {
 }
 
 /** The colour of a swatch as a dot or marker (the same in light and dark, mid-tone). */
-fun Swatch.dotColor(): Color = if (saturation < 0.2f) hsl(hue, 0.06f, 0.5f) else hsl(hue, 0.7f, 0.5f)
+fun Swatch.dotColor(): Color = if (this == Swatch.HallMonitor) Color(0xFF8F5CF7) else if (saturation < 0.2f) hsl(hue, 0.06f, 0.5f) else hsl(hue, 0.7f, 0.5f)
 
 /**
  * The app's colours: an accent scheme (Emby green by default) or, when [dynamic] is on and the phone supports it, the
@@ -155,7 +200,7 @@ fun Swatch.dotColor(): Color = if (saturation < 0.2f) hsl(hue, 0.06f, 0.5f) else
 @Composable
 fun EmbidextrousTheme(
     mode: ThemeMode = ThemeMode.System,
-    accent: Swatch = Swatch.EmbyGreen,
+    accent: Swatch = Swatch.HallMonitor,
     dynamic: Boolean = false,
     content: @Composable () -> Unit,
 ) {
@@ -166,5 +211,8 @@ fun EmbidextrousTheme(
     } else {
         colorSchemeFor(accent, dark)
     }
-    MaterialTheme(colorScheme = scheme, content = content)
+    val fullPalette = accent == Swatch.HallMonitor && !(dynamic && dynamicColorSupported)
+    androidx.compose.runtime.CompositionLocalProvider(LocalFullPalette provides fullPalette) {
+        MaterialTheme(colorScheme = scheme, content = content)
+    }
 }

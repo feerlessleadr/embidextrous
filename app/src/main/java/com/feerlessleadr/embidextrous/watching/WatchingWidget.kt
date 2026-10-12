@@ -57,7 +57,7 @@ object WidgetUpdater {
         val container = (context.applicationContext as App).container
         val client = container.watchingEyeClient()
         if (client == null) {
-            renderMessage(context, "Open the app, sign in and enter the Watching Eye key.")
+            renderMessage(context, "Open the app, sign in and enter the Hall Monitor key.")
             return
         }
         try {

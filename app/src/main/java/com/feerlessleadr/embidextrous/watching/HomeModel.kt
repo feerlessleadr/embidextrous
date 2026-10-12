@@ -11,7 +11,7 @@ import java.time.ZonedDateTime
 sealed interface Attention {
     val key: String
 
-    /** The Watching Eye key has not been entered on this phone. */
+    /** The Hall Monitor key has not been entered on this phone. */
     data object NeedsKey : Attention {
         override val key = "needs-key"
     }

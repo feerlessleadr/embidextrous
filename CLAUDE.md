@@ -1,6 +1,6 @@
 # Embidextrous (Android)
 
-One Android app for the owner's Emby administration: smart lists (the SmartLists plugin) and watch-time limits (the Watching Eye plugin), with more to come (a plugin manager for GitHub downloads, bulk tag editing, explicit-tag editing for music). Kotlin, Jetpack Compose, Material 3, OkHttp, kotlinx.serialization. Package `com.feerlessleadr.embidextrous`, repo `feerlessleadr/embidextrous` (public, MIT).
+One Android app for the owner's Emby administration: smart lists (the SmartLists plugin) and watch-time limits (the Hall Monitor plugin, formerly Watching Eye), with more to come (a plugin manager for GitHub downloads, bulk tag editing, explicit-tag editing for music). Kotlin, Jetpack Compose, Material 3, OkHttp, kotlinx.serialization. Package `com.feerlessleadr.embidextrous`, repo `feerlessleadr/embidextrous` (public, MIT).
 
 Origin: this code began as a copy of `C:\dev\emby.smartlists.android` (v0.4.1, commit 79444cb) and is being merged with `C:\dev\watching-eye-android-app` (Java/XML, being ported to Kotlin/Compose). Those repos stay untouched until this app replaces them. Their notes: `C:\dev\emby.smartlists.android\HANDOFF.md`, `C:\dev\watching-eye\PROGRESS.md`.
 
@@ -13,7 +13,7 @@ Origin: this code began as a copy of `C:\dev\emby.smartlists.android` (v0.4.1, c
 - **Every server-supplied id is validated before it goes into a URL** (`ApiClient.seg`); inbound sizes and depth are bounded (`data/Safety.kt`).
 - **No app lock and no FLAG_SECURE** (decided twice: the phone's own screen lock is relied on). Do not add one.
 - Notifications that carry names show a generic version on the lock screen; their action buttons need an unlocked phone.
-- One sign-in. An administrator account sees every tab; a regular account sees only Watching Eye (the SmartLists plugin needs an administrator).
+- One sign-in. An administrator account sees every tab; a regular account sees only Hall Monitor (the SmartLists plugin needs an administrator).
 - Lists are raw JSON edited through drafts, so unknown plugin fields survive; rule and sort knowledge comes from the plugin's `/catalog`.
 - Distribution: signed APK on GitHub releases, installed with Obtainium. The signing key is NOT in the repo and a debug-signed release must never be published (Gradle refuses unless `-PallowDebugSigning`).
 

@@ -80,7 +80,7 @@ object LiveMessages {
 }
 
 /**
- * The live connection to Emby's websocket: the Watching Eye plugin pushes the status when something changes, so the app never
+ * The live connection to Emby's websocket: the Hall Monitor plugin pushes the status when something changes, so the app never
  * has to ask. It reconnects by itself with a growing delay, and treats a long silence (the plugin sends at least every 30 s) as a
  * dead connection, which is what happens after a phone has slept.
  */

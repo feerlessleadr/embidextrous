@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.time.Instant
 
-/** What the Watching Eye plugin (1.9+) says a user is playing right now. */
+/** What the Hall Monitor plugin (1.9+) says a user is playing right now. */
 @Serializable
 data class NowPlaying(
     @SerialName("SessionId") val sessionId: String = "",
@@ -106,7 +106,7 @@ data class UserCard(
     }
 }
 
-/** Plain-language texts for the Watching Eye cards. */
+/** Plain-language texts for the Hall Monitor cards. */
 object WatchText {
     /** "1 h 05 min", "42 min", "9 min 30 s", "45 s". Negative counts as zero. */
     fun duration(seconds: Double): String {
@@ -158,8 +158,8 @@ object WatchText {
     fun describeFailure(what: String, code: Int): String = when (code) {
         400 -> "$what: the plugin rejected the request. Minutes must be 1-43200, and the user must be an enabled limited user (time-outs also need the limiter turned on)."
         401 -> "$what: Emby did not accept your sign-in. Sign in again."
-        403 -> "$what: refused. Check that \"Enable Public API\" is ticked on the plugin page and that the Watching Eye key matches. Repeated wrong keys lock the plugin API for 5 minutes."
-        404 -> "$what: not found. Is the Watching Eye plugin installed (version 1.9 or newer for stop-stream and undo), and is the server address right?"
+        403 -> "$what: refused. Check that \"Enable Public API\" is ticked on the plugin page and that the Hall Monitor key matches. Repeated wrong keys lock the plugin API for 5 minutes."
+        404 -> "$what: not found. Is the Hall Monitor plugin installed (version 1.9 or newer for stop-stream and undo), and is the server address right?"
         else -> "$what failed: HTTP $code"
     }
 }

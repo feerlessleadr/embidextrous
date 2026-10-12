@@ -183,7 +183,7 @@ class WatchingEyeRepository(
 
     /** Runs one plugin call and, when the live connection is not up to bring the change, asks the server so the screen is not stale. */
     suspend fun act(call: suspend WatchingEyeClient.() -> Unit) {
-        val (session, key) = credentials ?: throw ApiException(0, "Enter the Watching Eye key in Settings first.")
+        val (session, key) = credentials ?: throw ApiException(0, "Enter the Hall Monitor key in Settings first.")
         if (keyGuard.isBlocked(System.currentTimeMillis())) throw ApiException(403, KeyGuard.MESSAGE)
         try {
             WatchingEyeClient(session.serverUrl, session.token, key, http).call()

@@ -13,7 +13,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 
 /**
- * Talks to the Watching Eye plugin's key-protected routes (`/WatchingEye/Public/...`). Two credentials travel in headers, never
+ * Talks to the Hall Monitor plugin's key-protected routes (`/WatchingEye/Public/...`). Two credentials travel in headers, never
  * in a URL: the Emby sign-in token (`X-Emby-Token`, any account works, an administrator is not needed) and the plugin's own
  * key (`X-WatchingEye-Api-Key`).
  */

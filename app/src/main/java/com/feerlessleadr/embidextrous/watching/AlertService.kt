@@ -53,7 +53,7 @@ class AlertService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val ongoing = NotificationCompat.Builder(this, CHANNEL_MONITOR)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Watching Eye is watching for limits")
+            .setContentTitle("Hall Monitor is watching for limits")
             .setContentText("You will be alerted when someone reaches their limit.")
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_MIN)
@@ -102,7 +102,7 @@ class AlertService : Service() {
         // On the lock screen only a generic notice is shown (no names, no buttons); the buttons also ask for the screen lock.
         val lockScreenVersion: Notification = NotificationCompat.Builder(this, CHANNEL_ALERTS)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Watching Eye")
+            .setContentTitle("Hall Monitor")
             .setContentText("A viewing limit was reached. Unlock to see who.")
             .build()
         builder.setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setPublicVersion(lockScreenVersion)

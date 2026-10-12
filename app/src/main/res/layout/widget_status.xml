@@ -11,8 +11,8 @@
         android:id="@+id/widgetTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Watching Eye"
-        android:textColor="#52B54B"
+        android:text="Hall Monitor"
+        android:textColor="#5CF2C0"
         android:textSize="13sp"
         android:textStyle="bold" />
 
@@ -23,7 +23,7 @@
         android:layout_marginTop="6dp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:textColor="#F3F7EF"
+        android:textColor="#ECE6FF"
         android:textSize="15sp" />
 
     <TextView
@@ -33,7 +33,7 @@
         android:layout_marginTop="4dp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:textColor="#F3F7EF"
+        android:textColor="#ECE6FF"
         android:textSize="15sp" />
 
     <TextView
@@ -43,7 +43,7 @@
         android:layout_marginTop="4dp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:textColor="#F3F7EF"
+        android:textColor="#ECE6FF"
         android:textSize="15sp" />
 
     <TextView
@@ -53,7 +53,7 @@
         android:layout_marginTop="4dp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:textColor="#F3F7EF"
+        android:textColor="#ECE6FF"
         android:textSize="15sp" />
 
     <TextView
@@ -63,6 +63,6 @@
         android:layout_marginTop="6dp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:textColor="#A9BBA9"
+        android:textColor="#B9AFD9"
         android:textSize="11sp" />
 </LinearLayout>

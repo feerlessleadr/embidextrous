@@ -34,7 +34,7 @@ class ActionReceiver : BroadcastReceiver() {
                 val container = (app as App).container
                 var ok = false
                 val result = try {
-                    val client = container.watchingEyeClient() ?: throw ApiException(0, "Sign in and enter the Watching Eye key in the app first.")
+                    val client = container.watchingEyeClient() ?: throw ApiException(0, "Sign in and enter the Hall Monitor key in the app first.")
                     runBlocking { client.extend(userId, minutes) }
                     ok = true
                     "Added $minutes min for $name"

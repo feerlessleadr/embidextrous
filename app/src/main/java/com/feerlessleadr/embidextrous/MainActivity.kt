@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -101,7 +101,7 @@ private fun Root(container: AppContainer) {
                 container.settings.setProfile(chosen)
             })
         } else {
-            // A regular account can only use Watching Eye, so there is nothing to ask.
+            // A regular account can only use Hall Monitor, so there is nothing to ask.
             if (profile == null) LaunchedEffect(Unit) { container.settings.setProfile(AppProfile.Parent) }
             SignedIn(container, current)
         }
@@ -130,7 +130,7 @@ private fun SignedIn(container: AppContainer, session: Session) {
     val smartLists = Profiles.showsSmartLists(profile, session.isAdministrator, customSmartLists)
     val tabs = buildList {
         add(Tab(ROUTE_HOME, "Home", Icons.Filled.Home))
-        add(Tab(ROUTE_WATCHING, "Watching Eye", Icons.Filled.Visibility))
+        add(Tab(ROUTE_WATCHING, "Hall Monitor", Icons.Filled.Timer))
         if (smartLists) add(Tab(ROUTE_LISTS, "Smart Lists", Icons.AutoMirrored.Filled.PlaylistPlay))
         add(Tab(ROUTE_SETTINGS, "Settings", Icons.Filled.Settings))
     }
@@ -148,7 +148,7 @@ private fun SignedIn(container: AppContainer, session: Session) {
     Scaffold(
         bottomBar = {
             if (showBar) {
-                // On the Watching Eye tab the bar matches the calm look of the cards; elsewhere it keeps the accent.
+                // On the Hall Monitor tab the bar matches the calm look of the cards; elsewhere it keeps the accent.
                 val bar: @Composable () -> Unit = {
                     NavigationBar {
                         tabs.forEach { tab ->

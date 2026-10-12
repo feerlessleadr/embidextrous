@@ -84,7 +84,7 @@ class AppContainer(context: Context) {
         }
         val anonymous = apiFor(server, null)
         val signedIn = anonymous.signIn(userName.trim(), password)
-        // Any account may sign in: an administrator gets every tool, a regular account only Watching Eye.
+        // Any account may sign in: an administrator gets every tool, a regular account only Hall Monitor.
         val session = Session(server, signedIn.token, signedIn.userId, signedIn.userName, signedIn.isAdministrator)
         sessions.save(session)
         _session.value = session
@@ -118,7 +118,7 @@ class AppContainer(context: Context) {
 
     private val _pluginKey = MutableStateFlow(sessions.loadPluginKey())
 
-    /** The Watching Eye plugin's key, or null until it has been entered. */
+    /** The Hall Monitor plugin's key, or null until it has been entered. */
     val pluginKey: StateFlow<String?> = _pluginKey.asStateFlow()
 
     fun setPluginKey(key: String) {
@@ -132,10 +132,10 @@ class AppContainer(context: Context) {
         AlertService.sync(appContext)
     }
 
-    /** The Watching Eye part of the app: live status, kept up to date only while a screen needs it. */
+    /** The Hall Monitor part of the app: live status, kept up to date only while a screen needs it. */
     val watchingEye: WatchingEyeRepository by lazy { WatchingEyeRepository(this, appScope, http) }
 
-    /** A client for the Watching Eye plugin with the held sign-in and key, or null when either is missing. */
+    /** A client for the Hall Monitor plugin with the held sign-in and key, or null when either is missing. */
     fun watchingEyeClient(): WatchingEyeClient? {
         val session = _session.value ?: return null
         val key = _pluginKey.value ?: return null

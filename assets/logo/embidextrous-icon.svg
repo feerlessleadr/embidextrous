@@ -2,7 +2,7 @@
 <title>Embidextrous: two Es shaking hands</title>
 <defs><clipPath id="sq"><rect width="216" height="216" rx="50"/></clipPath></defs>
 <g clip-path="url(#sq)">
-<rect width="216" height="216" fill="#0F2A1C"/>
-<g fill="#52B54B"><rect x="36" y="38" width="24" height="140" rx="9"/><rect x="36" y="38" width="90" height="24" rx="9"/><rect x="36" y="96" width="90" height="24" rx="9"/><rect x="36" y="154" width="90" height="24" rx="9"/></g>
-<g fill="#F3F7EF"><rect x="156" y="38" width="24" height="140" rx="9"/><rect x="96" y="67" width="84" height="24" rx="9"/><rect x="96" y="125" width="84" height="24" rx="9"/></g>
+<rect width="216" height="216" fill="#140B2E"/>
+<g fill="#B388FF"><rect x="36" y="38" width="24" height="140" rx="9"/><rect x="36" y="38" width="90" height="24" rx="9"/><rect x="36" y="96" width="90" height="24" rx="9"/><rect x="36" y="154" width="90" height="24" rx="9"/></g>
+<g fill="#5CF2C0"><rect x="156" y="38" width="24" height="140" rx="9"/><rect x="96" y="67" width="84" height="24" rx="9"/><rect x="96" y="125" width="84" height="24" rx="9"/></g>
 </g></svg>

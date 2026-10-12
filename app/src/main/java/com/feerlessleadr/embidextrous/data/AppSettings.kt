@@ -26,6 +26,7 @@ enum class ThemeMode(val label: String) {
  * dark) and the dot a list can be marked with. A free colour picker was rejected: arbitrary colours break contrast.
  */
 enum class Swatch(val label: String, val hue: Float, val saturation: Float) {
+    HallMonitor("Hall Monitor", 263f, 0.90f),
     EmbyGreen("Emby green", 130f, 0.60f),
     Ocean("Ocean", 210f, 0.65f),
     Teal("Teal", 175f, 0.60f),
@@ -57,7 +58,7 @@ class AppSettings(private val prefs: SharedPreferences) {
     private val _themeMode = MutableStateFlow(ThemeMode.fromName(prefs.getString(KEY_THEME, null)))
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
 
-    private val _accent = MutableStateFlow(Swatch.fromName(prefs.getString(KEY_ACCENT, null)) ?: Swatch.EmbyGreen)
+    private val _accent = MutableStateFlow(Swatch.fromName(prefs.getString(KEY_ACCENT, null)) ?: Swatch.HallMonitor)
     val accent: StateFlow<Swatch> = _accent.asStateFlow()
 
     private val _dynamicColor = MutableStateFlow(prefs.getBoolean(KEY_DYNAMIC, false))
@@ -95,12 +96,12 @@ class AppSettings(private val prefs: SharedPreferences) {
 
     private val _alertsEnabled = MutableStateFlow(prefs.getBoolean(KEY_ALERTS, false))
 
-    /** Watching Eye: keep a live connection in the background and notify when someone reaches their limit. */
+    /** Hall Monitor: keep a live connection in the background and notify when someone reaches their limit. */
     val alertsEnabled: StateFlow<Boolean> = _alertsEnabled.asStateFlow()
 
     private val _widgetHideNames = MutableStateFlow(prefs.getBoolean(KEY_WIDGET_HIDE_NAMES, false))
 
-    /** Watching Eye: the home-screen widget shows "User 1", "User 2" instead of names. */
+    /** Hall Monitor: the home-screen widget shows "User 1", "User 2" instead of names. */
     val widgetHideNames: StateFlow<Boolean> = _widgetHideNames.asStateFlow()
 
     fun setAlertsEnabled(on: Boolean) {

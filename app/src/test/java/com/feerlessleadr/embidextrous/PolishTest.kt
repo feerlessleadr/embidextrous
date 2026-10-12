@@ -149,7 +149,7 @@ class PolishTest {
     @Test fun `accent, density and list colours survive a restart`() {
         val prefs = FakePrefs()
         val first = AppSettings(prefs)
-        assertEquals(Swatch.EmbyGreen, first.accent.value)
+        assertEquals(Swatch.HallMonitor, first.accent.value)
         assertEquals(Density.Comfortable, first.density.value)
         first.setAccent(Swatch.Violet)
         first.setDensity(Density.Compact)

@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 
 /**
- * The Watching Eye tab is a lot of cards with numbers on them, so it stays calm: neutral greys for the background, the cards and
+ * The Hall Monitor tab is a lot of cards with numbers on them, so it stays calm: neutral greys for the background, the cards and
  * the tonal buttons, with the chosen accent colour kept for the few things that should stand out (the progress bar, the main
  * button, links). The Smart Lists tab keeps the full accent look.
  */
@@ -36,5 +36,11 @@ internal fun ColorScheme.calm(): ColorScheme {
 
 @Composable
 internal fun WatchingEyeTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = MaterialTheme.colorScheme.calm(), typography = MaterialTheme.typography, shapes = MaterialTheme.shapes, content = content)
+    // With the Hall Monitor palette the whole app already has restrained, designed surfaces, so nothing is overridden. Another
+    // accent colour (or the wallpaper colours) gets the neutral treatment here so it does not flood the cards.
+    if (com.feerlessleadr.embidextrous.ui.LocalFullPalette.current) {
+        content()
+    } else {
+        MaterialTheme(colorScheme = MaterialTheme.colorScheme.calm(), typography = MaterialTheme.typography, shapes = MaterialTheme.shapes, content = content)
+    }
 }

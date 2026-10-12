@@ -3,10 +3,10 @@
 # Embidextrous
 
 An Android app for running your **Emby** server with both hands: watch-time limits for the kids, and smart lists, from one place.
-(The name is "ambidextrous" with Emby in the front. The logo is two Es shaking hands.)
+(The name is "ambidextrous" with Emby in the front. The logo is two Es shaking hands, in the app's violet and mint.)
 
-> **Status: first release (0.1.0).** This app combines the [Emby SmartLists app](https://github.com/feerlessleadr/emby.smartlists.android) and the
-> [Watching Eye app](https://github.com/feerlessleadr/watching-eye-android-app). It has been tried on an emulator, not yet on a real phone.
+> **Status: early (0.1.x released, 0.2 in progress).** This app combines the [Emby SmartLists app](https://github.com/feerlessleadr/emby.smartlists.android) and the
+> [Watching Eye app](https://github.com/feerlessleadr/watching-eye-android-app) (its plugin is now called Hall Monitor). It has been tried on an emulator, not yet on a real phone.
 > See [docs/plan.md](docs/plan.md) and [docs/status.md](docs/status.md).
 
 ## What it does (and will do)
@@ -14,7 +14,7 @@ An Android app for running your **Emby** server with both hands: watch-time limi
 | Area | State | Needs on the server |
 |---|---|---|
 | **Smart lists** (overview, refresh, enable/disable, delete, full editor, backups) | working (from SmartLists 0.4.1) | the [SmartLists plugin](https://github.com/feerlessleadr/emby.smartlists), an Emby administrator account |
-| **Watching Eye** (time left per child, extra time with undo, time-outs, live updates, alerts, widget) | working | the [Watching Eye plugin](https://github.com/feerlessleadr/watching-eye-emby) 1.9 or newer |
+| **Hall Monitor** (the former Watching Eye: time left per child, extra time with undo, time-outs, Bedtime, live updates, alerts, widget) | working | the [Hall Monitor plugin](https://github.com/feerlessleadr/hall-monitor-emby) 1.9 or newer (1.10 carries the new name) |
 | Plugin manager (GitHub downloads), bulk tag editing, explicit-tag editing for music | ideas for later | |
 
 Both plugins are separate server-side projects; this app only combines the two phone apps.

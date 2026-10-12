@@ -26,7 +26,7 @@ class KeyGuard {
 
     companion object {
         const val BLOCK_MS = 5 * 60_000L
-        const val MESSAGE = "The plugin refused the Watching Eye key. Check it under Settings > Watching Eye. " +
+        const val MESSAGE = "The plugin refused the Hall Monitor key. Check it under Settings > Hall Monitor. " +
             "To keep the plugin from locking itself, the app tries again only every 5 minutes (or right after you save a new key)."
     }
 }

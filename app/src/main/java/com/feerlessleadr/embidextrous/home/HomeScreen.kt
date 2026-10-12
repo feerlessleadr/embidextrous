@@ -76,7 +76,7 @@ private const val QUICK_ADD_MINUTES = 15
 
 /**
  * The start screen: is everything fine, and if not, what needs the person? Then who is watching what, each child's time left,
- * and Bedtime. A summary only: the Watching Eye tab keeps the full cards and every action.
+ * and Bedtime. A summary only: the Hall Monitor tab keeps the full cards and every action.
  */
 @Composable
 fun HomeScreen(vm: WatchingEyeViewModel, onOpenWatching: () -> Unit, onOpenSettings: () -> Unit) {
@@ -168,7 +168,7 @@ private fun HomeContent(vm: WatchingEyeViewModel, onOpenWatching: () -> Unit, on
                 if (state.loaded && state.cards.isEmpty()) {
                     item(key = "empty") {
                         Text(
-                            "No limited users yet. Add users on the Watching Eye plugin page in the Emby dashboard.",
+                            "No limited users yet. Add users on the Hall Monitor plugin page in the Emby dashboard.",
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.padding(8.dp),
                         )
@@ -267,7 +267,7 @@ private fun StatusCard(attention: List<Attention>, watchingCount: Int, loaded: B
 private fun AttentionRow(item: Attention, onAdd: (UserStatus) -> Unit, onOpenSettings: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
         val text = when (item) {
-            Attention.NeedsKey -> "The Watching Eye key is not set on this phone."
+            Attention.NeedsKey -> "The Hall Monitor key is not set on this phone."
             is Attention.KeyRefused -> item.detail
             is Attention.Offline -> item.detail.ifEmpty { "Can't reach the server." } + " Retrying…"
             is Attention.AtLimit -> "${item.user.username} reached their ${item.user.periodLabel} limit."

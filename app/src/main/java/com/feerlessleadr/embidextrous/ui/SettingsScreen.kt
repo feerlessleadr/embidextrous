@@ -147,7 +147,7 @@ fun SettingsScreen(container: AppContainer, onBackups: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Account", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                 Text(
-                    "Signed in as ${session?.userName.orEmpty()} (${if (session?.isAdministrator == true) "administrator: every tool" else "regular account: Watching Eye only"})",
+                    "Signed in as ${session?.userName.orEmpty()} (${if (session?.isAdministrator == true) "administrator: every tool" else "regular account: Hall Monitor only"})",
                     style = MaterialTheme.typography.bodyLarge,
                 )
                 Text(session?.serverUrl.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -219,13 +219,13 @@ private fun ProfileSection(container: AppContainer) {
     }
 }
 
-/** The Watching Eye plugin's key: shown as "set" or "not set"; a new one can be entered or the key removed. */
+/** The Hall Monitor plugin's key: shown as "set" or "not set"; a new one can be entered or the key removed. */
 @Composable
 private fun WatchingEyeKeySection(container: AppContainer) {
     val key by container.pluginKey.collectAsStateWithLifecycle()
     var text by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Watching Eye", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        Text("Hall Monitor", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
         Text(
             if (key == null) "Not set. Paste the key from the plugin page (External API tab)." else "Key is set (stored encrypted on this phone).",
             style = MaterialTheme.typography.bodyMedium,
@@ -233,7 +233,7 @@ private fun WatchingEyeKeySection(container: AppContainer) {
         androidx.compose.material3.OutlinedTextField(
             value = text,
             onValueChange = { text = it },
-            label = { Text(if (key == null) "Watching Eye key" else "Replace the key") },
+            label = { Text(if (key == null) "Hall Monitor key" else "Replace the key") },
             singleLine = true,
             visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth(),

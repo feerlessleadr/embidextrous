@@ -125,7 +125,7 @@ private fun WatchingEyeContent(vm: WatchingEyeViewModel) {
         topBar = {
             TopAppBar(title = {
                 Column {
-                    Text("Watching Eye")
+                    Text("Hall Monitor")
                     Text(subtitle(state, now), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             })
@@ -204,7 +204,7 @@ private fun WatchingEyeContent(vm: WatchingEyeViewModel) {
 internal fun subtitle(state: WatchState, nowMs: Long): String = when (state.link) {
     Link.LIVE -> "● Live"
     Link.CONNECTING -> "Connecting…"
-    Link.NEEDS_KEY -> "Needs the Watching Eye key"
+    Link.NEEDS_KEY -> "Needs the Hall Monitor key"
     Link.KEY_REFUSED -> "Key refused by the plugin"
     else -> if (state.lastDataMs <= 0) "No data yet" else {
         val seconds = maxOf(0, (nowMs - state.lastDataMs) / 1000)
@@ -233,7 +233,7 @@ internal fun Banner(text: String, background: Color, content: Color) {
 private fun EmptyHint() {
     Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
         Text(
-            "No limited users yet. Add users on the Watching Eye plugin page in the Emby dashboard.",
+            "No limited users yet. Add users on the Hall Monitor plugin page in the Emby dashboard.",
             style = MaterialTheme.typography.bodyLarge,
         )
     }
@@ -243,7 +243,7 @@ private fun EmptyHint() {
 private fun KeyPrompt(onSave: (String) -> Unit) {
     var key by remember { mutableStateOf("") }
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("Enter the Watching Eye key", style = MaterialTheme.typography.titleLarge)
+        Text("Enter the Hall Monitor key", style = MaterialTheme.typography.titleLarge)
         Text(
             "On the plugin page in the Emby dashboard, open the External API tab, tick Enable Public API, generate a key and save. " +
                 "Then paste the key here. It is stored encrypted on this phone.",
@@ -252,7 +252,7 @@ private fun KeyPrompt(onSave: (String) -> Unit) {
         OutlinedTextField(
             value = key,
             onValueChange = { key = it },
-            label = { Text("Watching Eye key") },
+            label = { Text("Hall Monitor key") },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),

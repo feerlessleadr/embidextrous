@@ -8,7 +8,7 @@ data class Session(
     val token: String,
     val userId: String,
     val userName: String,
-    /** True for an Emby administrator: they get every tool; a regular account gets only Watching Eye. */
+    /** True for an Emby administrator: they get every tool; a regular account gets only Hall Monitor. */
     val isAdministrator: Boolean = false,
 )
 
@@ -27,7 +27,7 @@ class SessionRepository(private val store: SecureStore) {
         )
     }
 
-    /** The Watching Eye plugin's own key (Public API tab on the plugin page), kept encrypted like the token. */
+    /** The Hall Monitor plugin's own key (Public API tab on the plugin page), kept encrypted like the token. */
     fun loadPluginKey(): String? = store.getSecret(KEY_PLUGIN_KEY)?.takeIf { it.isNotBlank() }
 
     fun savePluginKey(key: String) {
