@@ -5,7 +5,7 @@
 An Android app for running your **Emby** server with both hands: watch-time limits for the kids, and smart lists, from one place.
 (The name is "ambidextrous" with Emby in the front. The logo is two overlapping circles, one for each hand: a list on the violet one, text bars on the mint one, and a play button where they meet.)
 
-> **Status: 0.4.1 released.** This app combines the [Emby SmartLists app](https://github.com/feerlessleadr/emby.smartlists.android) and the
+> **Status: 0.8.0 released.** This app combines the [Emby SmartLists app](https://github.com/feerlessleadr/emby.smartlists.android) and the
 > earlier phone app for the Hall Monitor plugin. It has been tried on an emulator, not yet on a real phone.
 > See [docs/plan.md](docs/plan.md) and [docs/status.md](docs/status.md).
 
@@ -15,7 +15,9 @@ An Android app for running your **Emby** server with both hands: watch-time limi
 |---|---|---|
 | **Smart lists** (overview, refresh, enable/disable, delete, full editor, backups) | working (from SmartLists 0.4.1) | the [SmartLists plugin](https://github.com/feerlessleadr/emby.smartlists), an Emby administrator account |
 | **Hall Monitor** (time left per child, extra time with undo, time-outs, Bedtime, live updates, alerts, widget) | working | the [Hall Monitor plugin](https://github.com/feerlessleadr/hall-monitor-emby) 2.0 or newer (2.0 renamed its web addresses, so this app 0.5 and newer need it) |
-| Plugin manager (GitHub downloads), bulk tag editing, explicit-tag editing for music | ideas for later | |
+| **Hall Pass** (review the explicit-music decisions: tracks, albums, artists, most played first, swipe review) | working (0.6 to 0.8) | the Hall Pass plugin 1.2.0.0 or newer, an Emby administrator account |
+| Plugin manager (GitHub downloads), server tools, Tracearr activity | working | see docs/status.md |
+| Bulk tag editing | idea for later | |
 
 Both plugins are separate server-side projects; this app only combines the two phone apps.
 

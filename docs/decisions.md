@@ -72,3 +72,12 @@ A running log of what was decided about the app, when and why. Newest at the bot
 
 ## 2026-10-12: Hall Pass lives in Library, and uses the administrator's own token
 - The Hall Pass plugin's endpoints are admin-only Emby routes, so the app calls them with the signed-in administrator's token like it does SmartLists; no second key and no phone switch to flip (unlike the plugin manager). The tab needs plugin 1.1.0.0 or newer (the first with albums and select-all-matching) and says so when it is older. The settings (word list, online lookups, roll-up tags, dry run) stay on the plugin's Emby page on purpose: they change what is sent online or written to the library, so they are not one tap away on a phone.
+
+## 2026-10-13: Hall Pass tab decisions (0.6.0 to 0.8.0)
+- **Swipe review is a full-screen Dialog**, not an inline card: the Library group is a HorizontalPager and a horizontal drag inside it would fight the tab swipe. Right = clean, left = explicit, 30% of the width, buttons as the always-available alternative; Skip and Undo exist because a swipe is easy to get wrong. Decisions leave the list at once and the plugin is told in the background (a failure restores the track): a decision per second must not wait for the network.
+- **"All N explicit / All N clean" covers the whole view** (filters, reason, search, opened album or artist) on every page, through the plugin's AllMatching, and always confirms with the count and the view spelled out (`describeView`). Nothing is written to the music files by marking; only Apply writes, and only with dry run off.
+- **Order by Most played** puts what the family actually listens to first; plays are all Emby users added up (the plugin sums them).
+- **Reason chips** (No evidence, Some sign, Sources disagree, Faint sign of clean) with counts, because a big queue is easier to take in groups.
+- **The tab's minimum plugin version is 1.2.0.0** (raised from 1.1.0.0 at 0.8.0): Artists and plays need it. Older plugins see a "too old" card and the rest of the app works.
+- **Settings stay on the plugin's Emby page** (word list, online lookups, LRCLIB, roll-up, dry run): they change what is sent out or written, so they are not one tap away on a phone. The app says exactly where the dry-run switch is.
+- **Hall Monitor 2.1 changes what Reset means** (a fresh day only) and adds watched totals no reset touches; the app shows them on the Kids card and the Hall Monitor card, with an older plugin it keeps the old behaviour and wording. The footnote about when counting started was removed at the owner's request.
