@@ -5,11 +5,9 @@ import com.feerlessleadr.embidextrous.data.UserStatus
 import com.feerlessleadr.embidextrous.data.WatchText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDate
 
 class WatchedTotalsTest {
     private fun status(json: String) = AppJson.decodeFromString(UserStatus.serializer(), json)
@@ -43,16 +41,4 @@ class WatchedTotalsTest {
         assertEquals("0 min", WatchText.total(-5.0))
     }
 
-    @Test
-    fun theFootnoteSaysWhenCountingStartedOnlyWhileItMatters() {
-        val today = LocalDate.of(2026, 10, 20)
-        val note = WatchText.trackingNote(listOf("2026-10-12", null, "2026-10-15"), today)
-        assertNotNull(note)
-        assertTrue(note!!.contains("2026") || note.contains("Oct"))
-        // counted since last year or earlier: every total of this year is complete, so no note
-        assertNull(WatchText.trackingNote(listOf("2025-03-01"), today))
-        assertNull(WatchText.trackingNote(listOf(null, "", "garbage"), today))
-        assertNull(WatchText.trackingNote(emptyList(), today))
-        assertNull(WatchText.trackingNote(listOf("2026-12-01"), today)) // a start day in the future is nonsense
-    }
 }

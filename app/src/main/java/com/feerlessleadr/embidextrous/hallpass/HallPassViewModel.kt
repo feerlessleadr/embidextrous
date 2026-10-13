@@ -31,6 +31,15 @@ enum class HpFilter(val label: String, val decision: String) {
     All("All", ""),
 }
 
+/** Why a track is in review (only used with the "Needs review" filter). The plugin's words: NoEvidence, Suspected, Conflict, WeakClean. */
+enum class HpReason(val label: String, val key: String) {
+    Any("Any reason", ""),
+    NoEvidence("No evidence", "NoEvidence"),
+    Suspected("Some sign", "Suspected"),
+    Conflict("Sources disagree", "Conflict"),
+    WeakClean("Faint sign of clean", "WeakClean"),
+}
+
 /** One album the person has opened from the Albums list: the review list then shows only its tracks. */
 data class HpScope(val artist: String, val album: String)
 
@@ -38,6 +47,7 @@ data class HallPassState(
     val gate: HpGate = HpGate.Checking,
     val status: HpStatus? = null,
     val filter: HpFilter = HpFilter.Review,
+    val reason: HpReason = HpReason.Any,
     val search: String = "",
     val albumsMode: Boolean = false,
     val scope: HpScope? = null,
@@ -115,7 +125,12 @@ class HallPassViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     fun setFilter(filter: HpFilter) {
-        _state.update { it.copy(filter = filter, scope = null) }
+        _state.update { it.copy(filter = filter, reason = HpReason.Any, scope = null) }
+        reloadList()
+    }
+
+    fun setReason(reason: HpReason) {
+        _state.update { it.copy(reason = reason, scope = null) }
         reloadList()
     }
 
@@ -148,10 +163,10 @@ class HallPassViewModel(private val container: AppContainer) : ViewModel() {
             try {
                 val s = _state.value
                 if (s.albumsMode && s.scope == null) {
-                    val (total, albums) = api.hpAlbums(s.filter.decision, s.search.trim(), 0, PAGE)
+                    val (total, albums) = api.hpAlbums(s.filter.decision, s.reason.key, s.search.trim(), 0, PAGE)
                     _state.update { it.copy(albums = albums, rows = emptyList(), total = total, loading = false) }
                 } else {
-                    val (total, rows) = api.hpReview(s.filter.decision, s.search.trim(), s.scope?.artist, s.scope?.album, s.scope != null && s.scope.album.isEmpty(), 0, PAGE)
+                    val (total, rows) = api.hpReview(s.filter.decision, s.reason.key, s.search.trim(), s.scope?.artist, s.scope?.album, s.scope != null && s.scope.album.isEmpty(), 0, PAGE)
                     _state.update { it.copy(rows = rows, albums = emptyList(), total = total, loading = false) }
                 }
             } catch (e: ApiException) {
@@ -172,10 +187,10 @@ class HallPassViewModel(private val container: AppContainer) : ViewModel() {
             _state.update { it.copy(loading = true) }
             try {
                 if (s.albumsMode && s.scope == null) {
-                    val (total, more) = api.hpAlbums(s.filter.decision, s.search.trim(), shown, PAGE)
+                    val (total, more) = api.hpAlbums(s.filter.decision, s.reason.key, s.search.trim(), shown, PAGE)
                     _state.update { it.copy(albums = it.albums + more, total = total, loading = false) }
                 } else {
-                    val (total, more) = api.hpReview(s.filter.decision, s.search.trim(), s.scope?.artist, s.scope?.album, s.scope != null && s.scope.album.isEmpty(), shown, PAGE)
+                    val (total, more) = api.hpReview(s.filter.decision, s.reason.key, s.search.trim(), s.scope?.artist, s.scope?.album, s.scope != null && s.scope.album.isEmpty(), shown, PAGE)
                     _state.update { it.copy(rows = it.rows + more.filter { r -> it.rows.none { old -> old.id == r.id } }, total = total, loading = false) }
                 }
             } catch (e: ApiException) {
@@ -211,7 +226,7 @@ class HallPassViewModel(private val container: AppContainer) : ViewModel() {
             val api = container.api() ?: return@launch
             val s = _state.value
             try {
-                val r = api.hpDecideAlbum(decision, s.filter.decision, s.search.trim(), album.artist, album.album)
+                val r = api.hpDecideAlbum(decision, s.filter.decision, s.reason.key, s.search.trim(), album.artist, album.album)
                 _messages.tryEmit("${r.changed} track(s) marked ${if (decision == "explicit") "explicit" else "clean"}.")
                 refreshStatus(api)
                 reloadList()

@@ -230,3 +230,9 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 - Needs Hall Monitor plugin 2.1.0.0 (ApiLevel 3). The Home "Kids today" card shows, per child, watched today and week, then month and year, and one footnote saying when the plugin started recording (earlier time was not recorded). The Hall Monitor tab card shows the same line. With an older plugin the card keeps its old "This week" line.
 - The three-dot menu entry now reads "Reset today's time..." with a "Fresh day" dialog when the plugin is 2.1: it only gives a fresh daily allowance and keeps the totals (the plugin changed what Reset does).
 - Tests: `WatchedTotalsTest` (reading the fields, old plugin, duration text, footnote). Not seen on a screen or a phone.
+
+## 2026-10-13: Hall Pass tab tidy-up (built, not released; follows 0.7.0)
+- Removed the "watched totals count from ..." footnote from the Kids card (owner's request). The Apply button no longer wraps its label: the summary buttons flow onto a second line when narrow.
+- Needs review can be filtered by reason (No evidence, Some sign, Sources disagree, Faint sign of clean) with counts, so a big queue can be taken in groups; the album buttons respect that filter.
+- A "What to do next" card says which step you are on (scan, review, preview, turn dry run off on the plugin page, apply), with all five steps one tap away, and the dry-run dialog says exactly where the switch is. `nextStep` is unit tested.
+- Not seen on a screen or a phone. Ideas for working through hundreds of review tracks (swipe mode, artist view, bulk by reason, CSV, genre rules) are proposed to the owner, not built.

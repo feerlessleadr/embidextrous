@@ -42,6 +42,8 @@ data class HpWriteJob(val state: String, val total: Int, val processed: Int, val
 data class HpStatus(
     val total: Int,
     val byDecision: Map<String, Int>,
+    /** How many tracks are in review for each reason (NoEvidence, Suspected, Conflict, WeakClean). */
+    val byReason: Map<String, Int>,
     val overrides: Int,
     val dryRun: Boolean,
     val scan: HpScanJob,
@@ -49,6 +51,8 @@ data class HpStatus(
     val version: String,
 ) {
     fun count(decision: String): Int = byDecision[decision] ?: 0
+
+    fun reasonCount(reason: String): Int = byReason[reason] ?: 0
 }
 
 data class HpRow(
@@ -97,6 +101,7 @@ object HallPassParser {
         return HpStatus(
             total = stats.int("Total"),
             byDecision = counts(stats["ByDecision"]),
+            byReason = counts(stats["ByReason"]),
             overrides = stats.int("Overrides"),
             dryRun = o.bool("DryRun"),
             scan = HpScanJob(job.str("State"), job.int("Total"), job.int("Processed"), job.str("Message")),

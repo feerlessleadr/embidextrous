@@ -269,13 +269,13 @@ class ApiClient(
     suspend fun hpStatus(): HpStatus = HallPassParser.status(get("$hpBase/Status"))
 
     /** One page of the review list. [decision] is a comma separated list (Review, Explicit, LikelyClean, Clean, Skipped), empty for all. */
-    suspend fun hpReview(decision: String, text: String, artist: String?, album: String?, noAlbum: Boolean, skip: Int, take: Int): Pair<Int, List<HpRow>> =
+    suspend fun hpReview(decision: String, reason: String, text: String, artist: String?, album: String?, noAlbum: Boolean, skip: Int, take: Int): Pair<Int, List<HpRow>> =
         HallPassParser.review(
-            get(hpUrl("Review", mapOf("Decision" to decision, "Text" to text, "Artist" to artist, "Album" to album, "NoAlbum" to if (noAlbum) "true" else null, "Skip" to skip.toString(), "Take" to take.toString()))),
+            get(hpUrl("Review", mapOf("Decision" to decision, "Reason" to reason, "Text" to text, "Artist" to artist, "Album" to album, "NoAlbum" to if (noAlbum) "true" else null, "Skip" to skip.toString(), "Take" to take.toString()))),
         )
 
-    suspend fun hpAlbums(decision: String, text: String, skip: Int, take: Int): Pair<Int, List<HpAlbum>> =
-        HallPassParser.albums(get(hpUrl("Review/Albums", mapOf("Decision" to decision, "Text" to text, "Skip" to skip.toString(), "Take" to take.toString()))))
+    suspend fun hpAlbums(decision: String, reason: String, text: String, skip: Int, take: Int): Pair<Int, List<HpAlbum>> =
+        HallPassParser.albums(get(hpUrl("Review/Albums", mapOf("Decision" to decision, "Reason" to reason, "Text" to text, "Skip" to skip.toString(), "Take" to take.toString()))))
 
     /** Sets (explicit or clean) or clears (clearOverride) the manual decision of these tracks. */
     suspend fun hpDecide(ids: List<Long>, decision: String): HpDecideResult =
@@ -284,7 +284,7 @@ class ApiClient(
         )
 
     /** The same for a whole album (or every track of an artist's no-album tracks) that matches the filters, however many pages it spans. */
-    suspend fun hpDecideAlbum(decision: String, filterDecision: String, filterText: String, artist: String, album: String): HpDecideResult =
+    suspend fun hpDecideAlbum(decision: String, filterDecision: String, filterReason: String, filterText: String, artist: String, album: String): HpDecideResult =
         HallPassParser.decide(
             send(
                 "POST", "$hpBase/Items/Decide",
@@ -292,6 +292,7 @@ class ApiClient(
                     put("Decision", decision)
                     put("AllMatching", true)
                     put("MatchDecision", filterDecision)
+                    put("MatchReason", filterReason)
                     put("MatchText", filterText)
                     put("MatchArtist", artist)
                     put("MatchAlbum", album)

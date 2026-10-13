@@ -78,3 +78,23 @@ class HallPassTest {
         assertFalse(s.scan.isRunning)
     }
 }
+
+class HallPassNextStepTest {
+    private fun status(total: Int, review: Int, dry: Boolean, scanning: Boolean = false, writing: Boolean = false) = com.feerlessleadr.embidextrous.data.HallPassParser.status(
+        """{"Job":{"State":"${if (scanning) "Running" else "Idle"}"},"Write":{"State":"${if (writing) "Running" else "Idle"}"},"Stats":{"Total":$total,"ByDecision":{"Review":$review},"ByReason":{}},"DryRun":$dry}""",
+    )
+
+    @Test
+    fun theStepFollowsWhatHasHappened() {
+        assertEquals(1, com.feerlessleadr.embidextrous.hallpass.nextStep(status(0, 0, true)).number)
+        assertEquals(1, com.feerlessleadr.embidextrous.hallpass.nextStep(status(10, 0, true, scanning = true)).number)
+        assertEquals(2, com.feerlessleadr.embidextrous.hallpass.nextStep(status(517, 517, true)).number)
+        assertTrue(com.feerlessleadr.embidextrous.hallpass.nextStep(status(517, 517, true)).text.startsWith("517 tracks"))
+        assertEquals(3, com.feerlessleadr.embidextrous.hallpass.nextStep(status(517, 0, true)).number)
+        assertTrue(com.feerlessleadr.embidextrous.hallpass.nextStep(status(517, 0, true)).text.contains("Dry run"))
+        assertEquals(4, com.feerlessleadr.embidextrous.hallpass.nextStep(status(517, 0, false)).number)
+        assertEquals(5, com.feerlessleadr.embidextrous.hallpass.nextStep(status(517, 0, false, writing = true)).number)
+        // with review left but dry run already off the review step still comes first
+        assertEquals(2, com.feerlessleadr.embidextrous.hallpass.nextStep(status(517, 20, false)).number)
+    }
+}

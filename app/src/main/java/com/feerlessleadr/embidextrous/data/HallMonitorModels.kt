@@ -163,17 +163,6 @@ object WatchText {
         return if (hours > 0) "%d h %02d min".format(java.util.Locale.ROOT, hours, minutes % 60) else "$minutes min"
     }
 
-    /**
-     * The one-line footnote for the watched totals: the plugin only has time from the day it started recording, so a week, month or year total may
-     * be a part-total. Null when nobody has a start day this year (or none can be read). [sinceDates] are the plugin's yyyy-MM-dd texts.
-     */
-    fun trackingNote(sinceDates: List<String?>, today: java.time.LocalDate): String? {
-        val first = sinceDates.mapNotNull { text -> try { java.time.LocalDate.parse(text?.trim().orEmpty()) } catch (e: Exception) { null } }.minOrNull() ?: return null
-        if (first.year < today.year || first.isAfter(today)) return null
-        val shown = java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM).withLocale(java.util.Locale.getDefault()).format(first)
-        return "Watched totals count from $shown; earlier time was not recorded."
-    }
-
     /** "today", "this week", ... for the limiting period name. */
     fun periodPhrase(period: String?): String = when (period?.lowercase()) {
         "weekly" -> "this week"

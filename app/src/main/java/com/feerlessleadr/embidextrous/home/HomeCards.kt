@@ -287,9 +287,6 @@ internal fun KidsCard(cards: List<UserCard>, nowMs: Long, loadAvatar: suspend (S
                 }
                 if (index < cards.lastIndex) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
             }
-            WatchText.trackingNote(cards.map { it.status.watchedTrackingSince }, java.time.LocalDate.now())?.let { note ->
-                Text(note, Modifier.padding(horizontal = 16.dp, vertical = 6.dp), style = MaterialTheme.typography.labelSmall, color = quiet)
-            }
         }
     }
 }

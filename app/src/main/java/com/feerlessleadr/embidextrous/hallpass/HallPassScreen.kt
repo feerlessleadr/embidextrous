@@ -5,6 +5,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -142,6 +144,7 @@ private fun ReviewList(vm: HallPassViewModel, state: HallPassState) {
     PullToRefreshBox(isRefreshing = false, onRefresh = vm::load, modifier = Modifier.fillMaxSize()) {
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(12.dp)) {
             item { SummaryCard(state.status, vm, onScanAll = { confirmScanAll = true }) }
+            item { NextStepCard(state.status) }
             item { Filters(vm, state) }
             if (state.scope != null) {
                 item {
@@ -203,6 +206,60 @@ private fun ReviewList(vm: HallPassViewModel, state: HallPassState) {
     state.preview?.let { preview -> ApplyDialog(preview, state.status, onDismiss = vm::clearPreview, onApply = vm::apply) }
 }
 
+/** The step the person is on and what to do about it, from what the plugin says has happened so far. Pure, so it is unit tested. */
+internal data class NextStep(val number: Int, val text: String)
+
+internal fun nextStep(status: HpStatus): NextStep {
+    val review = status.count("Review")
+    return when {
+        status.scan.isRunning -> NextStep(1, "A scan is running. Wait for it to finish.")
+        status.write.isRunning -> NextStep(5, "Tags are being written. Wait for it to finish.")
+        status.total == 0 -> NextStep(1, "Tap Scan now. It only records what Hall Pass finds, so it is safe while dry run is on.")
+        review > 0 -> NextStep(
+            2,
+            "$review tracks need your decision. Mark them Explicit or Clean below, or a whole album at once under Albums. You can stop and come back, and you do not have to finish first: tracks left in review get the explicit-review tag when you apply.",
+        )
+        status.dryRun -> NextStep(
+            3,
+            "Tap Apply… to see what would change. Dry run is on, so to really write the tags switch it off first on the plugin's Emby page (Hall Pass > Settings > Tags & writing > Dry run), then come back and tap Apply.",
+        )
+        else -> NextStep(4, "Tap Apply… to see what would change, then write the tags. Every change can be undone from the plugin's History tab.")
+    }
+}
+
+private val HOW_IT_WORKS = listOf(
+    "Scan: tap Scan now. Safe with dry run on; it only records what Hall Pass finds.",
+    "Review: mark tracks (or whole albums) Explicit or Clean. Your choices are kept and a scan never overwrites them. You do not have to finish.",
+    "Preview: tap Apply… to see what would change.",
+    "Turn dry run off on the plugin's Emby page (Hall Pass > Settings > Tags & writing). No need to scan again.",
+    "Apply: tap Apply… again and confirm. Undo is in the plugin's History tab. Later changes only write the differences.",
+)
+
+@Composable
+private fun NextStepCard(status: HpStatus?) {
+    if (status == null) return
+    var all by rememberSaveable { mutableStateOf(false) }
+    val step = nextStep(status)
+    Card(Modifier.fillMaxWidth(), shape = HomeCardShape) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("What to do next", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Step ${step.number}: ${step.text}", style = MaterialTheme.typography.bodyMedium)
+            if (all) {
+                HOW_IT_WORKS.forEachIndexed { i, line ->
+                    Text(
+                        "${i + 1}. $line",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = if (i + 1 == step.number) FontWeight.Bold else FontWeight.Normal,
+                        color = if (i + 1 == step.number) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            TextButton(onClick = { all = !all }) { Text(if (all) "Hide the steps" else "Show all the steps") }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SummaryCard(status: HpStatus?, vm: HallPassViewModel, onScanAll: () -> Unit) {
     Card(Modifier.fillMaxWidth(), shape = HomeCardShape) {
@@ -232,7 +289,7 @@ private fun SummaryCard(status: HpStatus?, vm: HallPassViewModel, onScanAll: () 
                 LinearProgressIndicator(progress = { fraction }, Modifier.fillMaxWidth())
                 Text(status.write.message.ifEmpty { "Writing tags…" }, style = MaterialTheme.typography.bodySmall)
             } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { vm.scan(false) }) { Text("Scan now") }
                     OutlinedButton(onClick = onScanAll) { Text("Scan all again") }
                     OutlinedButton(onClick = vm::loadPreview) { Text("Apply…") }
@@ -249,6 +306,14 @@ private fun Filters(vm: HallPassViewModel, state: HallPassState) {
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             HpFilter.entries.forEach { f ->
                 FilterChip(selected = state.filter == f, onClick = { vm.setFilter(f) }, label = { Text(f.label) })
+            }
+        }
+        if (state.filter == HpFilter.Review) {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                HpReason.entries.forEach { r ->
+                    val n = if (r == HpReason.Any) state.status?.byDecision?.get("Review") else state.status?.reasonCount(r.key)
+                    FilterChip(selected = state.reason == r, onClick = { vm.setReason(r) }, label = { Text(if (n != null) "${r.label} $n" else r.label) })
+                }
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -319,7 +384,7 @@ private fun ApplyDialog(preview: HpPreview, status: HpStatus?, onDismiss: () -> 
     ConfirmDialog(
         title = if (dry) "Dry run is on" else "Write the tags?",
         message = when {
-            dry -> "${preview.wouldChange} item(s) would change, but dry run is on, so nothing can be written. Switch dry run off in Settings on the plugin's Emby page when you are happy with the decisions."
+            dry -> "${preview.wouldChange} item(s) would change, but dry run is on, so nothing can be written yet. When you are happy with your decisions: on the plugin's Emby page open Hall Pass > Settings > Tags & writing, untick Dry run and Save. Then come back and tap Apply… again. You do not need to scan again."
             preview.wouldChange == 0 -> "Every track already has the right tag."
             else -> "${preview.wouldChange} item(s) would change" + (if (preview.rollUps > 0) " (${preview.rollUps} albums or artists)" else "") + ": " +
                 preview.byTag.entries.joinToString(", ") { "${it.value} to ${it.key}" } + ". Every change is journalled and can be undone from the plugin's History tab."
