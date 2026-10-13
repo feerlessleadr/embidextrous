@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.feerlessleadr.embidextrous.data.HpAlbum
+import com.feerlessleadr.embidextrous.data.HpArtist
 import com.feerlessleadr.embidextrous.data.HpGate
 import com.feerlessleadr.embidextrous.data.HpPreview
 import com.feerlessleadr.embidextrous.data.HpRow
@@ -133,25 +134,36 @@ private fun GateCard(gate: HpGate, onRetry: () -> Unit) {
     }
 }
 
+/** A decision waiting for the person's yes: what it covers is spelled out in [message]. [artist] and [album] narrow it (null = any); both null means the whole view. */
+private data class PendingBulk(val title: String, val message: String, val decision: String, val artist: String?, val album: String?)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReviewList(vm: HallPassViewModel, state: HallPassState) {
-    var confirmAlbum by remember { mutableStateOf<Pair<HpAlbum, String>?>(null) }
+    var pending by remember { mutableStateOf<PendingBulk?>(null) }
     var confirmScanAll by rememberSaveable { mutableStateOf(false) }
-    val showAlbums = state.albumsMode && state.scope == null
-    val shown = if (showAlbums) state.albums.size else state.rows.size
+    val shown = when {
+        state.grouped && state.mode == HpMode.Albums -> state.albums.size
+        state.grouped -> state.artists.size
+        else -> state.rows.size
+    }
+    val noun = when {
+        state.grouped && state.mode == HpMode.Albums -> "albums"
+        state.grouped -> "artists"
+        else -> "tracks"
+    }
 
     PullToRefreshBox(isRefreshing = false, onRefresh = vm::load, modifier = Modifier.fillMaxSize()) {
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(12.dp)) {
             item { SummaryCard(state.status, vm, onScanAll = { confirmScanAll = true }) }
             item { NextStepCard(state.status) }
             item { Filters(vm, state) }
-            if (state.scope != null) {
+            state.scope?.let { scope ->
                 item {
                     Card(Modifier.fillMaxWidth(), shape = HomeCardShape) {
                         Row(Modifier.padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                "${state.scope.album.ifEmpty { "No album" }} · ${state.scope.artist.ifEmpty { "unknown artist" }}",
+                                if (scope.album == null) "${scope.artist.ifEmpty { "Unknown artist" }} (all albums)" else "${scope.album.ifEmpty { "No album" }} · ${scope.artist.ifEmpty { "unknown artist" }}",
                                 Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis,
                             )
                             TextButton(onClick = vm::closeScope) { Text("Show all") }
@@ -159,12 +171,57 @@ private fun ReviewList(vm: HallPassViewModel, state: HallPassState) {
                     }
                 }
             }
-            if (showAlbums) {
-                items(state.albums, key = { "${it.artist}\u0000${it.album}" }) { album ->
-                    AlbumCard(album, onOpen = { vm.openAlbum(album) }, onMark = { decision -> confirmAlbum = album to decision })
+            if (!state.grouped && state.total > 0) {
+                item {
+                    BulkCard(
+                        count = state.total,
+                        onSwipe = vm::startSwipe,
+                        onMark = { decision ->
+                            val word = if (decision == "explicit") "explicit" else "clean"
+                            pending = PendingBulk(
+                                title = "Mark all ${state.total} $word?",
+                                message = "Every one of the ${state.total} tracks in this view (${describeView(state)}) will be marked $word, on every page, not only the ones on screen. " +
+                                    "Nothing is written to your files until you apply, and you can clear a decision afterwards.",
+                                decision = decision,
+                                artist = state.scope?.artist,
+                                album = state.scope?.album,
+                            )
+                        },
+                    )
                 }
-            } else {
-                items(state.rows, key = { it.id }) { row -> TrackCard(row, vm) }
+            }
+            when {
+                state.grouped && state.mode == HpMode.Albums -> items(state.albums, key = { "a\u0000${it.artist}\u0000${it.album}" }) { album ->
+                    AlbumCard(
+                        album,
+                        onOpen = { vm.openAlbum(album) },
+                        onMark = { decision ->
+                            val word = if (decision == "explicit") "explicit" else "clean"
+                            pending = PendingBulk(
+                                "Mark the whole album $word?",
+                                "${album.matching} track(s) of \"${album.album.ifEmpty { "no album" }}\" by ${album.artist.ifEmpty { "unknown artist" }} will be marked $word. " +
+                                    "Nothing is written to your files until you apply, and you can clear the decision afterwards.",
+                                decision, album.artist, album.album,
+                            )
+                        },
+                    )
+                }
+                state.grouped -> items(state.artists, key = { "r\u0000${it.artist}" }) { artist ->
+                    ArtistCard(
+                        artist,
+                        onOpen = { vm.openArtist(artist) },
+                        onMark = { decision ->
+                            val word = if (decision == "explicit") "explicit" else "clean"
+                            pending = PendingBulk(
+                                "Mark everything by this artist $word?",
+                                "${artist.matching} track(s) by ${artist.artist.ifEmpty { "unknown artist" }}, across ${artist.albums} ${if (artist.albums == 1) "album" else "albums"}, will be marked $word. " +
+                                    "Nothing is written to your files until you apply, and you can clear the decisions afterwards.",
+                                decision, artist.artist, null,
+                            )
+                        },
+                    )
+                }
+                else -> items(state.rows, key = { it.id }) { row -> TrackCard(row, vm) }
             }
             item {
                 when {
@@ -177,21 +234,19 @@ private fun ReviewList(vm: HallPassViewModel, state: HallPassState) {
                         LaunchedEffect(shown) { vm.loadMore() }
                         Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) { TextButton(onClick = vm::loadMore) { Text("Show more ($shown of ${state.total})") } }
                     }
-                    else -> Text("$shown ${if (showAlbums) "albums" else "tracks"}", Modifier.padding(12.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                    else -> Text("$shown $noun", Modifier.padding(12.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
     }
 
-    confirmAlbum?.let { (album, decision) ->
-        val word = if (decision == "explicit") "explicit" else "clean"
+    pending?.let { p ->
         ConfirmDialog(
-            title = "Mark the whole album $word?",
-            message = "${album.matching} track(s) of \"${album.album.ifEmpty { "no album" }}\" by ${album.artist.ifEmpty { "unknown artist" }} will be marked $word. " +
-                "Nothing is written to your files until you apply, and you can clear the decision afterwards.",
-            confirm = "Mark $word",
-            onDismiss = { confirmAlbum = null },
-            onConfirm = { vm.decideAlbum(album, decision); confirmAlbum = null },
+            title = p.title,
+            message = p.message,
+            confirm = if (p.decision == "explicit") "Mark explicit" else "Mark clean",
+            onDismiss = { pending = null },
+            onConfirm = { vm.decideMatching(p.decision, p.artist, p.album); pending = null },
         )
     }
     if (confirmScanAll) {
@@ -204,6 +259,32 @@ private fun ReviewList(vm: HallPassViewModel, state: HallPassState) {
         )
     }
     state.preview?.let { preview -> ApplyDialog(preview, state.status, onDismiss = vm::clearPreview, onApply = vm::apply) }
+    if (state.swipe) SwipeDialog(vm, state)
+}
+
+/** The current view in words, for the confirmation: the filter, the reason, the search and the opened album or artist. */
+internal fun describeView(state: HallPassState): String {
+    val parts = mutableListOf(state.filter.label)
+    if (state.filter == HpFilter.Review && state.reason != HpReason.Any) parts += state.reason.label
+    if (state.search.isNotBlank()) parts += "search \"${state.search.trim()}\""
+    state.scope?.let { parts += if (it.album == null) it.artist.ifEmpty { "unknown artist" } else it.album.ifEmpty { "no album" } }
+    return parts.joinToString(" · ")
+}
+
+@Composable
+private fun BulkCard(count: Int, onSwipe: () -> Unit, onMark: (String) -> Unit) {
+    Card(Modifier.fillMaxWidth(), shape = HomeCardShape) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Decide faster", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Button(onClick = onSwipe, modifier = Modifier.fillMaxWidth()) { Text("Swipe through these $count") }
+            Text("One at a time, swipe right for clean or left for explicit.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Or decide all $count in this view at once:", style = MaterialTheme.typography.bodySmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { onMark("explicit") }) { Text("All $count explicit") }
+                OutlinedButton(onClick = { onMark("clean") }) { Text("All $count clean") }
+            }
+        }
+    }
 }
 
 /** The step the person is on and what to do about it, from what the plugin says has happened so far. Pure, so it is unit tested. */
@@ -217,7 +298,7 @@ internal fun nextStep(status: HpStatus): NextStep {
         status.total == 0 -> NextStep(1, "Tap Scan now. It only records what Hall Pass finds, so it is safe while dry run is on.")
         review > 0 -> NextStep(
             2,
-            "$review tracks need your decision. Mark them Explicit or Clean below, or a whole album at once under Albums. You can stop and come back, and you do not have to finish first: tracks left in review get the explicit-review tag when you apply.",
+            "$review tracks need your decision. Mark them Explicit or Clean below, swipe through them one at a time, or do a whole album or artist at once (Albums, Artists). Most played first puts what you actually listen to at the top. You can stop and come back, and you do not have to finish first: tracks left in review get the explicit-review tag when you apply.",
         )
         status.dryRun -> NextStep(
             3,
@@ -316,9 +397,16 @@ private fun Filters(vm: HallPassViewModel, state: HallPassState) {
                 }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = !state.albumsMode, onClick = { vm.setAlbumsMode(false) }, label = { Text("Tracks") })
-            FilterChip(selected = state.albumsMode, onClick = { vm.setAlbumsMode(true) }, label = { Text("Albums") })
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            HpMode.entries.forEach { m ->
+                FilterChip(selected = state.mode == m, onClick = { vm.setMode(m) }, label = { Text(m.name) })
+            }
+        }
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Order:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            HpSort.entries.forEach { o ->
+                FilterChip(selected = state.sort == o, onClick = { vm.setSort(o) }, label = { Text(o.label) })
+            }
         }
         OutlinedTextField(
             value = state.search,
@@ -340,6 +428,7 @@ private fun TrackCard(row: HpRow, vm: HallPassViewModel) {
                 Column(Modifier.weight(1f)) {
                     Text(row.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(listOf(row.artist, row.album).filter { it.isNotEmpty() }.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    if (row.plays > 0) Text("played ${row.plays} ${if (row.plays == 1) "time" else "times"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Pill(decisionLabel(row.decision), decisionColor(row.decision))
             }
@@ -366,8 +455,32 @@ private fun AlbumCard(album: HpAlbum, onOpen: () -> Unit, onMark: (String) -> Un
             Text(album.artist.ifEmpty { "(unknown artist)" }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
                 (if (album.matching == album.total) "${album.total} tracks" else "${album.matching} of ${album.total} tracks") + " · " +
-                    album.byDecision.entries.joinToString(", ") { "${decisionLabel(it.key)} ${it.value}" },
+                    album.byDecision.entries.joinToString(", ") { "${decisionLabel(it.key)} ${it.value}" } + (if (album.plays > 0) " · played ${album.plays} times" else ""),
                 style = MaterialTheme.typography.bodySmall,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onOpen) { Text("Open") }
+                Button(onClick = { onMark("explicit") }) { Text("All explicit") }
+                OutlinedButton(onClick = { onMark("clean") }) { Text("All clean") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ArtistCard(artist: HpArtist, onOpen: () -> Unit, onMark: (String) -> Unit) {
+    Card(Modifier.fillMaxWidth(), shape = HomeCardShape) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(artist.artist.ifEmpty { "(unknown artist)" }, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(
+                (if (artist.matching == artist.total) "${artist.total} tracks" else "${artist.matching} of ${artist.total} tracks") + " · " +
+                    "${artist.albums} ${if (artist.albums == 1) "album" else "albums"}" + (if (artist.plays > 0) " · played ${artist.plays} times" else ""),
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                artist.byDecision.entries.joinToString(", ") { "${decisionLabel(it.key)} ${it.value}" },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onOpen) { Text("Open") }

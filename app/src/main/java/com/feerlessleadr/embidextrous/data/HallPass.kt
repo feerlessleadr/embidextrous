@@ -67,11 +67,15 @@ data class HpRow(
     val override: String,
     val skipped: Boolean,
     val evidence: List<String>,
+    /** How often the track has been played, all Emby users added up (0 from a plugin older than 1.2). */
+    val plays: Int = 0,
 ) {
     val manual: Boolean get() = override != "None" && override.isNotEmpty()
 }
 
-data class HpAlbum(val artist: String, val album: String, val matching: Int, val total: Int, val byDecision: Map<String, Int>)
+data class HpAlbum(val artist: String, val album: String, val matching: Int, val total: Int, val byDecision: Map<String, Int>, val plays: Int = 0)
+
+data class HpArtist(val artist: String, val matching: Int, val total: Int, val albums: Int, val byDecision: Map<String, Int>, val plays: Int = 0)
 
 data class HpPreview(val total: Int, val wouldChange: Int, val rollUps: Int, val unchanged: Int, val dryRun: Boolean, val byTag: Map<String, Int>)
 
@@ -122,6 +126,7 @@ object HallPassParser {
         override = o.str("Override"),
         skipped = o.bool("Skipped"),
         evidence = (o["Evidence"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }.orEmpty(),
+        plays = o.int("Plays"),
     )
 
     /** A page of the review list: the total that matches and the rows of this page. */
@@ -133,7 +138,15 @@ object HallPassParser {
     fun albums(text: String): Pair<Int, List<HpAlbum>> {
         val o = obj(text)
         val items = (o["Items"] as? JsonArray)?.mapNotNull { e ->
-            (e as? JsonObject)?.let { HpAlbum(it.str("Artist"), it.str("Album"), it.int("Matching"), it.int("Total"), counts(it["ByDecision"])) }
+            (e as? JsonObject)?.let { HpAlbum(it.str("Artist"), it.str("Album"), it.int("Matching"), it.int("Total"), counts(it["ByDecision"]), it.int("Plays")) }
+        }.orEmpty()
+        return o.int("Total") to items
+    }
+
+    fun artists(text: String): Pair<Int, List<HpArtist>> {
+        val o = obj(text)
+        val items = (o["Items"] as? JsonArray)?.mapNotNull { e ->
+            (e as? JsonObject)?.let { HpArtist(it.str("Artist"), it.int("Matching"), it.int("Total"), it.int("Albums"), counts(it["ByDecision"]), it.int("Plays")) }
         }.orEmpty()
         return o.int("Total") to items
     }

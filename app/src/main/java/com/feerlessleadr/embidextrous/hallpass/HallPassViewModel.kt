@@ -6,6 +6,7 @@ import com.feerlessleadr.embidextrous.AppContainer
 import com.feerlessleadr.embidextrous.data.ApiClient
 import com.feerlessleadr.embidextrous.data.ApiException
 import com.feerlessleadr.embidextrous.data.HpAlbum
+import com.feerlessleadr.embidextrous.data.HpArtist
 import com.feerlessleadr.embidextrous.data.HpGate
 import com.feerlessleadr.embidextrous.data.HpPreview
 import com.feerlessleadr.embidextrous.data.HpRow
@@ -40,27 +41,48 @@ enum class HpReason(val label: String, val key: String) {
     WeakClean("Faint sign of clean", "WeakClean"),
 }
 
-/** One album the person has opened from the Albums list: the review list then shows only its tracks. */
-data class HpScope(val artist: String, val album: String)
+/** What the list shows: single tracks, albums or artists (one decision covers a whole album or artist). */
+enum class HpMode { Tracks, Albums, Artists }
+
+/** The order of the list: by name, or the most played first (what the family actually listens to gets decided first). */
+enum class HpSort(val label: String, val key: String) {
+    Name("A to Z", ""),
+    Plays("Most played", "plays"),
+}
+
+/** The album or artist the person opened from the Albums or Artists list: the track list then shows only that. A null [album] means all of the artist's albums. */
+data class HpScope(val artist: String, val album: String?)
 
 data class HallPassState(
     val gate: HpGate = HpGate.Checking,
     val status: HpStatus? = null,
     val filter: HpFilter = HpFilter.Review,
     val reason: HpReason = HpReason.Any,
+    val sort: HpSort = HpSort.Name,
     val search: String = "",
-    val albumsMode: Boolean = false,
+    val mode: HpMode = HpMode.Tracks,
     val scope: HpScope? = null,
     val rows: List<HpRow> = emptyList(),
     val albums: List<HpAlbum> = emptyList(),
+    val artists: List<HpArtist> = emptyList(),
     val total: Int = 0,
     val loading: Boolean = false,
     val preview: HpPreview? = null,
-)
+    /** True while the swipe review is open: one track at a time, swipe right for clean and left for explicit. */
+    val swipe: Boolean = false,
+    /** How many decisions can still be taken back in the swipe review. */
+    val undoable: Int = 0,
+    /** Decisions made in this swipe review. */
+    val swiped: Int = 0,
+) {
+    /** True when the list shows groups (albums or artists) instead of tracks. */
+    val grouped: Boolean get() = scope == null && mode != HpMode.Tracks
+}
 
 /**
- * The Hall Pass tab: the review of the music tracks the Hall Pass plugin could not decide, with the decisions that need a person (mark a track or a
- * whole album explicit or clean), a scan button and the apply step. Everything is asked of the plugin again after each action rather than trusted.
+ * The Hall Pass tab: the review of the music tracks the Hall Pass plugin could not decide, with the decisions that need a person (mark a track, a whole
+ * album or a whole artist explicit or clean, one at a time by swiping, or everything in the current view at once), a scan button and the apply step.
+ * Everything is asked of the plugin again after each action rather than trusted.
  */
 class HallPassViewModel(private val container: AppContainer) : ViewModel() {
     private val _state = MutableStateFlow(HallPassState())
@@ -71,6 +93,10 @@ class HallPassViewModel(private val container: AppContainer) : ViewModel() {
 
     private var pollJob: Job? = null
     private var listJob: Job? = null
+
+    /** Tracks decided in the swipe review that the list may still contain (the plugin's answer can lag a moment behind). */
+    private val decidedInSwipe = mutableSetOf<Long>()
+    private val undoStack = ArrayDeque<Pair<HpRow, String>>()
 
     fun load() {
         viewModelScope.launch {
@@ -124,6 +150,8 @@ class HallPassViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 
+    // ----- what the list shows ------------------------------------------------------------------------------------
+
     fun setFilter(filter: HpFilter) {
         _state.update { it.copy(filter = filter, reason = HpReason.Any, scope = null) }
         reloadList()
@@ -134,24 +162,41 @@ class HallPassViewModel(private val container: AppContainer) : ViewModel() {
         reloadList()
     }
 
+    fun setSort(sort: HpSort) {
+        _state.update { it.copy(sort = sort) }
+        reloadList()
+    }
+
     fun setSearch(text: String) {
         _state.update { it.copy(search = text) }
         reloadList(debounce = true)
     }
 
-    fun setAlbumsMode(on: Boolean) {
-        _state.update { it.copy(albumsMode = on, scope = null) }
+    fun setMode(mode: HpMode) {
+        _state.update { it.copy(mode = mode, scope = null) }
         reloadList()
     }
 
     fun openAlbum(album: HpAlbum) {
-        _state.update { it.copy(scope = HpScope(album.artist, album.album), albumsMode = false) }
+        _state.update { it.copy(scope = HpScope(album.artist, album.album), mode = HpMode.Tracks) }
+        reloadList()
+    }
+
+    fun openArtist(artist: HpArtist) {
+        _state.update { it.copy(scope = HpScope(artist.artist, null), mode = HpMode.Tracks) }
         reloadList()
     }
 
     fun closeScope() {
         _state.update { it.copy(scope = null) }
         reloadList()
+    }
+
+    private suspend fun fetchRows(api: ApiClient, s: HallPassState, skip: Int, take: Int): Pair<Int, List<HpRow>> {
+        val scope = s.scope
+        return api.hpReview(
+            s.filter.decision, s.reason.key, s.search.trim(), scope?.artist, scope?.album, scope?.album != null && scope.album.isEmpty(), s.sort.key, skip, take,
+        )
     }
 
     private fun reloadList(debounce: Boolean = false) {
@@ -162,12 +207,19 @@ class HallPassViewModel(private val container: AppContainer) : ViewModel() {
             _state.update { it.copy(loading = true) }
             try {
                 val s = _state.value
-                if (s.albumsMode && s.scope == null) {
-                    val (total, albums) = api.hpAlbums(s.filter.decision, s.reason.key, s.search.trim(), 0, PAGE)
-                    _state.update { it.copy(albums = albums, rows = emptyList(), total = total, loading = false) }
-                } else {
-                    val (total, rows) = api.hpReview(s.filter.decision, s.reason.key, s.search.trim(), s.scope?.artist, s.scope?.album, s.scope != null && s.scope.album.isEmpty(), 0, PAGE)
-                    _state.update { it.copy(rows = rows, albums = emptyList(), total = total, loading = false) }
+                when {
+                    s.grouped && s.mode == HpMode.Albums -> {
+                        val (total, albums) = api.hpAlbums(s.filter.decision, s.reason.key, s.search.trim(), s.sort.key, 0, PAGE)
+                        _state.update { it.copy(albums = albums, artists = emptyList(), rows = emptyList(), total = total, loading = false) }
+                    }
+                    s.grouped -> {
+                        val (total, artists) = api.hpArtists(s.filter.decision, s.reason.key, s.search.trim(), s.sort.key, 0, PAGE)
+                        _state.update { it.copy(artists = artists, albums = emptyList(), rows = emptyList(), total = total, loading = false) }
+                    }
+                    else -> {
+                        val (total, rows) = fetchRows(api, s, 0, PAGE)
+                        _state.update { it.copy(rows = rows.filter { r -> r.id !in decidedInSwipe }, albums = emptyList(), artists = emptyList(), total = total, loading = false) }
+                    }
                 }
             } catch (e: ApiException) {
                 _state.update { it.copy(loading = false) }
@@ -179,19 +231,30 @@ class HallPassViewModel(private val container: AppContainer) : ViewModel() {
     /** Adds the next page to what is shown. */
     fun loadMore() {
         val s = _state.value
-        if (s.loading) return
-        val shown = if (s.albumsMode && s.scope == null) s.albums.size else s.rows.size
+        if (s.loading || s.swipe) return
+        val shown = when {
+            s.grouped && s.mode == HpMode.Albums -> s.albums.size
+            s.grouped -> s.artists.size
+            else -> s.rows.size
+        }
         if (shown >= s.total) return
         viewModelScope.launch {
             val api = container.api() ?: return@launch
             _state.update { it.copy(loading = true) }
             try {
-                if (s.albumsMode && s.scope == null) {
-                    val (total, more) = api.hpAlbums(s.filter.decision, s.reason.key, s.search.trim(), shown, PAGE)
-                    _state.update { it.copy(albums = it.albums + more, total = total, loading = false) }
-                } else {
-                    val (total, more) = api.hpReview(s.filter.decision, s.reason.key, s.search.trim(), s.scope?.artist, s.scope?.album, s.scope != null && s.scope.album.isEmpty(), shown, PAGE)
-                    _state.update { it.copy(rows = it.rows + more.filter { r -> it.rows.none { old -> old.id == r.id } }, total = total, loading = false) }
+                when {
+                    s.grouped && s.mode == HpMode.Albums -> {
+                        val (total, more) = api.hpAlbums(s.filter.decision, s.reason.key, s.search.trim(), s.sort.key, shown, PAGE)
+                        _state.update { it.copy(albums = it.albums + more, total = total, loading = false) }
+                    }
+                    s.grouped -> {
+                        val (total, more) = api.hpArtists(s.filter.decision, s.reason.key, s.search.trim(), s.sort.key, shown, PAGE)
+                        _state.update { it.copy(artists = it.artists + more, total = total, loading = false) }
+                    }
+                    else -> {
+                        val (total, more) = fetchRows(api, s, shown, PAGE)
+                        _state.update { it.copy(rows = it.rows + more.filter { r -> it.rows.none { old -> old.id == r.id } }, total = total, loading = false) }
+                    }
                 }
             } catch (e: ApiException) {
                 _state.update { it.copy(loading = false) }
@@ -199,6 +262,8 @@ class HallPassViewModel(private val container: AppContainer) : ViewModel() {
             }
         }
     }
+
+    // ----- decisions ------------------------------------------------------------------------------------------------
 
     /** [decision]: "explicit", "clean" or "clearOverride". */
     fun decide(row: HpRow, decision: String) {
@@ -221,13 +286,14 @@ class HallPassViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 
-    fun decideAlbum(album: HpAlbum, decision: String) {
+    /** One decision for everything that matches the filters and the narrowing: an album ([album] set), an artist ([album] null) or the whole view (both null). */
+    fun decideMatching(decision: String, artist: String?, album: String?) {
         viewModelScope.launch {
             val api = container.api() ?: return@launch
             val s = _state.value
             try {
-                val r = api.hpDecideAlbum(decision, s.filter.decision, s.reason.key, s.search.trim(), album.artist, album.album)
-                _messages.tryEmit("${r.changed} track(s) marked ${if (decision == "explicit") "explicit" else "clean"}.")
+                val r = api.hpDecideMatching(decision, s.filter.decision, s.reason.key, s.search.trim(), artist, album)
+                _messages.tryEmit("${r.changed} track(s) marked ${if (decision == "explicit") "explicit" else "clean"}." + if (r.truncated) " That was the first ${r.matched}; do it again for the rest." else "")
                 refreshStatus(api)
                 reloadList()
             } catch (e: ApiException) {
@@ -235,6 +301,96 @@ class HallPassViewModel(private val container: AppContainer) : ViewModel() {
             }
         }
     }
+
+    /** Everything the current list matches (the opened album or artist, the filters and the search), however many pages. */
+    fun decideView(decision: String) {
+        val scope = _state.value.scope
+        decideMatching(decision, scope?.artist, scope?.album)
+    }
+
+    // ----- the swipe review ---------------------------------------------------------------------------------------
+
+    fun startSwipe() {
+        decidedInSwipe.clear()
+        undoStack.clear()
+        _state.update { it.copy(swipe = true, undoable = 0, swiped = 0) }
+    }
+
+    fun stopSwipe() {
+        _state.update { it.copy(swipe = false) }
+        decidedInSwipe.clear()
+        undoStack.clear()
+        viewModelScope.launch {
+            val api = container.api() ?: return@launch
+            refreshStatus(api)
+            reloadList()
+        }
+    }
+
+    /** Takes the first track off the list at once and tells the plugin in the background; a failure puts it back. */
+    fun swipeDecide(row: HpRow, decision: String) {
+        decidedInSwipe.add(row.id)
+        undoStack.addLast(row to decision)
+        _state.update { it.copy(rows = it.rows.filter { r -> r.id != row.id }, total = maxOf(0, it.total - 1), undoable = undoStack.size, swiped = it.swiped + 1) }
+        viewModelScope.launch {
+            val api = container.api() ?: return@launch
+            try {
+                api.hpDecide(listOf(row.id), decision)
+            } catch (e: ApiException) {
+                decidedInSwipe.remove(row.id)
+                undoStack.removeAll { it.first.id == row.id }
+                _state.update { it.copy(rows = listOf(row) + it.rows, total = it.total + 1, undoable = undoStack.size, swiped = maxOf(0, it.swiped - 1)) }
+                failed(e)
+            }
+        }
+        refillIfLow()
+    }
+
+    /** Puts the track at the end of the queue (decided later), without telling the plugin anything. */
+    fun swipeSkip(row: HpRow) {
+        _state.update { it.copy(rows = it.rows.filter { r -> r.id != row.id } + row) }
+    }
+
+    fun swipeUndo() {
+        val last = undoStack.removeLastOrNull() ?: return
+        val (row, _) = last
+        decidedInSwipe.remove(row.id)
+        _state.update { it.copy(rows = listOf(row) + it.rows.filter { r -> r.id != row.id }, total = it.total + 1, undoable = undoStack.size, swiped = maxOf(0, it.swiped - 1)) }
+        viewModelScope.launch {
+            val api = container.api() ?: return@launch
+            try {
+                api.hpDecide(listOf(row.id), "clearOverride")
+            } catch (e: ApiException) {
+                failed(e)
+            }
+        }
+    }
+
+    /** When only a few tracks are left in memory but the plugin has more, asks for the next ones (decided tracks are left out). */
+    private fun refillIfLow() {
+        val s = _state.value
+        if (s.loading || s.rows.size >= 6 || s.total <= s.rows.size) return
+        viewModelScope.launch {
+            val api = container.api() ?: return@launch
+            _state.update { it.copy(loading = true) }
+            try {
+                val (total, fetched) = fetchRows(api, _state.value, 0, PAGE * 2)
+                _state.update { cur ->
+                    val have = cur.rows.map { it.id }.toSet()
+                    cur.copy(
+                        rows = cur.rows + fetched.filter { r -> r.id !in have && r.id !in decidedInSwipe },
+                        total = maxOf(total - decidedInSwipe.size.coerceAtMost(total), cur.rows.size),
+                        loading = false,
+                    )
+                }
+            } catch (e: ApiException) {
+                _state.update { it.copy(loading = false) }
+                failed(e)
+            }
+        }
+    }
+
+    // ----- scan and apply -------------------------------------------------------------------------------------------
 
     fun scan(force: Boolean) {
         viewModelScope.launch {
