@@ -62,10 +62,11 @@ class HallPassTest {
 
     @Test
     fun theGateNeedsTheNewVersionAndTheApi() {
-        assertTrue(HallPassParser.gate(HpInfo("1.1.0.0", 1)) is HpGate.Ready)
+        assertTrue(HallPassParser.gate(HpInfo("1.2.0.0", 1)) is HpGate.Ready)
         assertTrue(HallPassParser.gate(HpInfo("1.2.3.4", 1)) is HpGate.Ready)
-        assertTrue(HallPassParser.gate(HpInfo("1.0.2.0", 1)) is HpGate.TooOld)
-        assertTrue(HallPassParser.gate(HpInfo("1.1.0.0", 0)) is HpGate.TooOld)
+        assertTrue(HallPassParser.gate(HpInfo("1.1.2.0", 1)) is HpGate.TooOld)
+        assertTrue(HallPassParser.gate(HpInfo("1.1.9.0", 1)) is HpGate.TooOld)
+        assertTrue(HallPassParser.gate(HpInfo("1.2.0.0", 0)) is HpGate.TooOld)
         assertTrue(HallPassParser.gate(HpInfo("weird", 1)) is HpGate.TooOld)
         assertTrue(HallPassParser.atLeast("2.0", "1.9.9.9"))
         assertFalse(HallPassParser.atLeast("1.10.0.0", "1.11.0.0"))

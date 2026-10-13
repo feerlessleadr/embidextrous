@@ -27,8 +27,8 @@ object HallPass {
     /** The Hall Pass API version this app understands. */
     const val SUPPORTED = 1
 
-    /** Hall Pass 1.1.0.0 is the first version with everything this tab uses (albums, select all matching). */
-    const val MIN_PLUGIN = "1.1.0.0"
+    /** Hall Pass 1.2.0.0 is the first version with everything this tab uses (artists, plays, title and lyric-file evidence). */
+    const val MIN_PLUGIN = "1.2.0.0"
 }
 
 data class HpScanJob(val state: String, val total: Int, val processed: Int, val message: String) {
