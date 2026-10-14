@@ -165,8 +165,9 @@ class AppContainer(context: Context) {
         AlertService.sync(appContext)
     }
 
-    fun setAlertsEnabled(on: Boolean) {
-        settings.setAlertsEnabled(on)
+    /** Saves the notification rules; the background connection starts or stops to match (any rule switched on keeps it). */
+    fun setNotifRules(rules: List<com.feerlessleadr.embidextrous.notifications.NotifRule>) {
+        settings.setNotifRules(rules)
         AlertService.sync(appContext)
     }
 

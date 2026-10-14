@@ -242,3 +242,10 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 - **Swipe review** (full-screen dialog): one track at a time with why Hall Pass was unsure; swipe right = clean, left = explicit (30% of the width, or the buttons), Skip puts it at the end, Undo takes the last decision back (clears the manual decision). Decisions leave the list at once and go to the plugin in the background; a failure puts the track back. `swipeOutcome` and `describeView` are unit tested.
 - Needs Hall Pass 1.2.0.0 for the artist list and plays; with 1.1.x the Artists view and Most played would show errors or zeros (the tab's minimum is still 1.1.0.0; raise it before release if that matters).
 - **Not seen on a screen or a phone:** the swipe gesture and its feel, the bulk confirmation text, the new chips. Only unit tests and the plugin's endpoints (checked live) back this.
+
+## 2026-10-13: Notification rules, first build (not released; follows 0.8.0)
+- Settings > Notifications (Hall Monitor section): rules are a list with on/off and delete; "Add a rule" offers "used N% of their time" (1 to 99) or "used all of their time". Stored on the phone (`notif_rules`); the old Background alerts switch migrates into the "limit reached" rule.
+- Rule engine: `notifications/NotifRules.kt` (pure Kotlin, `percentUsed`, `PercentRules.evaluate`); `AlertService` runs it on each live update; fired state kept in prefs (`notif_percent_state`).
+- Unit tests: `NotifRulesTest` (13 cases); full suite 236 tests, all passing (`./gradlew.bat test`, offline).
+- Not verified on a phone or emulator. Not verified with real playback (the test server's Hall Monitor had no limits configured; a throw-away limited user showed zero watched time). The test server was restored afterwards: limiter off, no limited users, throw-away user deleted.
+- Not built yet: per-user rules, per-rule priority and sound, quiet hours, the Label Maker events.

@@ -1,6 +1,8 @@
 package com.feerlessleadr.embidextrous.data
 
 import android.content.SharedPreferences
+import com.feerlessleadr.embidextrous.notifications.NotifRule
+import com.feerlessleadr.embidextrous.notifications.NotifRules
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -104,20 +106,44 @@ class AppSettings(private val prefs: SharedPreferences) {
         _homeLayout.value = layout
     }
 
-    private val _alertsEnabled = MutableStateFlow(prefs.getBoolean(KEY_ALERTS, false))
+    private val _notifRules = MutableStateFlow(loadNotifRules())
 
-    /** Hall Monitor: keep a live connection in the background and notify when someone reaches their limit. */
-    val alertsEnabled: StateFlow<Boolean> = _alertsEnabled.asStateFlow()
+    /**
+     * Notification rules (Settings > Notifications). Kept on this phone. The first run turns the old Background alerts
+     * switch into the default "limit reached" rule, so existing behaviour carries over.
+     */
+    val notifRules: StateFlow<List<NotifRule>> = _notifRules.asStateFlow()
+
+    fun setNotifRules(rules: List<NotifRule>) {
+        prefs.edit().putString(KEY_NOTIF_RULES, NotifRules.encode(rules)).apply()
+        _notifRules.value = rules
+    }
+
+    /** The "rule|user" -> day map of percent rules that already fired (kept across restarts). */
+    fun percentState(): Map<String, String> {
+        val text = prefs.getString(KEY_PERCENT_STATE, null) ?: return emptyMap()
+        return try {
+            AppJson.parseToJsonElement(text).jsonObject.mapNotNull { (k, v) -> (v as? JsonPrimitive)?.contentOrNull?.let { k to it } }.toMap()
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
+
+    fun savePercentState(state: Map<String, String>) {
+        prefs.edit().putString(KEY_PERCENT_STATE, JsonObject(state.mapValues { JsonPrimitive(it.value) }).toString()).apply()
+    }
+
+    private fun loadNotifRules(): List<NotifRule> {
+        NotifRules.decode(prefs.getString(KEY_NOTIF_RULES, null))?.let { return it }
+        val migrated = NotifRules.defaults(legacyAlertsOn = prefs.getBoolean(KEY_ALERTS, false))
+        prefs.edit().putString(KEY_NOTIF_RULES, NotifRules.encode(migrated)).apply()
+        return migrated
+    }
 
     private val _widgetHideNames = MutableStateFlow(prefs.getBoolean(KEY_WIDGET_HIDE_NAMES, false))
 
     /** Hall Monitor: the home-screen widget shows "User 1", "User 2" instead of names. */
     val widgetHideNames: StateFlow<Boolean> = _widgetHideNames.asStateFlow()
-
-    fun setAlertsEnabled(on: Boolean) {
-        prefs.edit().putBoolean(KEY_ALERTS, on).apply()
-        _alertsEnabled.value = on
-    }
 
     fun setWidgetHideNames(on: Boolean) {
         prefs.edit().putBoolean(KEY_WIDGET_HIDE_NAMES, on).apply()
@@ -170,7 +196,10 @@ class AppSettings(private val prefs: SharedPreferences) {
         const val KEY_PROFILE = "profile"
         const val KEY_CUSTOM_SMART_LISTS = "custom_smart_lists"
         const val KEY_HOME_LAYOUT = "home_layout"
+        /** The old Background alerts switch: read once, to migrate it into the default rule. */
         const val KEY_ALERTS = "watching_alerts"
+        const val KEY_NOTIF_RULES = "notif_rules"
+        const val KEY_PERCENT_STATE = "notif_percent_state"
         const val KEY_WIDGET_HIDE_NAMES = "watching_widget_hide_names"
     }
 }

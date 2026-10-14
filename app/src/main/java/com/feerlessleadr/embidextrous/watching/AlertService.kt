@@ -19,6 +19,11 @@ import com.feerlessleadr.embidextrous.App
 import com.feerlessleadr.embidextrous.MainActivity
 import com.feerlessleadr.embidextrous.R
 import com.feerlessleadr.embidextrous.data.UserStatus
+import com.feerlessleadr.embidextrous.notifications.NotifKind
+import com.feerlessleadr.embidextrous.notifications.NotifRules
+import com.feerlessleadr.embidextrous.notifications.PercentFire
+import com.feerlessleadr.embidextrous.notifications.PercentRules
+import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -35,6 +40,9 @@ class AlertService : Service() {
     private val alerts = LimitAlerts()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var holding = false
+
+    /** False until the first live state has been seen; percent rules only record the state then, so nothing fires for earlier days. */
+    private var seenState = false
     private var collector: Job? = null
 
     override fun onCreate() {
@@ -80,16 +88,47 @@ class AlertService : Service() {
                     if (container.session.value == null || container.pluginKey.value == null) {
                         stopSelf()
                     } else if (state.loaded) {
+                        val rules = container.settings.notifRules.value
                         val changes = alerts.update(state.cards)
                         // Someone got time (from any phone or the dashboard): their alert is out of date, so it goes on this phone too.
                         val nm = getSystemService(NotificationManager::class.java)
                         for (user in changes.cleared) nm.cancel(notificationId(user.userId))
-                        for (user in changes.blocked) notifyLimitReached(user)
+                        if (rules.any { it.kind == NotifKind.AllTimeUsed && it.enabled }) {
+                            for (user in changes.blocked) notifyLimitReached(user)
+                        }
+                        val firstLook = !seenState
+                        seenState = true
+                        val saved = container.settings.percentState()
+                        val result = PercentRules.evaluate(rules, state.cards, saved, LocalDate.now().toString(), firstLook)
+                        if (result.state != saved) container.settings.savePercentState(result.state)
+                        for (fire in result.fires) notifyPercent(fire)
                     }
                 }
             }
         }
         return START_STICKY
+    }
+
+    /** A percent rule fired: says how much of the limit is used. No buttons; the same lock-screen protections as the limit alert. */
+    private fun notifyPercent(fire: PercentFire) {
+        if (!canNotify(this)) return
+        val name = fire.user.username.ifEmpty { "A user" }
+        val id = notificationId(PercentRules.key(fire.rule, fire.user))
+        val lockScreenVersion: Notification = NotificationCompat.Builder(this, CHANNEL_ALERTS)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle("Hall Monitor")
+            .setContentText("A viewing threshold was reached. Unlock to see who.")
+            .build()
+        val builder = NotificationCompat.Builder(this, CHANNEL_ALERTS)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle("$name has used ${fire.percent}% of their ${fire.user.periodLabel} time")
+            .setContentText("Playback is still allowed. Change this alert in Settings > Notifications.")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(openAppIntent())
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(lockScreenVersion)
+        getSystemService(NotificationManager::class.java).notify(id, builder.build())
     }
 
     private fun notifyLimitReached(user: UserStatus) {
@@ -154,7 +193,7 @@ class AlertService : Service() {
         fun sync(context: Context) {
             val app = context.applicationContext
             val container = (app as App).container
-            val wanted = container.settings.alertsEnabled.value && canNotify(app) &&
+            val wanted = NotifRules.anyEnabled(container.settings.notifRules.value) && canNotify(app) &&
                 container.session.value != null && container.pluginKey.value != null
             val intent = Intent(app, AlertService::class.java)
             if (wanted) {

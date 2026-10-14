@@ -251,46 +251,10 @@ private fun HallMonitorKeySection(container: AppContainer) {
             if (key != null) OutlinedButton(onClick = { container.setPluginKey("") }) { Text("Remove key") }
         }
 
-        val context = androidx.compose.ui.platform.LocalContext.current
-        val alerts by container.settings.alertsEnabled.collectAsStateWithLifecycle()
         val hideNames by container.settings.widgetHideNames.collectAsStateWithLifecycle()
-        var permissionDenied by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-        // Android 13 and later ask before an app may show notifications; alerts only turn on once that is granted.
-        val askPermission = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { granted ->
-            permissionDenied = !granted
-            container.setAlertsEnabled(granted)
-        }
         HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-        SettingRow(
-            title = "Background alerts",
-            subtitle = if (permissionDenied) "Notifications are blocked for this app, so alerts cannot be turned on."
-            else "Keep a live connection open and notify when someone reaches their limit, with buttons to add time. Shows a small ongoing notification.",
-            checked = alerts,
-            onChange = { on ->
-                if (on && !com.feerlessleadr.embidextrous.watching.AlertService.canNotify(context)) {
-                    askPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                } else {
-                    permissionDenied = false
-                    container.setAlertsEnabled(on)
-                }
-            },
-        )
-        if (alerts) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    "Some phones stop background apps to save battery. If alerts stop arriving, allow Embidextrous to run without battery restrictions.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                androidx.compose.material3.TextButton(onClick = {
-                    try {
-                        context.startActivity(android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
-                    } catch (e: android.content.ActivityNotFoundException) {
-                        // This phone has no such screen; the text above still tells what to look for.
-                    }
-                }) { Text("Open battery settings") }
-            }
-        }
+        NotifRulesSection(container)
+        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
         SettingRow(
             title = "Hide names on the widget",
             subtitle = "The home-screen widget shows \"User 1\", \"User 2\" instead of names, in case others can see your home screen.",
