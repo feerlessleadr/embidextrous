@@ -43,12 +43,13 @@ object EmbyMessages {
     const val MAX_FRAME_CHARS = 4_000_000
 
     /**
-     * The start message of a topic. A plugin's event subscription carries, after the interval, the highest event number the app has seen ([afterSeq], 0 for none)
+     * The start message of a topic. A plugin's event subscription carries, after the interval, the highest event number the app has seen ([afterSeq], empty for none)
      * and the access token ([token]): the plugin checks it itself, because Emby does not tell a plugin who a header-authenticated socket belongs to (docs/push-contract.md).
      * The token travels in the encrypted message, never in the address.
      */
     fun start(topic: EmbyTopic, afterSeq: Long? = null, token: String? = null): String? = topic.startMessage?.let {
-        val data = if (topic.eventsPlugin != null && token != null) "${topic.interval},${afterSeq ?: 0},$token" else topic.interval
+        // Nothing seen yet is an EMPTY value (the plugin then only reports where its log stands); a 0 would replay the whole log.
+        val data = if (topic.eventsPlugin != null && token != null) "${topic.interval},${afterSeq?.takeIf { it > 0 } ?: ""},$token" else topic.interval
         buildJsonObject {
             put("MessageType", it)
             put("Data", data)

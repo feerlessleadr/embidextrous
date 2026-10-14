@@ -5,14 +5,14 @@ One Android app for the owner's Emby administration: smart lists (the SmartLists
 Origin: this code began as a copy of `C:\dev\emby.smartlists.android` (v0.4.1, commit 79444cb) and is being merged with `C:\dev\watching-eye-android-app` (Java/XML, being ported to Kotlin/Compose). Those repos stay untouched until this app replaces them. Their notes: `C:\dev\emby.smartlists.android\HANDOFF.md`, `C:\dev\watching-eye\PROGRESS.md`.
 
 ## Read first
-- `docs/HANDOFF.md` (the consolidated state: releases with hashes, the Hall Pass tab, emulator recipe, what is not verified), `docs/plan.md` (roadmap), `docs/decisions.md` (every decision with the reason: add to it whenever a decision is made, however small), `docs/status.md` (what is built and verified). Requested but not built: `docs/notifications-plan.md` (configurable notification rules) and the Label Maker tab (spec in `C:\dev\label-maker-emby\docs\HANDOFF.md`).
+- `docs/HANDOFF.md` (the consolidated state: releases with hashes, the Hall Pass tab, emulator recipe, what is not verified), `docs/plan.md` (roadmap), `docs/decisions.md` (every decision with the reason: add to it whenever a decision is made, however small), `docs/status.md` (what is built and verified). Notifications: `docs/notifications-plan.md` (how they work, rebuilt for 0.10.0) and `docs/push-contract.md` (what plugins must send). Requested but not built: the Label Maker tab (spec in `C:\dev\label-maker-emby\docs\HANDOFF.md`).
 
 ## Foundations (do not relitigate without new evidence)
 - **HTTPS only in release builds**, system CAs only, no cleartext (the debug source set allows cleartext to the emulator host `10.0.2.2` only), **no redirects followed** (`followRedirects(false)`).
 - **Token only in the `X-Emby-Token` header**, encrypted with an Android Keystore AES-GCM key; the password is never stored; sign-out ends the server session and deletes the key.
 - **Every server-supplied id is validated before it goes into a URL** (`ApiClient.seg`); inbound sizes and depth are bounded (`data/Safety.kt`).
 - **No app lock and no FLAG_SECURE** (decided twice: the phone's own screen lock is relied on). Do not add one.
-- Notifications that carry names show a generic version on the lock screen; their action buttons need an unlocked phone.
+- Notifications that carry names show a generic version on the lock screen; their action buttons need an unlocked phone. The access token is sent to plugins only inside the encrypted websocket start message (never in an address): see `docs/push-contract.md`.
 - One sign-in. An administrator account sees every tab; a regular account sees only Hall Monitor (the SmartLists plugin needs an administrator).
 - Lists are raw JSON edited through drafts, so unknown plugin fields survive; rule and sort knowledge comes from the plugin's `/catalog`.
 - Distribution: signed APK on GitHub releases, installed with Obtainium. The signing key is NOT in the repo and a debug-signed release must never be published (Gradle refuses unless `-PallowDebugSigning`).
