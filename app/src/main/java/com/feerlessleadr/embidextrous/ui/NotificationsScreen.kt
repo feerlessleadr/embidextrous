@@ -339,7 +339,7 @@ fun ruleSummary(rule: NotifRule, spec: EventSpec, userNames: Map<String, String>
         parts.add(
             when (p.type) {
                 ParamType.Choice -> p.choices.firstOrNull { it.first == value }?.second ?: value
-                ParamType.Int -> if (p.name == "percent") "$value%" else if (p.name.equals("minutes", true)) "$value minutes" else "$value"
+                ParamType.Int -> if (p.name == "percent") "$value%" else if (p.name.equals("minutes", true)) "$value minutes" else "${p.label}: $value"
                 ParamType.Text -> if (p.name == "time") "at ${value}" else value
                 ParamType.Bool -> if (value == "true") p.label else ""
             },

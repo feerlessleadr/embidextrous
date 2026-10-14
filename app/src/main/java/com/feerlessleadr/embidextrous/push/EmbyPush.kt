@@ -38,6 +38,8 @@ class EmbyPush(
     private val sessionProvider: () -> Session?,
     private val deviceId: () -> String,
     http: OkHttpClient,
+    /** For a plugin's event subscription: the highest event number the app has already seen, sent with the start message so nothing is missed or repeated. */
+    private val afterSeq: (EmbyTopic) -> Long? = { null },
 ) {
     // A websocket stays open for hours: no read or call timeout, and a ping every 30 s keeps routers and proxies from dropping it.
     private val client = http.newBuilder()
@@ -69,7 +71,7 @@ class EmbyPush(
             for (t in mine) {
                 val before = holds.getOrDefault(t, 0)
                 holds[t] = before + 1
-                if (before == 0) socket?.let { s -> EmbyMessages.start(t)?.let { s.send(it) } }
+                if (before == 0) socket?.let { s -> EmbyMessages.start(t, afterSeq(t))?.let { s.send(it) } }
             }
             if (loop == null) loop = scope.launch { run() }
         }
@@ -126,7 +128,7 @@ class EmbyPush(
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 synchronized(lock) {
                     socket = webSocket
-                    for (t in holds.keys) EmbyMessages.start(t)?.let { webSocket.send(it) }
+                    for (t in holds.keys) EmbyMessages.start(t, afterSeq(t))?.let { webSocket.send(it) }
                 }
                 worked = true
                 _connected.value = true

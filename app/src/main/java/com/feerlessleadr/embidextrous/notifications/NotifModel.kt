@@ -8,18 +8,26 @@ import kotlinx.serialization.Serializable
  * The services that can send notifications. [channelId] is the Android notification channel (sound and vibration are set per channel in
  * Android's own settings); [needsAdmin] services need an Emby administrator account and a profile that shows the administrator tabs.
  */
-enum class NotifService(val title: String, val channelId: String, val channelTitle: String, val needsAdmin: Boolean, val apiBase: String? = null) {
+enum class NotifService(
+    val title: String,
+    val channelId: String,
+    val channelTitle: String,
+    val needsAdmin: Boolean,
+    val apiBase: String? = null,
+    /** The plugin name in its websocket messages: the app subscribes with "<name>EventsStart" and gets "<name>Events" (docs/push-contract.md). */
+    val eventsName: String? = null,
+) {
     HallMonitor("Hall Monitor", "alerts", "Hall Monitor", needsAdmin = false),
-    LabelMaker("Label Maker", "music-ingest", "Music ingest (Label Maker)", needsAdmin = true, apiBase = "/emby/LabelMaker"),
-    PluginManager("Plugin manager", "plugin-updates", "Plugin updates", needsAdmin = true),
-    HallPass("Hall Pass", "hall-pass", "Explicit music (Hall Pass)", needsAdmin = true, apiBase = "/emby/HallPass"),
-    SmartLists("Smart lists", "smart-lists", "Smart lists", needsAdmin = true, apiBase = "/emby/Plugins/SmartLists"),
+    LabelMaker("Label Maker", "music-ingest", "Music ingest (Label Maker)", needsAdmin = true, apiBase = "/emby/LabelMaker", eventsName = "LabelMaker"),
+    PluginManager("Plugin manager", "plugin-updates", "Plugin updates", needsAdmin = true, apiBase = "/emby/Plugins/GitHubRepoPluginInstall", eventsName = "GitHubRepoPluginInstall"),
+    HallPass("Hall Pass", "hall-pass", "Explicit music (Hall Pass)", needsAdmin = true, apiBase = "/emby/HallPass", eventsName = "HallPass"),
+    SmartLists("Smart lists", "smart-lists", "Smart lists", needsAdmin = true, apiBase = "/emby/Plugins/SmartLists", eventsName = "SmartLists"),
     Tracearr("Tracearr", "tracearr", "Tracearr", needsAdmin = true),
     Server("Emby server", "server", "Emby server", needsAdmin = true),
     ;
 
     /** The plugin's info route (SmartLists spells it in lower case). */
-    val infoPath: String? get() = apiBase?.let { it + if (this == SmartLists) "/info" else "/Info" }
+    val infoPath: String? get() = apiBase?.let { it + if (it.startsWith("/emby/Plugins/")) "/info" else "/Info" }
 
     companion object {
         fun fromName(name: String?): NotifService? = entries.firstOrNull { it.name == name }

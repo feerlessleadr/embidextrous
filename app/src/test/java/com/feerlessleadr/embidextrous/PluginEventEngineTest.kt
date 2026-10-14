@@ -158,9 +158,8 @@ class PluginEventEngineTest {
     }
 
     @Test
-    fun serverMessagesAndFailedTasks() {
-        val rules = on(NotifCatalog.Ids.SV_RESTART, NotifCatalog.Ids.SV_TASK_FAILED)
-        assertEquals("Emby needs a restart", PluginEventEngine.handle("RestartRequired", null, rules).deliveries.single().title)
+    fun failedScheduledTasksAreAnnouncedOnce() {
+        val rules = on(NotifCatalog.Ids.SV_TASK_FAILED)
         val tasks = obj("""[{"Id":"t1","Name":"Scan media library","LastExecutionResult":{"Status":"Failed","EndTimeUtc":"2026-10-14T01:00:00Z"}},{"Id":"t2","Name":"Ok","LastExecutionResult":{"Status":"Completed","EndTimeUtc":"2026-10-14T01:00:00Z"}}]""")
         val first = PluginEventEngine.tasks(tasks, rules, emptyMap(), firstLook = true)
         assertTrue(first.first.deliveries.isEmpty())
@@ -169,6 +168,30 @@ class PluginEventEngineTest {
         assertTrue(PluginEventEngine.tasks(tasks, rules, first.second, firstLook = false).first.deliveries.isEmpty())
         val later = obj("""[{"Id":"t1","Name":"Scan media library","LastExecutionResult":{"Status":"Failed","EndTimeUtc":"2026-10-15T01:00:00Z"}}]""")
         assertEquals("Scan media library failed", PluginEventEngine.tasks(later, rules, first.second, firstLook = false).first.deliveries.single().title)
+    }
+
+    // ---- the plugin subscription message ---------------------------------------------------------------------
+
+    @Test
+    fun aPluginEventsMessageIsReadIntoItsEvents() {
+        val data = obj("""{"ApiLevel":1,"LatestSeq":7,"Truncated":false,"Events":[{"Seq":6,"Name":"HallPass.ScanFinished","AtUtc":"x","Data":{"Seq":6,"Scanned":9}},{"Seq":7,"Name":"HallPass.ScanFailed","AtUtc":"x","Data":{"Seq":7}}]}""")
+        val env = PluginEventEngine.parseEnvelope("HallPassEvents", data)!!
+        assertEquals(NotifService.HallPass, env.service)
+        assertEquals(listOf("HallPass.ScanFinished", "HallPass.ScanFailed"), env.events.map { it.first })
+        assertEquals(7L, env.latestSeq)
+        assertNull(env.error)
+        // A heartbeat has no events; an error is carried; other messages are not ours.
+        assertTrue(PluginEventEngine.parseEnvelope("HallPassEvents", obj("""{"LatestSeq":7,"Events":[]}"""))!!.events.isEmpty())
+        assertEquals("Administrator login required.", PluginEventEngine.parseEnvelope("SmartListsEvents", obj("""{"Error":"Administrator login required."}"""))!!.error)
+        assertEquals(NotifService.PluginManager, PluginEventEngine.parseEnvelope("GitHubRepoPluginInstallEvents", data)!!.service)
+        assertNull(PluginEventEngine.parseEnvelope("Sessions", data))
+    }
+
+    @Test
+    fun theStartMessageCarriesTheLastNumberSeenOnlyForPluginSubscriptions() {
+        assertEquals("""{"MessageType":"HallPassEventsStart","Data":"0,30000"}""", com.feerlessleadr.embidextrous.push.EmbyMessages.start(com.feerlessleadr.embidextrous.push.EmbyTopic.HallPassEvents))
+        assertEquals("""{"MessageType":"HallPassEventsStart","Data":"0,30000,41"}""", com.feerlessleadr.embidextrous.push.EmbyMessages.start(com.feerlessleadr.embidextrous.push.EmbyTopic.HallPassEvents, 41))
+        assertEquals("""{"MessageType":"SessionsStart","Data":"0,1500"}""", com.feerlessleadr.embidextrous.push.EmbyMessages.start(com.feerlessleadr.embidextrous.push.EmbyTopic.Sessions, 41))
     }
 
     // ---- Tracearr ------------------------------------------------------------------------------------------

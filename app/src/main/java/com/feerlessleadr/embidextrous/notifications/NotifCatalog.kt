@@ -39,9 +39,7 @@ object NotifCatalog {
         const val SL_TIMER_STOPPED = "SmartLists.TimerStopped"
         const val TR_VIOLATION = "Tracearr.Violation"
         const val TR_SERVER_DOWN = "Tracearr.ServerDown"
-        const val SV_RESTART = "Server.RestartRequired"
         const val SV_TASK_FAILED = "Server.TaskFailed"
-        const val SV_PACKAGE_FAILED = "Server.PackageInstallFailed"
     }
 
     private val PERIODS = listOf("any" to "Any limit", "daily" to "Daily", "weekly" to "Weekly", "monthly" to "Monthly", "yearly" to "Yearly")
@@ -210,19 +208,9 @@ object NotifCatalog {
         ),
         // ---- Emby server ----
         EventSpec(
-            Ids.SV_RESTART, NotifService.Server, "Emby needs a restart",
-            "Sent when the server says a restart is required.",
-            lockScreenText = "Emby needs a restart.", opensTab = "server/live",
-        ),
-        EventSpec(
             Ids.SV_TASK_FAILED, NotifService.Server, "A scheduled task failed",
             "Sent when a scheduled task ends in failure.",
             lockScreenText = "A scheduled task failed. Unlock to see which.", opensTab = "server/tasks",
-        ),
-        EventSpec(
-            Ids.SV_PACKAGE_FAILED, NotifService.Server, "A plugin install failed",
-            "Sent when Emby could not install a plugin or update.",
-            lockScreenText = "A plugin install failed.", opensTab = "server/plugins",
         ),
     )
 

@@ -59,13 +59,18 @@ class BackupPollJob : JobService() {
                 return
             }
             if (scheduler.getPendingJob(JOB_ID) != null) return
-            scheduler.schedule(
-                JobInfo.Builder(JOB_ID, ComponentName(app, BackupPollJob::class.java))
-                    .setPeriodic(15 * 60 * 1000L)
-                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                    .setPersisted(true)
-                    .build(),
-            )
+            // A failure to schedule the failsafe must never take the app down.
+            try {
+                scheduler.schedule(
+                    JobInfo.Builder(JOB_ID, ComponentName(app, BackupPollJob::class.java))
+                        .setPeriodic(15 * 60 * 1000L)
+                        .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                        .setPersisted(true)
+                        .build(),
+                )
+            } catch (e: RuntimeException) {
+                // The backup poll is not available on this phone; pushes still deliver.
+            }
         }
     }
 }

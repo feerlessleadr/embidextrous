@@ -52,12 +52,8 @@ object PluginEventEngine {
         type.startsWith("HallPass.") -> NotifService.HallPass
         type.startsWith("SmartLists.") -> NotifService.SmartLists
         type.startsWith("GitHubRepoPluginInstall.") -> NotifService.PluginManager
-        type in SERVER_MESSAGES -> NotifService.Server
         else -> null
     }
-
-    /** Messages Emby itself sends that matter here. */
-    val SERVER_MESSAGES = setOf("RestartRequired", "PackageInstallationFailed")
 
     fun handle(type: String, data: JsonElement?, rules: List<NotifRule>): EventResult {
         val service = serviceOf(type) ?: return EventResult()
@@ -67,7 +63,6 @@ object PluginEventEngine {
             NotifService.HallPass -> hallPass(type.removePrefix("HallPass."), obj, rules)
             NotifService.SmartLists -> smartLists(type.removePrefix("SmartLists."), obj, rules)
             NotifService.PluginManager -> pluginManager(type.removePrefix("GitHubRepoPluginInstall."), obj, rules)
-            NotifService.Server -> server(type, obj, rules)
             else -> EventResult()
         }
     }
@@ -220,17 +215,6 @@ object PluginEventEngine {
         else -> EventResult()
     }
 
-    // ---- Emby server ---------------------------------------------------------------------------------------
-
-    private fun server(type: String, d: JsonObject?, rules: List<NotifRule>): EventResult = when (type) {
-        "RestartRequired" -> one(NotifCatalog.Ids.SV_RESTART, rules, "sv-restart", "Emby needs a restart", "The server says a restart is required.")
-        "PackageInstallationFailed" -> {
-            val name = d.str("Name") ?: d.str("PackageName")
-            one(NotifCatalog.Ids.SV_PACKAGE_FAILED, rules, "sv-package", "A plugin install failed", name ?: "Emby could not install a plugin.")
-        }
-        else -> EventResult()
-    }
-
     /**
      * Scheduled tasks as Emby pushes them ("ScheduledTasksInfo": a list). [lastEnds] maps a task id to the end time of the last failure already
      * announced; the first look only records. Returns the notifications and the new map.
@@ -288,6 +272,23 @@ object PluginEventEngine {
         } else {
             EventResult(rulesOn.map { make(NotifCatalog.Ids.TR_SERVER_DOWN, it, "tr-down|$serverId", "${serverName.ifEmpty { "A server" }} is down", "Tracearr reports it as $status.") })
         }
+    }
+
+    // ---- the subscription message ------------------------------------------------------------------------
+
+    /** What a plugin's "<Plugin>Events" message carries (docs/push-contract.md): the events after the last number the app has, the latest number, or an error. */
+    data class Envelope(val service: NotifService, val events: List<Pair<String, JsonObject?>>, val latestSeq: Long?, val error: String?)
+
+    /** The "<Plugin>Events" message as an [Envelope], or null when [type] is not one of those. */
+    fun parseEnvelope(type: String, data: JsonElement?): Envelope? {
+        val service = NotifService.entries.firstOrNull { it.eventsName != null && type == it.eventsName + "Events" } ?: return null
+        val obj = data as? JsonObject ?: return Envelope(service, emptyList(), null, null)
+        val events = obj.array("Events").mapNotNull { e ->
+            val o = e as? JsonObject ?: return@mapNotNull null
+            val name = o.str("Name") ?: return@mapNotNull null
+            name to (o["Data"] as? JsonObject)
+        }
+        return Envelope(service, events, (obj["LatestSeq"] as? JsonPrimitive)?.longOrNull, obj.str("Error"))
     }
 
     // ---- helpers -------------------------------------------------------------------------------------------

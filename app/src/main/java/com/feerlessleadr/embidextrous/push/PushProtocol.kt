@@ -12,11 +12,24 @@ import kotlinx.serialization.json.intOrNull
  * milliseconds and answered with messages of [message] until the matching "...Stop". [Events] is no subscription at all: it keeps the connection open for
  * what the server and its plugins send on their own (the plugin manager's run events, for example).
  */
-enum class EmbyTopic(val message: String?, val startMessage: String?, val stopMessage: String?, val interval: String?) {
+enum class EmbyTopic(
+    val message: String?,
+    val startMessage: String?,
+    val stopMessage: String?,
+    val interval: String?,
+    /** For a plugin's event subscription: the plugin name, whose start message also carries the last event number the app has seen (docs/push-contract.md). */
+    val eventsPlugin: String? = null,
+) {
     Sessions("Sessions", "SessionsStart", "SessionsStop", "0,1500"),
     ScheduledTasks("ScheduledTasksInfo", "ScheduledTasksInfoStart", "ScheduledTasksInfoStop", "0,1000"),
     Activity("ActivityLogEntry", "ActivityLogEntryStart", "ActivityLogEntryStop", "0,1000"),
     Events(null, null, null, null),
+
+    // Plugins that send alerts: the app subscribes and the plugin pushes to this one socket (it works with the token in the header, unlike "send to admin sessions").
+    LabelMakerEvents("LabelMakerEvents", "LabelMakerEventsStart", "LabelMakerEventsStop", "0,30000", "LabelMaker"),
+    HallPassEvents("HallPassEvents", "HallPassEventsStart", "HallPassEventsStop", "0,30000", "HallPass"),
+    SmartListsEvents("SmartListsEvents", "SmartListsEventsStart", "SmartListsEventsStop", "0,30000", "SmartLists"),
+    PluginManagerEvents("GitHubRepoPluginInstallEvents", "GitHubRepoPluginInstallEventsStart", "GitHubRepoPluginInstallEventsStop", "0,30000", "GitHubRepoPluginInstall"),
 }
 
 /** One message from Emby: its type and its data (null when there was none). */
@@ -27,7 +40,11 @@ object EmbyMessages {
     /** Text frames larger than this are ignored: nothing the app subscribes to comes anywhere near it. */
     const val MAX_FRAME_CHARS = 4_000_000
 
-    fun start(topic: EmbyTopic): String? = topic.startMessage?.let { """{"MessageType":"$it","Data":"${topic.interval}"}""" }
+    /** The start message of a topic. A plugin's event subscription adds the highest event number the app has seen ([afterSeq]) as a third value. */
+    fun start(topic: EmbyTopic, afterSeq: Long? = null): String? = topic.startMessage?.let {
+        val data = if (topic.eventsPlugin != null && afterSeq != null && afterSeq > 0) "${topic.interval},$afterSeq" else topic.interval
+        """{"MessageType":"$it","Data":"$data"}"""
+    }
 
     fun stop(topic: EmbyTopic): String? = topic.stopMessage?.let { """{"MessageType":"$it"}""" }
 

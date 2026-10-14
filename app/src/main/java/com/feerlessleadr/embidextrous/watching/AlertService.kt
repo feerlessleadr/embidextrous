@@ -111,10 +111,17 @@ class AlertService : Service() {
         val topics = buildList {
             add(EmbyTopic.Events)
             if (NotifService.Server in services) add(EmbyTopic.ScheduledTasks)
+            // Each plugin that sends alerts is subscribed to: it pushes its events to this socket (and the app catches up after a gap).
+            for (topic in EmbyTopic.entries) if (topic.eventsPlugin != null && services.any { it.eventsName == topic.eventsPlugin }) add(topic)
         }
         val lease = container.push.acquire(*topics.toTypedArray())
         try {
-            launch { container.push.events.collect { hub.onPush(it.type, it.data) } }
+            launch {
+                container.push.events.collect {
+                    hub.onEnvelope(it.type, it.data)
+                    hub.onPush(it.type, it.data)
+                }
+            }
             // Each time the connection comes up, ask the plugins what they sent while it was down (and refresh their alert lists).
             launch {
                 var wasUp = false

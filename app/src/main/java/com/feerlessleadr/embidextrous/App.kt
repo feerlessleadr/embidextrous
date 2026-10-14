@@ -178,7 +178,9 @@ class AppContainer(context: Context) {
     val notifHub: com.feerlessleadr.embidextrous.notifications.NotifHub by lazy { com.feerlessleadr.embidextrous.notifications.NotifHub(this, appContext) }
 
     /** One shared websocket to Emby for everything pushed (live sessions, tasks, the activity log, plugin events); screens lease the topics they need. */
-    val push: EmbyPush by lazy { EmbyPush(appScope, { _session.value }, { sessions.deviceId() }, http) }
+    val push: EmbyPush by lazy {
+        EmbyPush(appScope, { _session.value }, { sessions.deviceId() }, http, afterSeq = { topic -> topic.eventsPlugin?.let { notifHub.lastSeenFor(it) } })
+    }
 
     /** The Hall Monitor part of the app: live status, kept up to date only while a screen needs it. */
     val hallMonitor: HallMonitorRepository by lazy { HallMonitorRepository(this, appScope, http) }

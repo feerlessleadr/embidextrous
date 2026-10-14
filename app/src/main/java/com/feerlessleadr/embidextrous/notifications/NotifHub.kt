@@ -162,6 +162,22 @@ class NotifHub(private val container: AppContainer, private val context: Context
         deliver(PluginEventEngine.serverHealth(id, serverNames[id].orEmpty(), status, activeRules()))
     }
 
+    /** A "<Plugin>Events" subscription message: shows the new events (the plugin's own numbers keep repeats out) and, the first time, notes where its log stands. */
+    fun onEnvelope(type: String, data: JsonElement?) {
+        val env = PluginEventEngine.parseEnvelope(type, data) ?: return
+        if (env.service !in activeServices()) return
+        if (env.error != null) return // the plugin refused this account or has its alerts off; the settings screen says so
+        val first = tracker.lastSeen(env.service) == 0L
+        for ((name, d) in env.events) onPush(name, d)
+        if (first && env.latestSeq != null) {
+            tracker.accept(env.service, env.latestSeq)
+            settings.saveEventSeq(tracker.snapshot())
+        }
+    }
+
+    /** The highest event number seen from the plugin with this websocket name (sent when the app subscribes). */
+    fun lastSeenFor(eventsName: String): Long = NotifService.entries.firstOrNull { it.eventsName == eventsName }?.let { tracker.lastSeen(it) } ?: 0L
+
     /** Called when the background connections restart: the first look after that only records. */
     fun resetLooks() {
         tasksFirstLook = true
