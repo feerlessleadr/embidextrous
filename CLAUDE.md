@@ -27,7 +27,7 @@ Versions are in `gradle/libs.versions.toml` (AGP 9.x needs Gradle 9.4+; the wrap
 
 ## Testing on the emulator
 - Use a private AVD with its own name and port, started headless (`-no-window -no-audio -no-snapshot`), and stop only that one by name. Other projects share this machine's emulators and adb: never kill all emulator or adb processes. Run adb calls with a timeout.
-- The test Emby server is `C:\Users\kgiglio\Downloads\embyserver-win-x64-4.10.1.0` (port 8096, media `C:\claude`), reachable from the emulator at `http://10.0.2.2:8096`. Its admin API key is in `%USERPROFILE%\.emby-spike-key` (never print it). Create throw-away users for tests and delete them afterwards. Never touch the real users `kevin` and `test1`.
+- The test Emby server is `%USERPROFILE%\Downloads\embyserver-win-x64-4.10.1.0` (port 8096, media `C:\claude`), reachable from the emulator at `http://10.0.2.2:8096`. Its admin API key is in `%USERPROFILE%\.emby-spike-key` (never print it). Create throw-away users for tests and delete them afterwards. Never touch the real users `kevin` and `test1`.
 - Screenshots are 1080x2400, shown at 900x2000: multiply coordinates by 1.2. Check each screenshot is really this app before tapping.
 
 ## Conventions
