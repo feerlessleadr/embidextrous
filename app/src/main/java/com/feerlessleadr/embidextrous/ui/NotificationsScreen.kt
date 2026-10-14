@@ -153,7 +153,11 @@ fun NotificationsScreen(container: AppContainer, onBack: () -> Unit, onService: 
             }
             if (services.size == 1) {
                 Text(
-                    "Other services (Label Maker, Hall Pass, the plugin manager and more) are for an Emby administrator account on the Administrator setup. You can change that setup under Settings.",
+                    if (container.session.value?.isAdministrator == true) {
+                        "The other services (Label Maker, Hall Pass, the plugin manager and more) appear when this phone is set up as Administrator. You can change that under Settings, How this phone uses the app."
+                    } else {
+                        "The other services (Label Maker, Hall Pass, the plugin manager and more) are for an Emby administrator account."
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 4.dp),
