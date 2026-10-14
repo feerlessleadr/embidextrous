@@ -204,7 +204,7 @@ object PluginEventEngine {
                 out += one(NotifCatalog.Ids.PM_UPDATE_FAILED, rules, "pm-failed", if (failed == 1) "A plugin update failed" else "$failed plugin updates failed", names.ifEmpty { "Open the plugin manager to see why." })
             }
             if (waiting > 0) {
-                out += one(NotifCatalog.Ids.PM_UPDATES_READY, rules, "pm-ready", if (waiting == 1) "A plugin update is ready" else "$waiting plugin updates are ready", "They wait for you in the plugin manager.")
+                out += one(NotifCatalog.Ids.PM_UPDATES_READY, rules, "pm-ready", if (waiting == 1) "A plugin update is ready" else "$waiting plugin updates are ready", if (waiting == 1) "It is waiting for you in the plugin manager (Server tab)." else "They are waiting for you in the plugin manager (Server tab).")
             }
             out
         }

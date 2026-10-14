@@ -265,7 +265,11 @@ fun NotificationServiceScreen(container: AppContainer, service: NotifService, on
                 }
                 if (service.apiBase != null) {
                     Text(
-                        "${service.title} also has its own switches on the plugin's page in Emby (Phone alerts). An alert switched off there is never sent, so it cannot reach this phone whatever you choose here.",
+                        if (service == NotifService.PluginManager) {
+                            "The plugin manager sends alerts only while its phone API is switched on, on its page in Emby (changed there, never from this app)."
+                        } else {
+                            "${service.title} also has its own switches on the plugin's page in Emby (Phone alerts). An alert switched off there is never sent, so it cannot reach this phone whatever you choose here."
+                        },
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -346,7 +350,7 @@ fun ruleSummary(rule: NotifRule, spec: EventSpec, userNames: Map<String, String>
         )
     }
     if (spec.perUser) parts.add(if (rule.users.isEmpty()) "everyone" else rule.users.joinToString(", ") { userNames[it] ?: "a user" })
-    return parts.filter { it.isNotEmpty() }.joinToString(" · ").ifEmpty { "Always on for this service" }
+    return parts.filter { it.isNotEmpty() }.joinToString(" · ").ifEmpty { "Send this alert" }
 }
 
 @Composable
