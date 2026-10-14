@@ -188,10 +188,14 @@ class PluginEventEngineTest {
     }
 
     @Test
-    fun theStartMessageCarriesTheLastNumberSeenOnlyForPluginSubscriptions() {
-        assertEquals("""{"MessageType":"HallPassEventsStart","Data":"0,30000"}""", com.feerlessleadr.embidextrous.push.EmbyMessages.start(com.feerlessleadr.embidextrous.push.EmbyTopic.HallPassEvents))
-        assertEquals("""{"MessageType":"HallPassEventsStart","Data":"0,30000,41"}""", com.feerlessleadr.embidextrous.push.EmbyMessages.start(com.feerlessleadr.embidextrous.push.EmbyTopic.HallPassEvents, 41))
-        assertEquals("""{"MessageType":"SessionsStart","Data":"0,1500"}""", com.feerlessleadr.embidextrous.push.EmbyMessages.start(com.feerlessleadr.embidextrous.push.EmbyTopic.Sessions, 41))
+    fun theStartMessageOfAPluginSubscriptionCarriesTheLastNumberSeenAndTheToken() {
+        val hp = com.feerlessleadr.embidextrous.push.EmbyTopic.HallPassEvents
+        val start = com.feerlessleadr.embidextrous.push.EmbyMessages
+        assertEquals("""{"MessageType":"HallPassEventsStart","Data":"0,30000,41,tok"}""", start.start(hp, 41, "tok"))
+        // Nothing seen yet is sent as 0.
+        assertEquals("""{"MessageType":"HallPassEventsStart","Data":"0,30000,0,tok"}""", start.start(hp, null, "tok"))
+        // Other topics never carry a token.
+        assertEquals("""{"MessageType":"SessionsStart","Data":"0,1500"}""", start.start(com.feerlessleadr.embidextrous.push.EmbyTopic.Sessions, 41, "tok"))
     }
 
     // ---- Tracearr ------------------------------------------------------------------------------------------

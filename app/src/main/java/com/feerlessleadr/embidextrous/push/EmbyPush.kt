@@ -71,7 +71,7 @@ class EmbyPush(
             for (t in mine) {
                 val before = holds.getOrDefault(t, 0)
                 holds[t] = before + 1
-                if (before == 0) socket?.let { s -> EmbyMessages.start(t, afterSeq(t))?.let { s.send(it) } }
+                if (before == 0) socket?.let { s -> EmbyMessages.start(t, afterSeq(t), sessionProvider()?.token)?.let { s.send(it) } }
             }
             if (loop == null) loop = scope.launch { run() }
         }
@@ -128,7 +128,7 @@ class EmbyPush(
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 synchronized(lock) {
                     socket = webSocket
-                    for (t in holds.keys) EmbyMessages.start(t, afterSeq(t))?.let { webSocket.send(it) }
+                    for (t in holds.keys) EmbyMessages.start(t, afterSeq(t), sessionProvider()?.token)?.let { webSocket.send(it) }
                 }
                 worked = true
                 _connected.value = true

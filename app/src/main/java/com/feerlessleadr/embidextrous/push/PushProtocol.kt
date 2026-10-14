@@ -5,7 +5,9 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.put
 
 /**
  * What the app asks Emby to push over its websocket. Each topic is switched on with a "...Start" message carrying "initial delay,interval" in
@@ -40,10 +42,17 @@ object EmbyMessages {
     /** Text frames larger than this are ignored: nothing the app subscribes to comes anywhere near it. */
     const val MAX_FRAME_CHARS = 4_000_000
 
-    /** The start message of a topic. A plugin's event subscription adds the highest event number the app has seen ([afterSeq]) as a third value. */
-    fun start(topic: EmbyTopic, afterSeq: Long? = null): String? = topic.startMessage?.let {
-        val data = if (topic.eventsPlugin != null && afterSeq != null && afterSeq > 0) "${topic.interval},$afterSeq" else topic.interval
-        """{"MessageType":"$it","Data":"$data"}"""
+    /**
+     * The start message of a topic. A plugin's event subscription carries, after the interval, the highest event number the app has seen ([afterSeq], 0 for none)
+     * and the access token ([token]): the plugin checks it itself, because Emby does not tell a plugin who a header-authenticated socket belongs to (docs/push-contract.md).
+     * The token travels in the encrypted message, never in the address.
+     */
+    fun start(topic: EmbyTopic, afterSeq: Long? = null, token: String? = null): String? = topic.startMessage?.let {
+        val data = if (topic.eventsPlugin != null && token != null) "${topic.interval},${afterSeq ?: 0},$token" else topic.interval
+        buildJsonObject {
+            put("MessageType", it)
+            put("Data", data)
+        }.toString()
     }
 
     fun stop(topic: EmbyTopic): String? = topic.stopMessage?.let { """{"MessageType":"$it"}""" }
