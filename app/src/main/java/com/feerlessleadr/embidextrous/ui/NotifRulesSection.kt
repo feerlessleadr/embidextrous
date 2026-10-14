@@ -48,6 +48,7 @@ import com.feerlessleadr.embidextrous.watching.AlertService
 @Composable
 fun NotifRulesSection(container: AppContainer) {
     val rules by container.settings.notifRules.collectAsStateWithLifecycle()
+    val pluginKey by container.pluginKey.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var adding by remember { mutableStateOf(false) }
     var pendingId by remember { mutableStateOf<String?>(null) }
@@ -71,7 +72,6 @@ fun NotifRulesSection(container: AppContainer) {
         }
     }
 
-    Text("Hall Monitor", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
     Text(
         "Each rule sends one notification per user. A percentage rule uses the limit closest to running out, which can be a daily, weekly, monthly or yearly limit. A longer limit that is further along than a shorter one may not be counted.",
         style = MaterialTheme.typography.bodySmall,
@@ -102,6 +102,13 @@ fun NotifRulesSection(container: AppContainer) {
     OutlinedButton(onClick = { adding = true }) {
         Icon(Icons.Default.Add, contentDescription = null)
         Text("Add a rule", modifier = Modifier.padding(start = 6.dp))
+    }
+    if (rules.any { it.enabled } && pluginKey == null) {
+        Text(
+            "These rules need the Hall Monitor key above. Until it is saved, nothing is watched and no notification is sent.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+        )
     }
     if (rules.any { it.enabled }) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
