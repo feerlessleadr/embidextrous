@@ -42,7 +42,7 @@ import com.feerlessleadr.embidextrous.notifications.NotifRules
 import com.feerlessleadr.embidextrous.watching.AlertService
 
 /**
- * Settings > Notifications, Hall Monitor part: any number of rules, each on or off and deletable. Rules live on this phone.
+ * Settings, Hall Monitor card, notification rules: any number of rules, each on or off and deletable. Rules live on this phone.
  * The first rule is the old "Background alerts" switch, now "limit reached".
  */
 @Composable

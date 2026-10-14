@@ -109,7 +109,7 @@ class AppSettings(private val prefs: SharedPreferences) {
     private val _notifRules = MutableStateFlow(loadNotifRules())
 
     /**
-     * Notification rules (Settings > Notifications). Kept on this phone. The first run turns the old Background alerts
+     * Notification rules (Settings, under Hall Monitor). Kept on this phone. The first run turns the old Background alerts
      * switch into the default "limit reached" rule, so existing behaviour carries over.
      */
     val notifRules: StateFlow<List<NotifRule>> = _notifRules.asStateFlow()

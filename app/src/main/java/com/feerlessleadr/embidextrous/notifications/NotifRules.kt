@@ -109,6 +109,11 @@ object PercentRules {
         val fires = ArrayList<PercentFire>()
         for (rule in rules) {
             if (!rule.enabled || rule.kind != NotifKind.PercentUsed) continue
+            // A rule that was just added or switched on has no baseline yet. Its first look only records where things stand, so a
+            // limit that is already over the percentage (used up hours ago, and still counted until its reset) does not alert at
+            // once. The marker is dropped while the rule is off, so switching it off and on again starts from a fresh baseline.
+            val hasBaseline = state.containsKey(seenKey(rule))
+            next[seenKey(rule)] = state[seenKey(rule)] ?: today
             for (card in cards) {
                 val user = card.status
                 if (user.userId.isEmpty()) continue
@@ -119,7 +124,7 @@ object PercentRules {
                     // default), not at midnight, and a weekly or monthly limit stays high for days, so the calendar date must not rearm it.
                     val alreadyFired = state.containsKey(key)
                     next[key] = state[key] ?: today
-                    if (alreadyFired || firstLook) continue
+                    if (alreadyFired || firstLook || !hasBaseline) continue
                     fires.add(PercentFire(rule, user, limit.period, limit.percent))
                 }
             }
@@ -128,4 +133,7 @@ object PercentRules {
     }
 
     fun key(rule: NotifRule, user: UserStatus, period: String): String = "${rule.id}|${user.userId}|$period"
+
+    /** Marks that a rule has been looked at while switched on (see the baseline note in [evaluate]). */
+    fun seenKey(rule: NotifRule): String = "seen|${rule.id}"
 }

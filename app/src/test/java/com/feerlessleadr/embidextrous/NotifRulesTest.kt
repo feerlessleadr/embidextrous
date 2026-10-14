@@ -57,7 +57,7 @@ class NotifRulesTest {
 
     @Test
     fun firesOnceWhenTheThresholdIsReachedAndNotAgainThatDay() {
-        val first = PercentRules.evaluate(listOf(eighty), cards(status(remaining = 600.0)), emptyMap(), "2026-10-13", firstLook = false)
+        val first = PercentRules.evaluate(listOf(eighty), cards(status(remaining = 600.0)), armed(eighty), "2026-10-13", firstLook = false)
         assertEquals(1, first.fires.size)
         assertEquals(83, first.fires.single().percent)
 
@@ -67,7 +67,7 @@ class NotifRulesTest {
 
     @Test
     fun rearmsWhenTimeIsAddedAndFiresAgainLater() {
-        val first = PercentRules.evaluate(listOf(eighty), cards(status(remaining = 600.0)), emptyMap(), "2026-10-13", firstLook = false)
+        val first = PercentRules.evaluate(listOf(eighty), cards(status(remaining = 600.0)), armed(eighty), "2026-10-13", firstLook = false)
         // 30 more minutes added: 50% used, below the 80% rule, so it rearms.
         val lowered = PercentRules.evaluate(listOf(eighty), cards(status(allowed = 5400.0, remaining = 2700.0)), first.state, "2026-10-13", firstLook = false)
         assertTrue(lowered.fires.isEmpty())
@@ -79,14 +79,14 @@ class NotifRulesTest {
     @Test
     fun staysQuietAcrossMidnightWhileStillOverTheRule() {
         // Hall Monitor's day starts at the reset time (3 a.m.), so the same limit can still be 83% after midnight.
-        val day1 = PercentRules.evaluate(listOf(eighty), cards(status(remaining = 600.0)), emptyMap(), "2026-10-13", firstLook = false)
+        val day1 = PercentRules.evaluate(listOf(eighty), cards(status(remaining = 600.0)), armed(eighty), "2026-10-13", firstLook = false)
         val day2 = PercentRules.evaluate(listOf(eighty), cards(status(remaining = 600.0)), day1.state, "2026-10-14", firstLook = false)
         assertTrue(day2.fires.isEmpty())
     }
 
     @Test
     fun firesAgainAfterTheLimitResetsAndIsReachedAgain() {
-        val first = PercentRules.evaluate(listOf(eighty), cards(status(remaining = 600.0)), emptyMap(), "2026-10-13", firstLook = false)
+        val first = PercentRules.evaluate(listOf(eighty), cards(status(remaining = 600.0)), armed(eighty), "2026-10-13", firstLook = false)
         val reset = PercentRules.evaluate(listOf(eighty), cards(status(remaining = 3600.0)), first.state, "2026-10-14", firstLook = false)
         val again = PercentRules.evaluate(listOf(eighty), cards(status(remaining = 600.0)), reset.state, "2026-10-14", firstLook = false)
         assertEquals(1, again.fires.size)
@@ -94,7 +94,7 @@ class NotifRulesTest {
 
     @Test
     fun firstLookRecordsWithoutFiring() {
-        val first = PercentRules.evaluate(listOf(eighty), cards(status(remaining = 600.0)), emptyMap(), "2026-10-13", firstLook = true)
+        val first = PercentRules.evaluate(listOf(eighty), cards(status(remaining = 600.0)), armed(eighty), "2026-10-13", firstLook = true)
         assertTrue(first.fires.isEmpty())
         // The record stops a later update from firing for the same day.
         val next = PercentRules.evaluate(listOf(eighty), cards(status(remaining = 600.0)), first.state, "2026-10-13", firstLook = false)
@@ -108,7 +108,7 @@ class NotifRulesTest {
         val result = PercentRules.evaluate(
             listOf(off, allTime),
             cards(status(id = "u1", remaining = 0.0), status(id = "u2", remaining = 0.0, enabled = false)),
-            emptyMap(),
+            armed(eighty),
             "2026-10-13",
             firstLook = false,
         )
@@ -120,7 +120,7 @@ class NotifRulesTest {
         val result = PercentRules.evaluate(
             listOf(eighty),
             cards(status(id = "u1", name = "Alex", remaining = 0.0), status(id = "u2", name = "Sam", remaining = 3000.0)),
-            emptyMap(),
+            armed(eighty),
             "2026-10-13",
             firstLook = false,
         )
@@ -166,7 +166,7 @@ class NotifRulesTest {
     @Test
     fun aWeeklyLimitAtNinetyFiresWhileTheDailyLimitIsAtFifty() {
         val user = multi(limits = arrayOf(limit("Daily", 50), limit("Weekly", 90)))
-        val result = PercentRules.evaluate(listOf(eighty), cards(user), emptyMap(), "2026-10-14", firstLook = false)
+        val result = PercentRules.evaluate(listOf(eighty), cards(user), armed(eighty), "2026-10-14", firstLook = false)
         assertEquals(listOf("weekly"), result.fires.map { it.period })
         assertEquals(90, result.fires.single().percent)
     }
@@ -174,7 +174,7 @@ class NotifRulesTest {
     @Test
     fun eachLimitFiresAndRearmsOnItsOwn() {
         val both = multi(limits = arrayOf(limit("Daily", 85), limit("Weekly", 90)))
-        val first = PercentRules.evaluate(listOf(eighty), cards(both), emptyMap(), "2026-10-14", firstLook = false)
+        val first = PercentRules.evaluate(listOf(eighty), cards(both), armed(eighty), "2026-10-14", firstLook = false)
         assertEquals(setOf("daily", "weekly"), first.fires.map { it.period }.toSet())
 
         // The daily limit resets (back to 10%) while the weekly one stays high: only the daily one rearms.
@@ -201,5 +201,46 @@ class NotifRulesTest {
         val none = UserStatus(userId = "u9", isEnabled = true, limits = emptyList(), apiLevel = 4, secondsRemaining = -1.0)
         assertTrue(periodPercents(none).isEmpty())
         assertTrue(periodPercents(status(enabled = false, remaining = 100.0)).isEmpty())
+    }
+
+    // ---- a rule that was just added or switched on (baseline) -------------------------------------------------
+
+    /** The stored state of rules that were already switched on and looked at once, with nothing fired yet. */
+    private fun armed(vararg rules: NotifRule): Map<String, String> = rules.associate { PercentRules.seenKey(it) to "2026-10-13" }
+
+    @Test
+    fun aNewRuleDoesNotAlertForALimitThatIsAlreadyUsedUp() {
+        // Used up hours ago, still counted until the limit resets: adding the rule must not announce it now.
+        val used = status(remaining = 0.0)
+        val first = PercentRules.evaluate(listOf(eighty), cards(used), emptyMap(), "2026-10-14", firstLook = false)
+        assertTrue(first.fires.isEmpty())
+        val again = PercentRules.evaluate(listOf(eighty), cards(used), first.state, "2026-10-14", firstLook = false)
+        assertTrue(again.fires.isEmpty())
+
+        // After the limit resets and is used again, the rule works as usual.
+        val reset = PercentRules.evaluate(listOf(eighty), cards(status(remaining = 3600.0)), again.state, "2026-10-15", firstLook = false)
+        val usedAgain = PercentRules.evaluate(listOf(eighty), cards(status(remaining = 600.0)), reset.state, "2026-10-15", firstLook = false)
+        assertEquals(1, usedAgain.fires.size)
+    }
+
+    @Test
+    fun switchingARuleOffAndOnAgainStartsFromAFreshBaseline() {
+        val over = cards(status(remaining = 600.0))
+        val on = PercentRules.evaluate(listOf(eighty), over, armed(eighty), "2026-10-14", firstLook = false)
+        assertEquals(1, on.fires.size)
+
+        val off = PercentRules.evaluate(listOf(eighty.copy(enabled = false)), over, on.state, "2026-10-14", firstLook = false)
+        assertFalse(off.state.containsKey(PercentRules.seenKey(eighty)))
+
+        val onAgain = PercentRules.evaluate(listOf(eighty), over, off.state, "2026-10-14", firstLook = false)
+        assertTrue(onAgain.fires.isEmpty())
+    }
+
+    @Test
+    fun aRuleAddedLaterGetsItsOwnBaselineWhileTheOthersKeepWorking() {
+        val fifty = NotifRule("p50", NotifKind.PercentUsed, percent = 50)
+        val user = cards(status(remaining = 540.0)) // 85% used
+        val result = PercentRules.evaluate(listOf(fifty, eighty), user, armed(fifty), "2026-10-14", firstLook = false)
+        assertEquals(listOf("p50"), result.fires.map { it.rule.id })
     }
 }

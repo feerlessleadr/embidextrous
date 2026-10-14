@@ -255,3 +255,6 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 - Verified end to end on an emulator against the test server running plugin 2.2.0.0: a throw-away limited child (2 minute daily, 1 hour weekly limit) played a track through real session reports; the plugin counted it, the app's background service saw the live status, and the phone posted "has used 87% of their daily time" with the generic lock-screen text in its public version. The Limits list showed both limits throughout. Dark theme of the Settings rules section looked right.
 - NOT verified: a weekly or monthly limit actually firing (a weekly limit cannot be filled in a few minutes of real playback; the logic is covered by unit tests), the notification on a real lock screen, a real phone.
 - Test server restored afterwards (plugin 2.1.0.0 and its original config, no extra users); the plugin's own log keeps a few entries from the test.
+
+## 2026-10-14: fix for standing-state alerts, wrong 100% text and a wrong Settings path (committed, NOT released; 0.9.0 has these)
+- Fixed as described in decisions.md (baseline for new or re-enabled percent rules; text at 100%; "Settings, under Hall Monitor"). 243 unit tests pass (3 new). Needs a release (0.9.1) to reach the phone.

@@ -119,10 +119,15 @@ class AlertService : Service() {
             .setContentTitle("Hall Monitor")
             .setContentText("A viewing threshold was reached. Unlock to see who.")
             .build()
+        // At 100% the limit is used up and Hall Monitor has stopped playback; below that, playback carries on.
+        val used = fire.percent >= 100
         val builder = NotificationCompat.Builder(this, CHANNEL_ALERTS)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("$name has used ${fire.percent}% of their ${fire.period} time")
-            .setContentText("Playback is still allowed. Change this alert in Settings > Notifications.")
+            .setContentTitle(if (used) "$name has used all of their ${fire.period} time" else "$name has used ${fire.percent}% of their ${fire.period} time")
+            .setContentText(
+                (if (used) "Playback is stopped until that time resets or you add more. " else "Playback is still allowed. ") +
+                    "Change this alert in Settings, under Hall Monitor.",
+            )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(openAppIntent())
