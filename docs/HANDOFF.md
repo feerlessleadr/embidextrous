@@ -16,6 +16,7 @@ Kotlin / Jetpack Compose / Material 3 / OkHttp Android app (package `com.feerles
 | 0.7.0 | 140796a | 2,439,222 | 3183e24063e3c21d4ca28c3c949c11dc624370c142ec7cce525a5e58dda949eb | watched totals on the Kids card; Reset means a fresh day (needs Hall Monitor plugin 2.1.0.0) |
 | 0.8.0 | c33a234 | 2,455,606 | 4e6b3f360d0efbc98c00364f4b9ca8714e770b0de062de91ab293c9d2d06f8f5 | swipe review, artists, most played first, bulk marking; needs Hall Pass 1.2.0.0 |
 | 0.9.0 | 946275f | 2,471,990 | 48ae134dae9d89a38fc00db0c11c8cc1648f3ab5864b5590ce818eac43ea633c | notification rules for Hall Monitor (percent of any limit, used all time); needs plugin 2.2.0.0 for every-limit alerts, falls back to the closest limit with older plugins |
+| 0.9.1 | 587bb0e | 2,471,990 | 1045c2c7a06a82ac689590dca5b83c18061ece8a39d0dc7c472b8f3c3210944f | fix: no alert for a limit already used up when a rule is added or switched on; correct text at 100%; correct Settings path in the alert |
 Release routine (only on "publish it"): notes `docs/releases/vX.Y.Z.md` committed first; CI and both CodeQL jobs green on that commit; `git tag -a vX.Y.Z`; push; the Release workflow builds and signs; report size and digest. Version name comes from the tag (`-PappVersion`).
 
 ## 2. Navigation

@@ -257,4 +257,4 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 - Test server restored afterwards (plugin 2.1.0.0 and its original config, no extra users); the plugin's own log keeps a few entries from the test.
 
 ## 2026-10-14: fix for standing-state alerts, wrong 100% text and a wrong Settings path (committed, NOT released; 0.9.0 has these)
-- Fixed as described in decisions.md (baseline for new or re-enabled percent rules; text at 100%; "Settings, under Hall Monitor"). 243 unit tests pass (3 new). Needs a release (0.9.1) to reach the phone.
+- Fixed as described in decisions.md (baseline for new or re-enabled percent rules; text at 100%; "Settings, under Hall Monitor"). 243 unit tests pass (3 new). RELEASED as 0.9.1 on 2026-10-14.
