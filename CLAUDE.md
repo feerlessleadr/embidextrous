@@ -5,7 +5,7 @@ One Android app for the owner's Emby administration: smart lists (the SmartLists
 Origin: this code began as a copy of `C:\dev\emby.smartlists.android` (v0.4.1, commit 79444cb) and is being merged with `C:\dev\watching-eye-android-app` (Java/XML, being ported to Kotlin/Compose). Those repos stay untouched until this app replaces them. Their notes: `C:\dev\emby.smartlists.android\HANDOFF.md`, `C:\dev\watching-eye\PROGRESS.md`.
 
 ## Read first
-- `docs/HANDOFF.md` (the consolidated state: releases with hashes, the Hall Pass tab, emulator recipe, what is not verified), `docs/plan.md` (roadmap), `docs/decisions.md` (every decision with the reason: add to it whenever a decision is made, however small), `docs/status.md` (what is built and verified).
+- `docs/HANDOFF.md` (the consolidated state: releases with hashes, the Hall Pass tab, emulator recipe, what is not verified), `docs/plan.md` (roadmap), `docs/decisions.md` (every decision with the reason: add to it whenever a decision is made, however small), `docs/status.md` (what is built and verified). Requested but not built: `docs/notifications-plan.md` (configurable notification rules) and the Label Maker tab (spec in `C:\dev\label-maker-emby\docs\HANDOFF.md`).
 
 ## Foundations (do not relitigate without new evidence)
 - **HTTPS only in release builds**, system CAs only, no cleartext (the debug source set allows cleartext to the emulator host `10.0.2.2` only), **no redirects followed** (`followRedirects(false)`).
