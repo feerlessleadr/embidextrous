@@ -139,6 +139,7 @@ object WatchText {
         return when {
             hours > 0 -> "%d h %02d min".format(java.util.Locale.ROOT, hours, minutes)
             minutes >= 10 -> "$minutes min"
+            minutes >= 1 && secs == 0L -> "$minutes min"
             minutes >= 1 -> "%d min %02d s".format(java.util.Locale.ROOT, minutes, secs)
             else -> "$secs s"
         }

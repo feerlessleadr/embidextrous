@@ -191,7 +191,11 @@ class HallMonitorEngine(private val zone: ZoneId = ZoneId.systemDefault()) {
         /** "2 h", "1 h 36 min", "24 min", "45 s": whole hours drop the zero minutes. */
         fun span(seconds: Double): String {
             val total = maxOf(0.0, seconds).toLong()
-            return if (total >= 3600 && total % 3600 == 0L) "${total / 3600} h" else WatchText.duration(seconds)
+            return when {
+                total >= 3600 && total % 3600 == 0L -> "${total / 3600} h"
+                total in 60..3599 && total % 60 == 0L -> "${total / 60} min"
+                else -> WatchText.duration(seconds)
+            }
         }
 
         /** The body of a percentage alert: how much was used of how much is allowed now (extra time included), and how much is left. */
