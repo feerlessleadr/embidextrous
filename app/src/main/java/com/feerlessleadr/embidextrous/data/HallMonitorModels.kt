@@ -18,6 +18,16 @@ data class NowPlaying(
     @SerialName("DeviceName") val deviceName: String = "",
 )
 
+/** One enabled limit of a user (plugin 2.2 and newer). */
+@Serializable
+data class LimitStatus(
+    @SerialName("Period") val period: String = "",
+    @SerialName("AllowedSeconds") val allowedSeconds: Double = 0.0,
+    @SerialName("WatchedSeconds") val watchedSeconds: Double = 0.0,
+    @SerialName("RemainingSeconds") val remainingSeconds: Double = 0.0,
+    @SerialName("PercentUsed") val percentUsed: Int = 0,
+)
+
 /** One limited user as the plugin reports it (a row of `Public/Status`, or of the live push). Newer fields are optional. */
 @Serializable
 data class UserStatus(
@@ -43,6 +53,8 @@ data class UserStatus(
     @SerialName("WatchedYearSeconds") val watchedYearSeconds: Double? = null,
     /** The first day (yyyy-MM-dd) the plugin has watched time for: totals before it were not recorded. */
     @SerialName("WatchedTrackingSince") val watchedTrackingSince: String? = null,
+    /** Plugin 2.2 and newer: every enabled limit with its allowance, what was counted and the per cent used. Null from an older plugin, which reports only the closest limit above. */
+    @SerialName("Limits") val limits: List<LimitStatus>? = null,
     @SerialName("ApiLevel") val apiLevel: Int? = null,
 ) {
     /** True unless the plugin says this user's limit is switched off. */

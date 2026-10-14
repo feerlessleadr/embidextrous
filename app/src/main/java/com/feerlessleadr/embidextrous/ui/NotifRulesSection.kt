@@ -73,7 +73,7 @@ fun NotifRulesSection(container: AppContainer) {
     }
 
     Text(
-        "Each rule sends one notification per user. A percentage rule uses the limit closest to running out, which can be a daily, weekly, monthly or yearly limit. A longer limit that is further along than a shorter one may not be counted.",
+        "A percentage rule checks every limit a user has (daily, weekly, monthly and yearly) and sends one notification for each limit that reaches it. This needs Hall Monitor plugin 2.2 or newer. An older plugin reports only the limit closest to running out.",
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
@@ -193,6 +193,6 @@ fun ruleTitle(rule: NotifRule): String = when (rule.kind) {
 
 /** What the rule does, in one line. */
 fun ruleSubtitle(rule: NotifRule): String = when (rule.kind) {
-    NotifKind.PercentUsed -> "Sent once for each user until their time resets. Playback is still allowed."
+    NotifKind.PercentUsed -> "Sent once for each user and limit until that limit resets. Playback is still allowed."
     NotifKind.AllTimeUsed -> "Playback stops. The alert has buttons to add 15, 30 or 60 minutes."
 }

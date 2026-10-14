@@ -113,7 +113,7 @@ class AlertService : Service() {
     private fun notifyPercent(fire: PercentFire) {
         if (!canNotify(this)) return
         val name = fire.user.username.ifEmpty { "A user" }
-        val id = notificationId(PercentRules.key(fire.rule, fire.user))
+        val id = notificationId(PercentRules.key(fire.rule, fire.user, fire.period))
         val lockScreenVersion: Notification = NotificationCompat.Builder(this, CHANNEL_ALERTS)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("Hall Monitor")
@@ -121,7 +121,7 @@ class AlertService : Service() {
             .build()
         val builder = NotificationCompat.Builder(this, CHANNEL_ALERTS)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("$name has used ${fire.percent}% of their ${fire.user.periodLabel} time")
+            .setContentTitle("$name has used ${fire.percent}% of their ${fire.period} time")
             .setContentText("Playback is still allowed. Change this alert in Settings > Notifications.")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
