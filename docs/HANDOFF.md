@@ -15,6 +15,7 @@ Kotlin / Jetpack Compose / Material 3 / OkHttp Android app (package `com.feerles
 | 0.6.0 | 0dff441 | 2,439,222 | 0f86b0b1e0c122e6b05cdad30d812786203c7e5cd9b5e7db9329146f65de9b00 | first Hall Pass tab |
 | 0.7.0 | 140796a | 2,439,222 | 3183e24063e3c21d4ca28c3c949c11dc624370c142ec7cce525a5e58dda949eb | watched totals on the Kids card; Reset means a fresh day (needs Hall Monitor plugin 2.1.0.0) |
 | 0.8.0 | c33a234 | 2,455,606 | 4e6b3f360d0efbc98c00364f4b9ca8714e770b0de062de91ab293c9d2d06f8f5 | swipe review, artists, most played first, bulk marking; needs Hall Pass 1.2.0.0 |
+| 0.9.0 | 946275f | 2,471,990 | 48ae134dae9d89a38fc00db0c11c8cc1648f3ab5864b5590ce818eac43ea633c | notification rules for Hall Monitor (percent of any limit, used all time); needs plugin 2.2.0.0 for every-limit alerts, falls back to the closest limit with older plugins |
 Release routine (only on "publish it"): notes `docs/releases/vX.Y.Z.md` committed first; CI and both CodeQL jobs green on that commit; `git tag -a vX.Y.Z`; push; the Release workflow builds and signs; report size and digest. Version name comes from the tag (`-PappVersion`).
 
 ## 2. Navigation
@@ -38,7 +39,7 @@ Files: `data/HallPass.kt` (models, tolerant parser, version gate `HallPass.MIN_P
 - Done this way for 0.6.0: tab loads live data, a decision moved the counts, Albums, the confirmation and the dry-run dialog. NOT done for the swipe review, the artist view, the reason chips, "All N" confirmations, the Kids card totals (unit tests and plugin-side live checks only).
 
 ## 6b. Requested next (2026-10-13, nothing built in the app yet)
-1. **Configurable notification rules** per service/plugin in Settings (Hall Monitor: "used X% of their time", "used all their time", as many rules as wanted): `docs/notifications-plan.md`. Do this first.
+1. **Configurable notification rules** (Hall Monitor part): DONE and released in 0.9.0 (`docs/notifications-plan.md` has the original request; still to do from it: quiet hours, per-rule sound and priority, rules for chosen users, Label Maker events).
 2. **Label Maker tab** for the new MusicBrainz ingest plugin (not built either): `C:\dev\label-maker-emby\docs\HANDOFF.md`, `docs/DESIGN.md` (section 19 repeats the notification requirement), `docs/PHASE0.md`. The plugin pushes admin websocket messages named `LabelMaker.*` and exposes `/emby/LabelMaker/...`; the app follows the Hall Pass tab pattern in section 3 above.
 
 ## 7. Not verified / ideas
