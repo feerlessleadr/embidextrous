@@ -2,7 +2,7 @@ package com.feerlessleadr.embidextrous.data
 
 /** A card on the Home screen that the person can hide or move. The status card at the top is always there and is not listed. */
 enum class HomeCard(val label: String, val summary: String, val administratorOnly: Boolean) {
-    WatchingNow("Watching now", "Who is playing, with +15 min and Stop stream.", false),
+    WatchingNow("Watching now", "Who is playing, with +30 min and Stop stream.", false),
     Kids("Kids today", "Each child's time left and this week's total.", false),
     Bedtime("Bedtime", "Time everyone out for an hour or until morning.", false),
     SmartLists("Smart lists", "How many lists, any that failed, and Refresh all.", true),

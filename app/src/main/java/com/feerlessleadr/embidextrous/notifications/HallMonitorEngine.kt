@@ -52,7 +52,8 @@ class HallMonitorEngine(private val zone: ZoneId = ZoneId.systemDefault()) {
                 deliveries.add(
                     delivery(
                         NotifCatalog.Ids.HM_ALL_USED, rule, allUsedKey(user.userId),
-                        "$name reached their ${user.periodLabel} limit", "Playback was stopped. Add time to let them continue.",
+                        "$name reached their ${user.periodLabel} limit",
+                        "Used all ${span(user.allowedSeconds)} allowed ${WatchText.periodPhrase(user.periodLabel)}. Playback was stopped. Add 30 minutes to let them keep watching.",
                         addTimeFor = user.userId to name,
                     ),
                 )
@@ -70,8 +71,7 @@ class HallMonitorEngine(private val zone: ZoneId = ZoneId.systemDefault()) {
                 delivery(
                     NotifCatalog.Ids.HM_PERCENT, fire.rule, PercentRules.key(fire.rule, fire.user, fire.period),
                     if (used) "$name has used all of their ${fire.period} time" else "$name has used ${fire.percent}% of their ${fire.period} time",
-                    (if (used) "Playback is stopped until that time resets or you add more. " else "Playback is still allowed. ") +
-                        "Change this alert in Settings, Notifications.",
+                    percentText(fire, used),
                 ),
             )
         }
@@ -102,7 +102,7 @@ class HallMonitorEngine(private val zone: ZoneId = ZoneId.systemDefault()) {
             }
             val added = seen.creditSeconds - before.creditSeconds
             if (added >= 60.0) {
-                fire(deliveries, rulesFor(NotifCatalog.Ids.HM_EXTRA_TIME), user, NotifCatalog.Ids.HM_EXTRA_TIME, "extra|${user.userId}", "$name was given more time", "${WatchText.total(added)} added to today's time.")
+                fire(deliveries, rulesFor(NotifCatalog.Ids.HM_EXTRA_TIME), user, NotifCatalog.Ids.HM_EXTRA_TIME, "extra|${user.userId}", "$name was given more time", extraTimeText(user, added))
             }
         }
         // A user who is gone from the list no longer needs to be remembered.
@@ -165,7 +165,7 @@ class HallMonitorEngine(private val zone: ZoneId = ZoneId.systemDefault()) {
         const val CONNECTION_KEY = "connection"
         private val TIME = DateTimeFormatter.ofPattern("h:mm a")
 
-        /** The notification key of the "used all" alert for a user. It is the user id so the +15 button and the clearing find it. */
+        /** The notification key of the "used all" alert for a user. It is the user id so the +30 button and the clearing find it. */
         fun allUsedKey(userId: String): String = userId
 
         /** "20:00" as minutes after midnight, or null when the text is not a time. */
@@ -177,12 +177,43 @@ class HallMonitorEngine(private val zone: ZoneId = ZoneId.systemDefault()) {
             return if (h in 0..23 && m in 0..59) h * 60 + m else null
         }
 
+        /** One line per user: what they watched today and, when they have a limit, what is left of it. */
         fun summaryText(cards: List<UserCard>): String {
             val rows = cards.map { it.status }.filter { it.enabled }.map { s ->
                 val watched = s.watchedTodaySeconds ?: s.secondsWatchedDaily
-                "${s.username.ifEmpty { "A user" }}: ${WatchText.total(watched)}"
+                val left = s.remainingSeconds
+                val name = s.username.ifEmpty { "A user" }
+                if (left < 0) "$name: watched ${WatchText.total(watched)}, no limit" else "$name: watched ${WatchText.total(watched)}, ${span(left)} left ${WatchText.periodPhrase(s.periodLabel)}"
             }
-            return if (rows.isEmpty()) "No one has a limit set." else rows.joinToString(" | ")
+            return if (rows.isEmpty()) "No one has a limit set." else rows.joinToString("\n")
+        }
+
+        /** "2 h", "1 h 36 min", "24 min", "45 s": whole hours drop the zero minutes. */
+        fun span(seconds: Double): String {
+            val total = maxOf(0.0, seconds).toLong()
+            return if (total >= 3600 && total % 3600 == 0L) "${total / 3600} h" else WatchText.duration(seconds)
+        }
+
+        /** The body of a percentage alert: how much was used of how much is allowed now (extra time included), and how much is left. */
+        fun percentText(fire: PercentFire, used: Boolean): String {
+            val limit = fire.limit
+            val phrase = WatchText.periodPhrase(fire.period)
+            if (limit == null || limit.allowedSeconds <= 0.0) {
+                return if (used) "Playback is stopped until that time resets or you add more." else "Playback is still allowed."
+            }
+            val allowed = span(limit.allowedSeconds)
+            return if (used) {
+                "Used all $allowed allowed $phrase. Playback is stopped until that time resets or you add more."
+            } else {
+                "Used ${span(limit.usedSeconds)} of $allowed allowed $phrase. ${span(limit.remainingSeconds)} left."
+            }
+        }
+
+        /** The body of an extra-time alert: what was added and what is left now. */
+        fun extraTimeText(user: UserStatus, addedSeconds: Double): String {
+            val left = user.remainingSeconds
+            val tail = if (left >= 0) " ${user.username.ifEmpty { "This user" }} now has ${span(left)} left ${WatchText.periodPhrase(user.periodLabel)}." else ""
+            return "${span(addedSeconds)} added.$tail"
         }
     }
 }

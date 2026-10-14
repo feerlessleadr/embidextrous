@@ -25,7 +25,8 @@ import java.time.LocalTime
 object NotifPoster {
     const val CHANNEL_MONITOR = "monitor"
     const val EXTRA_OPEN = "open_tab"
-    val QUICK_MINUTES = intArrayOf(15, 30, 60)
+    /** The add-time button of the "used all" alert: one button, 30 minutes. */
+    val QUICK_MINUTES = intArrayOf(30)
 
     fun canNotify(context: Context): Boolean =
         Build.VERSION.SDK_INT < 33 ||

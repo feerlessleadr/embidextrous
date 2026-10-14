@@ -79,7 +79,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
-private const val QUICK_ADD_MINUTES = 15
+private const val QUICK_ADD_MINUTES = 30
 
 /**
  * The start screen: is everything fine, and if not, what needs the person? Then who is watching what, each child's time left,

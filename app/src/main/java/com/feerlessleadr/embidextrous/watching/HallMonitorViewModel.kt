@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.feerlessleadr.embidextrous.AppContainer
 import com.feerlessleadr.embidextrous.data.ApiException
 import com.feerlessleadr.embidextrous.data.MAX_MINUTES
+import com.feerlessleadr.embidextrous.data.TakeAway
 import com.feerlessleadr.embidextrous.data.UserStatus
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -54,6 +55,34 @@ class HallMonitorViewModel(private val container: AppContainer) : ViewModel() {
                 try {
                     repository.act { reduce(user.userId, minutes) }
                     _events.emit(WatchEvent("Undone for ${user.username}"))
+                } catch (e: ApiException) {
+                    _events.emit(WatchEvent(e.message.orEmpty(), isError = true))
+                }
+            },
+        )
+    }
+
+    /**
+     * Takes time away: [stepMinutes], or everything that is left when less than that remains, so the time never goes below zero. Hall Monitor 2.3
+     * and newer can take away more than the extra time that was added; an older plugin can only take back extra time, so there the amount is capped at it.
+     */
+    fun takeAway(user: UserStatus, stepMinutes: Int, remainingSeconds: Double) = run("Take away time") {
+        if (remainingSeconds <= 0.0) {
+            _events.emit(WatchEvent("${user.username} has no time left to take away.", isError = true))
+            return@run
+        }
+        val minutes = TakeAway.minutes(stepMinutes, remainingSeconds, user.apiLevel ?: 0, user.creditSecondsDaily)
+        if (minutes <= 0) {
+            _events.emit(WatchEvent("This version of Hall Monitor can only take back extra time that was added. Update the plugin to 2.3 or newer to take time from the limit.", isError = true))
+            return@run
+        }
+        if (!validMinutes(minutes)) return@run
+        repository.act { reduce(user.userId, minutes) }
+        _events.emit(
+            WatchEvent("Took $minutes min from ${user.username}", undoLabel = "UNDO") {
+                try {
+                    repository.act { extend(user.userId, minutes) }
+                    _events.emit(WatchEvent("Gave back $minutes min to ${user.username}"))
                 } catch (e: ApiException) {
                     _events.emit(WatchEvent(e.message.orEmpty(), isError = true))
                 }

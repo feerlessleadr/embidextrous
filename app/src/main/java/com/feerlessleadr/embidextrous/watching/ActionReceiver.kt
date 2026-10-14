@@ -13,7 +13,7 @@ import com.feerlessleadr.embidextrous.data.ApiException
 import com.feerlessleadr.embidextrous.data.MAX_MINUTES
 import kotlinx.coroutines.runBlocking
 
-/** Handles the "+15 min" style buttons on a limit-reached notification: adds the time without opening the app. */
+/** Handles the "+30 min" button on a limit-reached notification: adds the time without opening the app. */
 class ActionReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {

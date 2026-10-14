@@ -42,3 +42,25 @@ class WatchedTotalsTest {
     }
 
 }
+
+class TakeAwayTest {
+    @org.junit.Test
+    fun takesThirtyMinutesOrEverythingThatIsLeftNeverBelowZero() {
+        val new = com.feerlessleadr.embidextrous.data.TakeAway.LEVEL_FOR_LIMIT
+        assertEquals(30, com.feerlessleadr.embidextrous.data.TakeAway.minutes(30, 3600.0, new, 0.0))
+        assertEquals(30, com.feerlessleadr.embidextrous.data.TakeAway.minutes(30, 1800.0, new, 0.0))
+        // Less than 30 minutes left: take what is left, rounded up to a whole minute.
+        assertEquals(10, com.feerlessleadr.embidextrous.data.TakeAway.minutes(30, 600.0, new, 0.0))
+        assertEquals(10, com.feerlessleadr.embidextrous.data.TakeAway.minutes(30, 541.0, new, 0.0))
+        assertEquals(1, com.feerlessleadr.embidextrous.data.TakeAway.minutes(30, 20.0, new, 0.0))
+        // Nothing left: nothing to take.
+        assertEquals(0, com.feerlessleadr.embidextrous.data.TakeAway.minutes(30, 0.0, new, 0.0))
+    }
+
+    @org.junit.Test
+    fun anOlderPluginCanOnlyTakeBackExtraTime() {
+        assertEquals(0, com.feerlessleadr.embidextrous.data.TakeAway.minutes(30, 3600.0, 4, 0.0))
+        assertEquals(15, com.feerlessleadr.embidextrous.data.TakeAway.minutes(30, 3600.0, 4, 900.0))
+        assertEquals(10, com.feerlessleadr.embidextrous.data.TakeAway.minutes(30, 600.0, 4, 3600.0))
+    }
+}

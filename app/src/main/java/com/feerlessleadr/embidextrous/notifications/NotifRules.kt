@@ -92,7 +92,7 @@ fun percentUsed(status: UserStatus): Int? {
 }
 
 /** One limit of a user (daily, weekly, monthly or yearly, in lower case) and how much of it is used. */
-data class PeriodPercent(val period: String, val percent: Int)
+data class PeriodPercent(val period: String, val percent: Int, val allowedSeconds: Double = 0.0, val usedSeconds: Double = 0.0, val remainingSeconds: Double = 0.0)
 
 /**
  * The percent used of every limit the user has. With plugin 2.2 or newer that is each enabled limit, so a weekly limit at 90% is seen even while
@@ -103,14 +103,18 @@ fun periodPercents(status: UserStatus): List<PeriodPercent> {
     if (!status.enabled) return emptyList()
     val reported = status.limits
     if (!reported.isNullOrEmpty()) {
-        return reported.map { PeriodPercent(it.period.lowercase().ifEmpty { "daily" }, it.percentUsed.coerceIn(0, 100)) }
+        return reported.map {
+            PeriodPercent(it.period.lowercase().ifEmpty { "daily" }, it.percentUsed.coerceIn(0, 100), it.allowedSeconds, it.watchedSeconds, it.remainingSeconds)
+        }
     }
     val closest = percentUsed(status) ?: return emptyList()
-    return listOf(PeriodPercent(status.periodLabel, closest))
+    val allowed = status.allowedSeconds
+    val left = maxOf(0.0, status.remainingSeconds)
+    return listOf(PeriodPercent(status.periodLabel, closest, allowed, maxOf(0.0, allowed - left), left))
 }
 
 /** A percent rule that fired for one user, for one of their limits. */
-data class PercentFire(val rule: NotifRule, val user: UserStatus, val period: String, val percent: Int)
+data class PercentFire(val rule: NotifRule, val user: UserStatus, val period: String, val percent: Int, val limit: PeriodPercent? = null)
 
 /** [fires] to show now, and [state] to keep for the next update (replaces the old state). */
 data class PercentResult(val fires: List<PercentFire>, val state: Map<String, String>)
@@ -149,7 +153,7 @@ object PercentRules {
                     val alreadyFired = state.containsKey(key)
                     next[key] = state[key] ?: today
                     if (alreadyFired || firstLook || !hasBaseline) continue
-                    fires.add(PercentFire(rule, user, limit.period, limit.percent))
+                    fires.add(PercentFire(rule, user, limit.period, limit.percent, limit))
                 }
             }
         }

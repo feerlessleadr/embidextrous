@@ -195,3 +195,20 @@ object WatchText {
 
 /** The most minutes the plugin accepts in one request (30 days). */
 const val MAX_MINUTES = 43200
+
+/** The "-30 min" button: how many minutes to take away. */
+object TakeAway {
+    /** Hall Monitor 2.3 (API level 5) can take time from the limit itself; older plugins can only take back extra time that was added. */
+    const val LEVEL_FOR_LIMIT = 5
+
+    /**
+     * [stepMinutes], or all that is left (rounded up to a whole minute) when less than that remains, so the time never goes below zero. 0 when there is
+     * nothing to take away. Before plugin 2.3 the amount is also capped at the extra time that was added ([extraSeconds]).
+     */
+    fun minutes(stepMinutes: Int, remainingSeconds: Double, apiLevel: Int, extraSeconds: Double): Int {
+        if (remainingSeconds <= 0.0) return 0
+        val wanted = minOf(stepMinutes, Math.ceil(remainingSeconds / 60.0).toInt()).coerceAtLeast(1)
+        if (apiLevel >= LEVEL_FOR_LIMIT) return wanted
+        return minOf(wanted, (extraSeconds / 60.0).toInt()).coerceAtLeast(0)
+    }
+}

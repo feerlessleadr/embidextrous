@@ -57,7 +57,7 @@ object NotifCatalog {
         ),
         EventSpec(
             Ids.HM_ALL_USED, NotifService.HallMonitor, "Used all of their time",
-            "Playback stops. The alert has buttons to add 15, 30 or 60 minutes (they need an unlocked phone).",
+            "Playback stops. The alert has a +30 min button to give more time (it needs an unlocked phone).",
             defaultOn = true, lockScreenText = "A viewing limit was reached. Unlock to see who.", opensTab = "watching/hall", perUser = true,
         ),
         EventSpec(

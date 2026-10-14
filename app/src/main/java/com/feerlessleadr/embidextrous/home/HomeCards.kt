@@ -64,7 +64,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 internal val HomeCardShape = RoundedCornerShape(24.dp)
-private const val QUICK_ADD = 15
+private const val QUICK_ADD = 30
 
 /** "Good morning", "Good afternoon" or "Good evening" for a local hour (0 to 23). */
 object Greeting {

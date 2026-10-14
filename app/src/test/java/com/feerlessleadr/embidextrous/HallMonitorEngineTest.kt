@@ -89,7 +89,7 @@ class HallMonitorEngineTest {
         assertTrue(run(rules, cards(user(credit = 30.0))).deliveries.isEmpty())
         val d = run(rules, cards(user(credit = 930.0))).deliveries.single()
         assertEquals("Alex was given more time", d.title)
-        assertEquals("15 min added to today's time.", d.text)
+        assertEquals("15 min added. Alex now has 1 h left today.", d.text)
     }
 
     @Test
@@ -126,7 +126,7 @@ class HallMonitorEngineTest {
         val sent = run(rules, c, atMs = eight)
         val d = sent.deliveries.single()
         assertEquals("Today's viewing", d.title)
-        assertEquals("Alex: 30 min | Sam: 10 min", d.text)
+        assertEquals("Alex: watched 30 min, 1 h left today\nSam: watched 10 min, 1 h left today", d.text)
         // Not again that day, even with the state kept; the next evening it is sent again.
         assertTrue(run(rules, c, atMs = eight + 60_000L, state = sent.state).deliveries.isEmpty())
         assertEquals(1, run(rules, c, atMs = eight + 24 * 3_600_000L, state = sent.state).deliveries.size)
@@ -150,6 +150,34 @@ class HallMonitorEngineTest {
         assertTrue(run(listOf(weekly), cards(over), state = first.state).deliveries.isEmpty())
         assertNull(first.state.keys.firstOrNull { it.endsWith("|daily") })
         assertFalse(first.state.keys.none { it.endsWith("|weekly") })
+    }
+
+    @Test
+    fun aPercentAlertSaysHowMuchWasUsedOfHowMuchIsAllowedAndHowMuchIsLeft() {
+        val rule = rule(NotifCatalog.Ids.HM_PERCENT, "percent" to "80", "period" to "daily")
+        val before = UserStatus(userId = "u1", username = "Alex", isEnabled = true, apiLevel = 4, limits = listOf(com.feerlessleadr.embidextrous.data.LimitStatus("Daily", 7200.0, 3600.0, 3600.0, 50)))
+        val over = UserStatus(userId = "u1", username = "Alex", isEnabled = true, apiLevel = 4, limits = listOf(com.feerlessleadr.embidextrous.data.LimitStatus("Daily", 7200.0, 5760.0, 1440.0, 80)))
+        val first = run(listOf(rule), cards(before))
+        val d = run(listOf(rule), cards(over), state = first.state).deliveries.single()
+        assertEquals("Alex has used 80% of their daily time", d.title)
+        assertEquals("Used 1 h 36 min of 2 h allowed today. 24 min left.", d.text)
+        // The last drop: everything is used.
+        val rule100 = rule(NotifCatalog.Ids.HM_PERCENT, "percent" to "99", "period" to "daily")
+        val done = UserStatus(userId = "u1", username = "Alex", isEnabled = true, apiLevel = 4, limits = listOf(com.feerlessleadr.embidextrous.data.LimitStatus("Daily", 5400.0, 5400.0, 0.0, 100)))
+        val e2 = HallMonitorEngine(ZoneOffset.UTC)
+        val s1 = e2.update(listOf(rule100), cards(before), Link.LIVE, t0, emptyMap())
+        val d2 = e2.update(listOf(rule100), cards(done), Link.LIVE, t0, s1.state).deliveries.single()
+        assertEquals("Alex has used all of their daily time", d2.title)
+        assertEquals("Used all 1 h 30 min allowed today. Playback is stopped until that time resets or you add more.", d2.text)
+    }
+
+    @Test
+    fun theUsedAllAlertSaysWhatWasAllowedAndOffersOnlyThirtyMinutes() {
+        val rules = listOf(rule(NotifCatalog.Ids.HM_ALL_USED))
+        run(rules, cards(user(block = "Allowed")))
+        val d = run(rules, cards(user(block = "TimeLimitExceeded"))).deliveries.single()
+        assertEquals("Used all 2 h allowed today. Playback was stopped. Add 30 minutes to let them keep watching.", d.text)
+        assertEquals(listOf(30), com.feerlessleadr.embidextrous.notifications.NotifPoster.QUICK_MINUTES.toList())
     }
 
     @Test

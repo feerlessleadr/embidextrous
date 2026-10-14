@@ -79,11 +79,10 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
-private val QUICK_MINUTES = listOf(15, 30, 60)
+private const val STEP_MINUTES = 30
 private const val RESUME_MINUTES = 30
 
 private sealed interface WatchDialog {
-    data class AddOther(val user: UserStatus) : WatchDialog
     data class TimeOut(val user: UserStatus) : WatchDialog
     data class Reset(val user: UserStatus) : WatchDialog
     data class Stop(val user: UserStatus, val title: String) : WatchDialog
@@ -156,8 +155,8 @@ private fun HallMonitorContent(vm: HallMonitorViewModel) {
                                         nowMs = now,
                                         loadAvatar = vm::avatar,
                                         loadPoster = vm::poster,
-                                        onAdd = { minutes -> vm.extend(card.status, minutes) },
-                                        onAddOther = { dialog = WatchDialog.AddOther(card.status) },
+                                        onAdd = { vm.extend(card.status, STEP_MINUTES) },
+                                        onTakeAway = { vm.takeAway(card.status, STEP_MINUTES, card.remainingNow(now)) },
                                         onTimeOut = { dialog = WatchDialog.TimeOut(card.status) },
                                         onEndTimeOut = { vm.clearTimeOut(card.status) },
                                         onResume = { vm.resume(card.status, RESUME_MINUTES) },
@@ -174,14 +173,6 @@ private fun HallMonitorContent(vm: HallMonitorViewModel) {
     }
 
     when (val d = dialog) {
-        is WatchDialog.AddOther -> MinutesDialog(
-            title = "Add time for ${d.user.username}",
-            message = "How many minutes should they get?",
-            initial = 45,
-            confirm = "Add",
-            onDismiss = { dialog = null },
-            onChosen = { minutes -> dialog = null; vm.extend(d.user, minutes) },
-        )
         is WatchDialog.TimeOut -> MinutesDialog(
             title = "Time out ${d.user.username}",
             message = "Playback stops right away and is blocked for this many minutes.",
@@ -280,8 +271,8 @@ private fun UserCardView(
     nowMs: Long,
     loadAvatar: suspend (String) -> Bitmap?,
     loadPoster: suspend (String) -> Bitmap?,
-    onAdd: (Int) -> Unit,
-    onAddOther: () -> Unit,
+    onAdd: () -> Unit,
+    onTakeAway: () -> Unit,
     onTimeOut: () -> Unit,
     onEndTimeOut: () -> Unit,
     onResume: () -> Unit,
@@ -394,10 +385,9 @@ private fun UserCardView(
 
             if (status.enabled) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                    QUICK_MINUTES.forEach { minutes ->
-                        FilledTonalButton(onClick = { onAdd(minutes) }, modifier = Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)) { Text("+$minutes") }
-                    }
-                    OutlinedButton(onClick = onAddOther, modifier = Modifier.weight(1.4f), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)) { Text("Other…") }
+                    FilledTonalButton(onClick = onAdd, modifier = Modifier.weight(1f)) { Text("+$STEP_MINUTES min") }
+                    // Takes time away: 30 minutes, or everything that is left when less than 30 minutes remain. Needs a limit to take time from.
+                    OutlinedButton(onClick = onTakeAway, enabled = remaining > 0.0, modifier = Modifier.weight(1f)) { Text("-$STEP_MINUTES min") }
                 }
             }
             if (timeoutEnd != null) {
