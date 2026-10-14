@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Optional Hall Monitor alerts (off by default): a foreground service holds the live connection and shows notifications. -->
+    <!-- Optional alerts (off by default): a foreground service holds the live connections and shows notifications you chose in Settings. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -51,6 +51,11 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Keeps a live connection to the user's own Emby server open so a notification can appear the moment someone reaches their watch-time limit. Enabled by the user in settings." />
         </service>
+
+        <service
+            android:name=".watching.BackupPollJob"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <receiver
             android:name=".watching.ActionReceiver"

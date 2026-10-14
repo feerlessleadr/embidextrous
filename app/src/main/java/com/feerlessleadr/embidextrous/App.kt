@@ -52,6 +52,9 @@ class AppContainer(context: Context) {
     val avatars = UserAvatars()
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    /** A notification asked for this place ("group/tab", for example "server/plugins"); the signed-in screen opens it and clears it. */
+    val openRequest = MutableStateFlow<String?>(null)
+
     private val _listsChanged = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
     /** Emits when a list was created or changed in the editor, so the overview reloads. */
@@ -170,6 +173,9 @@ class AppContainer(context: Context) {
         settings.setNotifRules(rules)
         AlertService.sync(appContext)
     }
+
+    /** Where notifications are decided and shown (engines, "already seen" bookkeeping); shared by the background service and the backup job. */
+    val notifHub: com.feerlessleadr.embidextrous.notifications.NotifHub by lazy { com.feerlessleadr.embidextrous.notifications.NotifHub(this, appContext) }
 
     /** One shared websocket to Emby for everything pushed (live sessions, tasks, the activity log, plugin events); screens lease the topics they need. */
     val push: EmbyPush by lazy { EmbyPush(appScope, { _session.value }, { sessions.deviceId() }, http) }

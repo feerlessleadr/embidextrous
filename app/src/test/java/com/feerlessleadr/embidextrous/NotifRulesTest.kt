@@ -3,7 +3,8 @@ package com.feerlessleadr.embidextrous
 import com.feerlessleadr.embidextrous.data.LimitStatus
 import com.feerlessleadr.embidextrous.data.UserCard
 import com.feerlessleadr.embidextrous.data.UserStatus
-import com.feerlessleadr.embidextrous.notifications.NotifKind
+import com.feerlessleadr.embidextrous.notifications.NotifCatalog
+import com.feerlessleadr.embidextrous.notifications.NotifService
 import com.feerlessleadr.embidextrous.notifications.NotifRule
 import com.feerlessleadr.embidextrous.notifications.NotifRules
 import com.feerlessleadr.embidextrous.notifications.PercentRules
@@ -16,7 +17,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NotifRulesTest {
-    private val eighty = NotifRule("p80", NotifKind.PercentUsed, percent = 80)
+    private fun pct(id: String, percent: Int, period: String = "any", users: List<String> = emptyList()) =
+        NotifRule(id, NotifCatalog.Ids.HM_PERCENT, true, mapOf("percent" to percent.toString(), "period" to period), users)
+
+    private val eighty = pct("p80", 80)
 
     /** A limited user with [allowed] seconds in the closest period and [remaining] left. */
     private fun status(id: String = "u1", name: String = "Alex", allowed: Double = 3600.0, remaining: Double = 3600.0, enabled: Boolean? = true) =
@@ -104,7 +108,7 @@ class NotifRulesTest {
     @Test
     fun onlyEnabledPercentRulesAndEnabledUsersFire() {
         val off = eighty.copy(enabled = false)
-        val allTime = NotifRule("all", NotifKind.AllTimeUsed)
+        val allTime = NotifRule("all", NotifCatalog.Ids.HM_ALL_USED)
         val result = PercentRules.evaluate(
             listOf(off, allTime),
             cards(status(id = "u1", remaining = 0.0), status(id = "u2", remaining = 0.0, enabled = false)),
@@ -130,16 +134,41 @@ class NotifRulesTest {
     // ---- storage and migration -----------------------------------------------------------------------------
 
     @Test
-    fun oldBackgroundAlertsSwitchBecomesTheLimitReachedRule() {
-        val on = NotifRules.defaults(legacyAlertsOn = true).single()
-        assertEquals(NotifKind.AllTimeUsed, on.kind)
-        assertTrue(on.enabled)
-        assertFalse(NotifRules.defaults(legacyAlertsOn = false).single().enabled)
+    fun the09RulesAreReadAsNewRulesWithTheirIdsKept() {
+        val old = """[{"id":"limit-reached","kind":"AllTimeUsed","enabled":true},{"id":"p80","kind":"PercentUsed","percent":75,"enabled":false}]"""
+        val rules = NotifRules.migrateLegacy(old)!!
+        assertEquals(listOf("limit-reached", "p80"), rules.map { it.id })
+        assertEquals(NotifCatalog.Ids.HM_ALL_USED, rules[0].event)
+        assertTrue(rules[0].enabled)
+        assertEquals(NotifCatalog.Ids.HM_PERCENT, rules[1].event)
+        assertEquals(75, rules[1].int("percent", 0))
+        assertFalse(rules[1].enabled)
+        assertNull(NotifRules.migrateLegacy("not json"))
+    }
+
+    @Test
+    fun everyAlertTypeGetsItsDefaultRuleOnceAndADeletedOneDoesNotComeBack() {
+        val (first, seeded) = NotifRules.seed(emptyList(), NotifCatalog.builtIn, emptySet())
+        assertEquals(NotifCatalog.builtIn.size, first.size)
+        assertTrue(first.single { it.event == NotifCatalog.Ids.LM_NEEDS_REVIEW }.enabled)
+        assertFalse(first.single { it.event == NotifCatalog.Ids.LM_AUTO_APPLIED }.enabled)
+        val trimmed = first.filterNot { it.event == NotifCatalog.Ids.LM_ALBUM_FAILED }
+        val (again, _) = NotifRules.seed(trimmed, NotifCatalog.builtIn, seeded)
+        assertEquals(trimmed, again)
+    }
+
+    @Test
+    fun aRuleCarriedOverFrom09CountsAsItsAlertTypesRule() {
+        val old = listOf(NotifRule("limit-reached", NotifCatalog.Ids.HM_ALL_USED, enabled = true), pct("p80", 80))
+        val (seeded, _) = NotifRules.seed(old, NotifCatalog.builtIn, emptySet())
+        assertEquals(1, seeded.count { it.event == NotifCatalog.Ids.HM_ALL_USED })
+        assertEquals(1, seeded.count { it.event == NotifCatalog.Ids.HM_PERCENT })
+        assertTrue(seeded.single { it.event == NotifCatalog.Ids.HM_ALL_USED }.enabled)
     }
 
     @Test
     fun rulesSurviveTheStoreRoundTrip() {
-        val rules = listOf(NotifRule("limit-reached", NotifKind.AllTimeUsed), eighty.copy(enabled = false))
+        val rules = listOf(NotifRule("limit-reached", NotifCatalog.Ids.HM_ALL_USED), eighty.copy(enabled = false, users = listOf("u1")))
         assertEquals(rules, NotifRules.decode(NotifRules.encode(rules)))
     }
 
@@ -150,9 +179,14 @@ class NotifRulesTest {
     }
 
     @Test
-    fun anyEnabledKeepsTheConnectionOnlyWhileARuleIsOn() {
-        assertTrue(NotifRules.anyEnabled(listOf(eighty)))
-        assertFalse(NotifRules.anyEnabled(listOf(eighty.copy(enabled = false))))
+    fun aServiceIsInUseOnlyWhileARuleOfItIsOnAndTheServiceIsAvailable() {
+        val services = setOf(NotifService.HallMonitor)
+        assertEquals(setOf(NotifService.HallMonitor), NotifRules.servicesInUse(listOf(eighty), services))
+        assertTrue(NotifRules.servicesInUse(listOf(eighty.copy(enabled = false)), services).isEmpty())
+        // A Label Maker rule is ignored when that service is not available to this phone (a Parent phone, or a regular account).
+        val lm = NotifRule("lm", NotifCatalog.Ids.LM_NEEDS_REVIEW)
+        assertTrue(NotifRules.active(listOf(lm), services).isEmpty())
+        assertEquals(1, NotifRules.active(listOf(lm), services + NotifService.LabelMaker).size)
     }
 
     // ---- several limits (plugin 2.2) -----------------------------------------------------------------------
@@ -238,7 +272,7 @@ class NotifRulesTest {
 
     @Test
     fun aRuleAddedLaterGetsItsOwnBaselineWhileTheOthersKeepWorking() {
-        val fifty = NotifRule("p50", NotifKind.PercentUsed, percent = 50)
+        val fifty = pct("p50", 50)
         val user = cards(status(remaining = 540.0)) // 85% used
         val result = PercentRules.evaluate(listOf(fifty, eighty), user, armed(fifty), "2026-10-14", firstLook = false)
         assertEquals(listOf("p50"), result.fires.map { it.rule.id })

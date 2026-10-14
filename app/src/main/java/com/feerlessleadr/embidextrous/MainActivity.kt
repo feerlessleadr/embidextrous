@@ -81,6 +81,10 @@ import com.feerlessleadr.embidextrous.ui.DarkBackdrops
 import com.feerlessleadr.embidextrous.ui.ListsScreen
 import com.feerlessleadr.embidextrous.ui.ListsViewModel
 import com.feerlessleadr.embidextrous.ui.SettingsScreen
+import com.feerlessleadr.embidextrous.ui.NotificationsScreen
+import com.feerlessleadr.embidextrous.ui.NotificationServiceScreen
+import com.feerlessleadr.embidextrous.notifications.NotifService
+import com.feerlessleadr.embidextrous.notifications.NotifPoster
 import com.feerlessleadr.embidextrous.ui.SignInScreen
 import com.feerlessleadr.embidextrous.ui.SignInViewModel
 import com.feerlessleadr.embidextrous.ui.editor.EditorScreen
@@ -95,11 +99,17 @@ import com.feerlessleadr.embidextrous.watching.TracearrViewModel
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        (application as App).container.openRequest.value = intent.getStringExtra(NotifPoster.EXTRA_OPEN)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val container = (application as App).container
         // Start (or stop) the optional background alerts to match the setting; the app is in front here, so Android allows it.
         AlertService.sync(this)
+        container.openRequest.value = intent?.getStringExtra(NotifPoster.EXTRA_OPEN)
         setContent {
             val mode by container.settings.themeMode.collectAsStateWithLifecycle()
             val accent by container.settings.accent.collectAsStateWithLifecycle()
@@ -197,6 +207,20 @@ private fun SignedIn(container: AppContainer, session: Session) {
             ROUTE_SERVER -> serverSection = tab
         }
         goTo(target)
+    }
+
+    val openRequest by container.openRequest.collectAsStateWithLifecycle()
+    LaunchedEffect(openRequest) {
+        val request = openRequest ?: return@LaunchedEffect
+        val (group, tab) = request.split("/").let { it.getOrNull(0).orEmpty() to it.getOrNull(1).orEmpty() }
+        val target = when (group) {
+            "watching" -> ROUTE_WATCHING
+            "library" -> if (smartLists) ROUTE_LIBRARY else null
+            "server" -> if (adminCards) ROUTE_SERVER else null
+            else -> null
+        }
+        if (target != null) goToTab(target, tab)
+        container.openRequest.value = null
     }
 
     Scaffold(
@@ -306,7 +330,14 @@ private fun SignedIn(container: AppContainer, session: Session) {
                 EditorScreen(vm, onClose = { nav.popBackStack() })
             }
             composable(ROUTE_SETTINGS) {
-                SettingsScreen(container, onBackups = { nav.navigate("backups") })
+                SettingsScreen(container, onBackups = { nav.navigate("backups") }, onNotifications = { nav.navigate("notifications") })
+            }
+            composable("notifications") {
+                NotificationsScreen(container, onBack = { nav.popBackStack() }, onService = { nav.navigate("notifications/${it.name}") })
+            }
+            composable("notifications/{service}") { backEntry ->
+                val service = NotifService.fromName(backEntry.arguments?.getString("service"))
+                if (service == null) nav.popBackStack() else NotificationServiceScreen(container, service, onBack = { nav.popBackStack() })
             }
             composable("backups") {
                 BackupsScreen(container, onBack = { nav.popBackStack() })

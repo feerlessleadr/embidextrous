@@ -264,6 +264,26 @@ class ApiClient(
         return b.build().toString()
     }
 
+    // ----- plugin alerts (the same routes on every plugin that follows docs/push-contract.md) ----------------
+
+    /** What the plugin missed sending: events after [after], oldest first (at most 100). Throws on 404 from a plugin without alerts. */
+    suspend fun pluginEvents(service: com.feerlessleadr.embidextrous.notifications.NotifService, after: Long, limit: Int = 100): String {
+        val base = service.apiBase ?: throw ApiException(0, "${service.title} has no alerts API.")
+        return get("$server$base/Events?After=${after.coerceAtLeast(0)}&Limit=${limit.coerceIn(1, 100)}")
+    }
+
+    /** The plugin's info answer, to see whether it can send alerts at all. */
+    suspend fun pluginInfo(service: com.feerlessleadr.embidextrous.notifications.NotifService): String {
+        val path = service.infoPath ?: throw ApiException(0, "${service.title} has no alerts API.")
+        return get("$server$path")
+    }
+
+    /** The plugin's own list of alert types (titles, settings, defaults). */
+    suspend fun pluginCatalog(service: com.feerlessleadr.embidextrous.notifications.NotifService): String {
+        val base = service.apiBase ?: throw ApiException(0, "${service.title} has no alerts API.")
+        return get("$server$base/Notifications/Catalog")
+    }
+
     suspend fun hpInfo(): HpInfo = HallPassParser.info(get("$hpBase/Info"))
 
     suspend fun hpStatus(): HpStatus = HallPassParser.status(get("$hpBase/Status"))

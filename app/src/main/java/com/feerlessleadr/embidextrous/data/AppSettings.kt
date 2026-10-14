@@ -1,7 +1,12 @@
 package com.feerlessleadr.embidextrous.data
 
 import android.content.SharedPreferences
+import com.feerlessleadr.embidextrous.notifications.EventSpec
+import com.feerlessleadr.embidextrous.notifications.LIMIT_REACHED_RULE_ID
+import com.feerlessleadr.embidextrous.notifications.NotifCatalog
 import com.feerlessleadr.embidextrous.notifications.NotifRule
+import com.feerlessleadr.embidextrous.notifications.NotifService
+import com.feerlessleadr.embidextrous.notifications.QuietHours
 import com.feerlessleadr.embidextrous.notifications.NotifRules
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -109,19 +114,80 @@ class AppSettings(private val prefs: SharedPreferences) {
     private val _notifRules = MutableStateFlow(loadNotifRules())
 
     /**
-     * Notification rules (Settings, under Hall Monitor). Kept on this phone. The first run turns the old Background alerts
-     * switch into the default "limit reached" rule, so existing behaviour carries over.
+     * Notification rules (Settings > Notifications). Kept on this phone. The first run of 0.10 reads the 0.9 rules (and the older Background alerts
+     * switch), then adds the default rule of every alert type once, switched off or on as that type's default says.
      */
     val notifRules: StateFlow<List<NotifRule>> = _notifRules.asStateFlow()
 
     fun setNotifRules(rules: List<NotifRule>) {
-        prefs.edit().putString(KEY_NOTIF_RULES, NotifRules.encode(rules)).apply()
+        prefs.edit().putString(KEY_NOTIF_RULES_V2, NotifRules.encode(rules)).apply()
         _notifRules.value = rules
     }
 
-    /** The "rule|user" -> day map of percent rules that already fired (kept across restarts). */
-    fun percentState(): Map<String, String> {
-        val text = prefs.getString(KEY_PERCENT_STATE, null) ?: return emptyMap()
+    /** Gives the default rule to every alert type in [specs] that this phone has not seen yet (a plugin's catalog can bring new ones). */
+    fun seedNotifRules(specs: List<EventSpec>) {
+        val seeded = prefs.getStringSet(KEY_NOTIF_SEEDED, emptySet()).orEmpty()
+        val (rules, now) = NotifRules.seed(_notifRules.value, specs, seeded)
+        if (now != seeded) {
+            prefs.edit().putStringSet(KEY_NOTIF_SEEDED, now).apply()
+            if (rules != _notifRules.value) setNotifRules(rules)
+        }
+    }
+
+    private val _serviceSwitches = MutableStateFlow(loadServiceSwitches())
+
+    /** Which services this phone listens to. A service that is off opens no connection and sends nothing. */
+    val serviceSwitches: StateFlow<Map<String, Boolean>> = _serviceSwitches.asStateFlow()
+
+    fun setServiceEnabled(service: NotifService, on: Boolean) {
+        val next = _serviceSwitches.value + (service.name to on)
+        _serviceSwitches.value = next
+        prefs.edit().putString(KEY_NOTIF_SERVICES, JsonObject(next.mapValues { JsonPrimitive(it.value) }).toString()).apply()
+    }
+
+    private val _quietHours = MutableStateFlow(readJson(KEY_QUIET, QuietHours.serializer()) ?: QuietHours())
+
+    /** Alerts that arrive during quiet hours are shown without sound. */
+    val quietHours: StateFlow<QuietHours> = _quietHours.asStateFlow()
+
+    fun setQuietHours(value: QuietHours) {
+        _quietHours.value = value
+        prefs.edit().putString(KEY_QUIET, AppJson.encodeToString(QuietHours.serializer(), value)).apply()
+    }
+
+    private val _notifPaused = MutableStateFlow(prefs.getBoolean(KEY_NOTIF_PAUSED, false))
+
+    /** "Pause all notifications": nothing is shown while on, and the connections stay as they are. */
+    val notifPaused: StateFlow<Boolean> = _notifPaused.asStateFlow()
+
+    fun setNotifPaused(on: Boolean) {
+        _notifPaused.value = on
+        prefs.edit().putBoolean(KEY_NOTIF_PAUSED, on).apply()
+    }
+
+    /** What the engines remember between runs: "rule|user|period" and "seen|rule" markers, daily-summary days, announced violation ids (kept across restarts). */
+    fun percentState(): Map<String, String> = readStringMap(KEY_PERCENT_STATE)
+
+    fun savePercentState(state: Map<String, String>) {
+        prefs.edit().putString(KEY_PERCENT_STATE, JsonObject(state.mapValues { JsonPrimitive(it.value) }).toString()).apply()
+    }
+
+    /** The last event number seen from each plugin ("LabelMaker" to 49), so a missed push is caught up and a repeated one is shown once. */
+    fun eventSeq(): Map<String, Long> = readStringMap(KEY_EVENT_SEQ).mapNotNull { (k, v) -> v.toLongOrNull()?.let { k to it } }.toMap()
+
+    fun saveEventSeq(seq: Map<String, Long>) {
+        prefs.edit().putString(KEY_EVENT_SEQ, JsonObject(seq.mapValues { JsonPrimitive(it.value) }).toString()).apply()
+    }
+
+    /** A plugin's own catalog of alert types as the plugin last sent it, or null. */
+    fun catalogCache(service: NotifService): String? = prefs.getString(KEY_CATALOG_PREFIX + service.name, null)
+
+    fun saveCatalogCache(service: NotifService, text: String) {
+        prefs.edit().putString(KEY_CATALOG_PREFIX + service.name, text.take(200_000)).apply()
+    }
+
+    private fun readStringMap(key: String): Map<String, String> {
+        val text = prefs.getString(key, null) ?: return emptyMap()
         return try {
             AppJson.parseToJsonElement(text).jsonObject.mapNotNull { (k, v) -> (v as? JsonPrimitive)?.contentOrNull?.let { k to it } }.toMap()
         } catch (e: Exception) {
@@ -129,15 +195,33 @@ class AppSettings(private val prefs: SharedPreferences) {
         }
     }
 
-    fun savePercentState(state: Map<String, String>) {
-        prefs.edit().putString(KEY_PERCENT_STATE, JsonObject(state.mapValues { JsonPrimitive(it.value) }).toString()).apply()
+    private fun <T> readJson(key: String, serializer: kotlinx.serialization.KSerializer<T>): T? =
+        prefs.getString(key, null)?.let { runCatching { AppJson.decodeFromString(serializer, it) }.getOrNull() }
+
+    private fun loadServiceSwitches(): Map<String, Boolean> {
+        val saved = readStringMap(KEY_NOTIF_SERVICES)
+        if (saved.isNotEmpty()) return saved.mapValues { it.value == "true" }
+        // First run of 0.10: Hall Monitor stays on if any 0.9 rule was on (or the older Background alerts switch); every other service starts off.
+        val legacyOn = NotifRules.migrateLegacy(prefs.getString(KEY_NOTIF_RULES, null))?.any { it.enabled } ?: prefs.getBoolean(KEY_ALERTS, false)
+        val initial = mapOf(NotifService.HallMonitor.name to legacyOn)
+        prefs.edit().putString(KEY_NOTIF_SERVICES, JsonObject(initial.mapValues { JsonPrimitive(it.value) }).toString()).apply()
+        return initial
     }
 
     private fun loadNotifRules(): List<NotifRule> {
-        NotifRules.decode(prefs.getString(KEY_NOTIF_RULES, null))?.let { return it }
-        val migrated = NotifRules.defaults(legacyAlertsOn = prefs.getBoolean(KEY_ALERTS, false))
-        prefs.edit().putString(KEY_NOTIF_RULES, NotifRules.encode(migrated)).apply()
-        return migrated
+        val saved = NotifRules.decode(prefs.getString(KEY_NOTIF_RULES_V2, null))
+        val base: List<NotifRule>
+        if (saved != null) {
+            base = saved
+        } else {
+            val old = NotifRules.migrateLegacy(prefs.getString(KEY_NOTIF_RULES, null))
+            base = old ?: listOf(NotifRule(LIMIT_REACHED_RULE_ID, NotifCatalog.Ids.HM_ALL_USED, enabled = prefs.getBoolean(KEY_ALERTS, false)))
+        }
+        // Every alert type gets its default rule once. An all-time-used rule that came from 0.9 already counts as that type's rule.
+        val seeded = prefs.getStringSet(KEY_NOTIF_SEEDED, null) ?: emptySet()
+        val (rules, now) = NotifRules.seed(base, NotifCatalog.builtIn, seeded)
+        prefs.edit().putString(KEY_NOTIF_RULES_V2, NotifRules.encode(rules)).putStringSet(KEY_NOTIF_SEEDED, now).apply()
+        return rules
     }
 
     private val _widgetHideNames = MutableStateFlow(prefs.getBoolean(KEY_WIDGET_HIDE_NAMES, false))
@@ -199,6 +283,13 @@ class AppSettings(private val prefs: SharedPreferences) {
         /** The old Background alerts switch: read once, to migrate it into the default rule. */
         const val KEY_ALERTS = "watching_alerts"
         const val KEY_NOTIF_RULES = "notif_rules"
+        const val KEY_NOTIF_RULES_V2 = "notif_rules_v2"
+        const val KEY_NOTIF_SEEDED = "notif_seeded"
+        const val KEY_NOTIF_SERVICES = "notif_services"
+        const val KEY_QUIET = "notif_quiet_hours"
+        const val KEY_NOTIF_PAUSED = "notif_paused"
+        const val KEY_EVENT_SEQ = "notif_event_seq"
+        const val KEY_CATALOG_PREFIX = "notif_catalog_"
         const val KEY_PERCENT_STATE = "notif_percent_state"
         const val KEY_WIDGET_HIDE_NAMES = "watching_widget_hide_names"
     }

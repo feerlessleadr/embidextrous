@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhoneAndroid
@@ -74,7 +75,7 @@ private fun SettingsCard(title: String, icon: ImageVector, tint: Color, content:
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun SettingsScreen(container: AppContainer, onBackups: () -> Unit) {
+fun SettingsScreen(container: AppContainer, onBackups: () -> Unit, onNotifications: () -> Unit) {
     val theme by container.settings.themeMode.collectAsStateWithLifecycle()
     val accent by container.settings.accent.collectAsStateWithLifecycle()
     val dynamic by container.settings.dynamicColor.collectAsStateWithLifecycle()
@@ -127,6 +128,17 @@ fun SettingsScreen(container: AppContainer, onBackups: () -> Unit) {
 
             if (session?.isAdministrator == true) {
                 ProfileSection(container)
+            }
+
+            Card(Modifier.fillMaxWidth().clickable(onClick = onNotifications), shape = RoundedCornerShape(24.dp)) {
+                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    IconBadge(Icons.Default.Notifications, MaterialTheme.colorScheme.primary, size = 40.dp)
+                    Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                        Text("Notifications", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("Choose which alerts each service sends to this phone, and when.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Icon(Icons.Default.ChevronRight, contentDescription = null)
+                }
             }
 
             HallMonitorKeySection(container)
@@ -252,8 +264,6 @@ private fun HallMonitorKeySection(container: AppContainer) {
         }
 
         val hideNames by container.settings.widgetHideNames.collectAsStateWithLifecycle()
-        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-        NotifRulesSection(container)
         HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
         SettingRow(
             title = "Hide names on the widget",
