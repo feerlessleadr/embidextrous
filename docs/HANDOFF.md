@@ -18,6 +18,7 @@ Kotlin / Jetpack Compose / Material 3 / OkHttp Android app (package `com.feerles
 | 0.9.0 | 946275f | 2,471,990 | 48ae134dae9d89a38fc00db0c11c8cc1648f3ab5864b5590ce818eac43ea633c | notification rules for Hall Monitor (percent of any limit, used all time); needs plugin 2.2.0.0 for every-limit alerts, falls back to the closest limit with older plugins |
 | 0.9.1 | 587bb0e | 2,471,990 | 1045c2c7a06a82ac689590dca5b83c18061ece8a39d0dc7c472b8f3c3210944f | fix: no alert for a limit already used up when a rule is added or switched on; correct text at 100%; correct Settings path in the alert |
 | 0.10.0 | f600b70 | 2,559,910 | 63db4c7a94f6f6928a9bbf8339a7a446afd37abaf571abd449a7073e5df39911 | notifications rebuilt: Settings > Notifications with a section per service, quiet hours, pause, test; push first; +30 / -30 buttons; needs Hall Monitor 2.3.0.0 for -30 below the limit |
+| 0.10.1 | (filled after release) | | | fix: no stale percent or "used all" alert from the first status after Hall Monitor was unreachable; recommends Hall Monitor 2.4.1.0 |
 Release routine (only on "publish it"): notes `docs/releases/vX.Y.Z.md` committed first; CI and both CodeQL jobs green on that commit; `git tag -a vX.Y.Z`; push; the Release workflow builds and signs; report size and digest. Version name comes from the tag (`-PappVersion`).
 
 ## 2. Navigation
