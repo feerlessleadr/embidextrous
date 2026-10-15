@@ -153,6 +153,30 @@ class HallMonitorEngineTest {
     }
 
     @Test
+    fun aStatusSeenRightAfterHallMonitorWasUnreachableIsConfirmedByASecondLookBeforeItAlerts() {
+        val rule = rule(NotifCatalog.Ids.HM_PERCENT, "percent" to "80", "period" to "daily")
+        fun daily(used: Double) = UserStatus(userId = "u1", username = "Harper", isEnabled = true, apiLevel = 4, limits = listOf(com.feerlessleadr.embidextrous.data.LimitStatus("Daily", 3600.0, used, 3600.0 - used, (used / 36).toInt())))
+        val first = run(listOf(rule), cards(daily(0.0)))
+        val down = run(listOf(rule), emptyList(), link = Link.OFFLINE, state = first.state)
+        // The restarted plugin reports yesterday's 93% for a moment.
+        val stale = run(listOf(rule), cards(daily(3360.0)), state = down.state)
+        assertTrue(stale.deliveries.isEmpty())
+        // Its reset arrives: nothing was announced and nothing stays recorded.
+        val reset = run(listOf(rule), cards(daily(0.0)), state = stale.state)
+        assertTrue(reset.deliveries.isEmpty())
+        // A real crossing after that still alerts.
+        assertEquals(1, run(listOf(rule), cards(daily(3000.0)), state = reset.state).deliveries.size)
+
+        // A status that is still high on the second look does alert (one look late).
+        val e2 = HallMonitorEngine(ZoneOffset.UTC)
+        val a = e2.update(listOf(rule), cards(daily(0.0)), Link.LIVE, t0, emptyMap())
+        val b = e2.update(listOf(rule), emptyList(), Link.OFFLINE, t0, a.state)
+        val c = e2.update(listOf(rule), cards(daily(3360.0)), Link.LIVE, t0, b.state)
+        assertTrue(c.deliveries.isEmpty())
+        assertEquals(1, e2.update(listOf(rule), cards(daily(3360.0)), Link.LIVE, t0, c.state).deliveries.size)
+    }
+
+    @Test
     fun aPercentAlertSaysHowMuchWasUsedOfHowMuchIsAllowedAndHowMuchIsLeft() {
         val rule = rule(NotifCatalog.Ids.HM_PERCENT, "percent" to "80", "period" to "daily")
         val before = UserStatus(userId = "u1", username = "Alex", isEnabled = true, apiLevel = 4, limits = listOf(com.feerlessleadr.embidextrous.data.LimitStatus("Daily", 7200.0, 3600.0, 3600.0, 50)))

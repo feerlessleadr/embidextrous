@@ -25,6 +25,7 @@ class HallMonitorEngine(private val zone: ZoneId = ZoneId.systemDefault()) {
     private var firstLook = true
     private var problemSinceMs: Long? = null
     private var problemFired = false
+    private var lastLinkTrouble = false
 
     private data class Seen(val timedOut: Boolean, val playing: Boolean, val block: String, val creditSeconds: Double)
 
@@ -42,11 +43,16 @@ class HallMonitorEngine(private val zone: ZoneId = ZoneId.systemDefault()) {
         val hm = rules.filter { it.enabled }
         fun rulesFor(id: String) = hm.filter { it.event == id }
 
+        // The first status after Hall Monitor was unreachable may be out of date (a restarted plugin used to report yesterday's totals until its first
+        // reset). Nothing about limits is announced or recorded from that look; the next look decides, so a real crossing is announced one look late.
+        val settling = !firstLook && lastLinkTrouble && (link == Link.LIVE || link == Link.POLLING)
+        lastLinkTrouble = link == Link.OFFLINE || link == Link.KEY_REFUSED || link == Link.CONNECTING
+
         // "Used all of their time" and the removal of an alert that is out of date: the long-standing behavior, now per rule.
         val changes: AlertChanges = limitAlerts.update(cards, now)
         for (user in changes.cleared) clears.add(allUsedKey(user.userId))
         for (rule in rulesFor(NotifCatalog.Ids.HM_ALL_USED)) {
-            for (user in changes.blocked) {
+            for (user in if (settling) emptyList() else changes.blocked) {
                 if (!rule.appliesTo(user.userId)) continue
                 val name = user.username.ifEmpty { "A user" }
                 deliveries.add(
@@ -63,8 +69,9 @@ class HallMonitorEngine(private val zone: ZoneId = ZoneId.systemDefault()) {
         // Percentages.
         val percent = PercentRules.evaluate(hm, cards, state, LocalDateTime.ofInstant(now, zone).toLocalDate().toString(), firstLook)
         // The percent result carries only percent keys; keep the daily-summary markers of rules that still exist.
-        var nextState = percent.state + state.filterKeys { key -> key.startsWith("summary|") && hm.any { "summary|${it.id}" == key } }
-        for (fire in percent.fires) {
+        val percentState = if (settling) state.filterKeys { !it.startsWith("summary|") } else percent.state
+        var nextState = percentState + state.filterKeys { key -> key.startsWith("summary|") && hm.any { "summary|${it.id}" == key } }
+        for (fire in if (settling) emptyList() else percent.fires) {
             val name = fire.user.username.ifEmpty { "A user" }
             val used = fire.percent >= 100
             deliveries.add(

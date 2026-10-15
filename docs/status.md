@@ -269,3 +269,8 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 
 ## 2026-10-14: 0.10.0 and four plugin releases published
 - Embidextrous 0.10.0 (tag `v0.10.0` on `f600b70`, CI and both CodeQL jobs green): `Embidextrous-0.10.0.apk` 2,559,910 bytes, SHA-256 `63db4c7a94f6f6928a9bbf8339a7a446afd37abaf571abd449a7073e5df39911`. Plugins released first: Hall Monitor 2.3.0.0, Hall Pass 1.4.0.0, Smart lists 0.1.12, the GitHub Repo Plugin Install plugin (tag 2026.10.14). Hashes are in `docs/HANDOFF.md` section 6b. The test server was restored to its original plugin files afterwards.
+
+## 2026-10-15: stale percent alert after a Hall Monitor restart (fixed, not released)
+- **Report:** after the owner restarted the server, the phone said "Harper has used 93% of their daily time" while Hall Monitor showed 0. The log shows the plugin's daily reset 15 seconds after it started: until then it reported the saved totals from the day before, and the app (reconnecting, not a first look) announced them.
+- **Fix, plugin (Hall Monitor, `C:\dev\watching-eye`, goes into the next release):** due resets are applied at start, before any status is served.
+- **Fix, app (`HallMonitorEngine`):** the first status after Hall Monitor was unreachable (offline, key refused, connecting) is not announced or recorded for percent alerts and "used all"; the next look decides. Cost: a real crossing during a disconnect is announced one look late, and a "used all" that happened during the disconnect is not announced. Test added; unit tests pass. Not checked on a real phone or a live restart.
