@@ -1,5 +1,7 @@
 # Embidextrous (Android)
 
+> **Persistent docs:** before working, read `C:\dev\_docs\WORKSPACE.md` (environment and how projects connect) and `STATUS.md` here (current state and next step). `DECISIONS.md` here is an append-only log: search it when a past decision matters, do not read it in full. The rule to keep these docs updated in the same turn as every decision or change is in `C:\dev\CLAUDE.md`. This repo is public: keep hostnames, IPs, user names and emails out of it. The deeper project docs below (`docs/`) stay authoritative for detail.
+
 One Android app for the owner's Emby administration: smart lists (the SmartLists plugin) and watch-time limits (the Hall Monitor plugin), with more to come (a plugin manager for GitHub downloads, bulk tag editing, explicit-tag editing for music). Kotlin, Jetpack Compose, Material 3, OkHttp, kotlinx.serialization. Package `com.feerlessleadr.embidextrous`, repo `feerlessleadr/embidextrous` (public, MIT).
 
 Origin: this code began as a copy of `C:\dev\emby.smartlists.android` (v0.4.1, commit 79444cb) and is being merged with `C:\dev\watching-eye-android-app` (Java/XML, being ported to Kotlin/Compose). Those repos stay untouched until this app replaces them. Their notes: `C:\dev\emby.smartlists.android\HANDOFF.md`, `C:\dev\watching-eye\PROGRESS.md`.
