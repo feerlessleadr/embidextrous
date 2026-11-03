@@ -32,12 +32,12 @@ class HallMonitorClient(
 
     /** Adds extra time. */
     suspend fun extend(userId: String, minutes: Int) {
-        call("POST", "ExtendTime", minutesBody(userId, minutes), "Add time")
+        call("POST", "ExtendTime", minutesBody(userId, minutes, SOURCE_APP), "Add time")
     }
 
     /** Takes back extra time (the Undo for [extend]). Plugin 1.8 or newer. */
     suspend fun reduce(userId: String, minutes: Int) {
-        call("POST", "ReduceTime", minutesBody(userId, minutes), "Undo")
+        call("POST", "ReduceTime", minutesBody(userId, minutes, SOURCE_APP), "Undo")
     }
 
     suspend fun timeOut(userId: String, minutes: Int) {
@@ -59,11 +59,12 @@ class HallMonitorClient(
 
     private fun idBody(userId: String) = buildJsonObject { put("UserId", userId) }.toString()
 
-    private fun minutesBody(userId: String, minutes: Int): String {
+    private fun minutesBody(userId: String, minutes: Int, source: String? = null): String {
         require(minutes in 1..MAX_MINUTES) { "Minutes must be between 1 and $MAX_MINUTES." }
         return buildJsonObject {
             put("UserId", userId)
             put("Minutes", minutes)
+            if (source != null) put("Source", source)
         }.toString()
     }
 

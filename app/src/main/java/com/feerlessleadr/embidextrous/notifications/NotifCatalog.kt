@@ -81,8 +81,8 @@ object NotifCatalog {
             defaultOn = false, lockScreenText = "Someone started watching. Unlock to see who.", opensTab = "watching/hall", perUser = true,
         ),
         EventSpec(
-            Ids.HM_EXTRA_TIME, NotifService.HallMonitor, "Extra time was added",
-            "Sent when someone's daily time grows by at least a minute, from any phone or the dashboard.",
+            Ids.HM_EXTRA_TIME, NotifService.HallMonitor, "Time was added or taken away",
+            "Sent when someone's extra time changes, and says why: a chore marked done in Home Assistant, or a parent adding or taking away time. With an older Hall Monitor plugin it only reports added time, without the reason.",
             defaultOn = false, lockScreenText = "Extra time was added. Unlock to see who.", opensTab = "watching/hall", perUser = true,
         ),
         EventSpec(

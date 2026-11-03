@@ -1,6 +1,7 @@
 package com.feerlessleadr.embidextrous
 
 import com.feerlessleadr.embidextrous.data.NowPlaying
+import com.feerlessleadr.embidextrous.data.TimeChange
 import com.feerlessleadr.embidextrous.data.UserCard
 import com.feerlessleadr.embidextrous.data.UserStatus
 import com.feerlessleadr.embidextrous.notifications.HallMonitorEngine
@@ -30,9 +31,10 @@ class HallMonitorEngineTest {
         playing: Boolean = false,
         credit: Double = 0.0,
         watched: Double = 0.0,
+        changes: List<TimeChange>? = null,
     ) = UserStatus(
         userId = id, username = name, isEnabled = true, blockReason = block, timeOutUntil = timeOutUntil, creditSecondsDaily = credit,
-        secondsWatchedDaily = watched, secondsRemaining = 3600.0, limitingAllowedSeconds = 7200.0, limitingPeriod = "Daily", apiLevel = 4,
+        secondsWatchedDaily = watched, secondsRemaining = 3600.0, limitingAllowedSeconds = 7200.0, limitingPeriod = "Daily", apiLevel = if (changes != null) 7 else 4, recentTimeChanges = changes,
         nowPlaying = if (playing) NowPlaying(itemName = "Bluey", deviceName = "Tablet") else null,
     )
 
@@ -92,6 +94,64 @@ class HallMonitorEngineTest {
         assertEquals("15 min added. Alex now has 1 h left today.", d.text)
     }
 
+    private fun change(id: Long, minutes: Int, source: String, reason: String = "") =
+        TimeChange(id = id, minutes = minutes, kind = if (minutes > 0) "Added" else "Removed", source = source, reason = reason)
+
+    @Test
+    fun aChoreDoneInHomeAssistantSaysWhichChore() {
+        val rules = listOf(rule(NotifCatalog.Ids.HM_EXTRA_TIME))
+        run(rules, cards(user(changes = emptyList())))
+        val d = run(rules, cards(user(changes = listOf(change(10, 15, "homeassistant", "Feed Chloe"))))).deliveries.single()
+        assertEquals("Alex was given more time", d.title)
+        assertEquals("15 min added because the Feed Chloe chore was marked completed. Alex now has 1 h left today.", d.text)
+    }
+
+    @Test
+    fun manualTimeFromTheAppOrThePluginPageSaysAParentAddedIt() {
+        val rules = listOf(rule(NotifCatalog.Ids.HM_EXTRA_TIME))
+        run(rules, cards(user(changes = emptyList())))
+        val d = run(rules, cards(user(changes = listOf(change(10, 30, "app"))))).deliveries.single()
+        assertEquals("30 min added manually by a parent. Alex now has 1 h left today.", d.text)
+        val p = run(rules, cards(user(changes = listOf(change(10, 30, "app"), change(11, 10, "plugin"))))).deliveries.single()
+        assertEquals("10 min added manually by a parent. Alex now has 1 h left today.", p.text)
+    }
+
+    @Test
+    fun takenAwayTimeIsAnnouncedWithItsReason() {
+        val rules = listOf(rule(NotifCatalog.Ids.HM_EXTRA_TIME))
+        run(rules, cards(user(changes = emptyList())))
+        val d = run(rules, cards(user(changes = listOf(change(10, -30, "homeassistant", "Traded for play time"))))).deliveries.single()
+        assertEquals("Alex had time taken away", d.title)
+        assertEquals("30 min taken away: Traded for play time. Alex now has 1 h left today.", d.text)
+        val m = run(rules, cards(user(changes = listOf(change(10, -30, "homeassistant", "Traded for play time"), change(11, -15, "app"))))).deliveries.single()
+        assertEquals("15 min taken away manually by a parent. Alex now has 1 h left today.", m.text)
+    }
+
+    @Test
+    fun aResetDroppingTheCreditIsNotAnnouncedWhenThePluginReportsChanges() {
+        val rules = listOf(rule(NotifCatalog.Ids.HM_EXTRA_TIME))
+        run(rules, cards(user(credit = 900.0, changes = listOf(change(10, 15, "app")))))
+        assertTrue(run(rules, cards(user(credit = 0.0, changes = listOf(change(10, 15, "app"))))).deliveries.isEmpty())
+    }
+
+    @Test
+    fun changesAlreadySeenAreNotAnnouncedAgainAndARestartedPluginKeepsTheCount() {
+        val rules = listOf(rule(NotifCatalog.Ids.HM_EXTRA_TIME))
+        run(rules, cards(user(changes = listOf(change(10, 15, "app")))))
+        assertTrue(run(rules, cards(user(changes = listOf(change(10, 15, "app"))))).deliveries.isEmpty())
+        assertTrue(run(rules, cards(user(changes = emptyList()))).deliveries.isEmpty())
+        assertTrue(run(rules, cards(user(changes = listOf(change(10, 15, "app"))))).deliveries.isEmpty())
+        assertEquals(1, run(rules, cards(user(changes = listOf(change(10, 15, "app"), change(11, 5, "homeassistant", "Homework"))))).deliveries.size)
+    }
+
+    @Test
+    fun mixedChangesGetOneNotificationWithALineEach() {
+        val rules = listOf(rule(NotifCatalog.Ids.HM_EXTRA_TIME))
+        run(rules, cards(user(changes = emptyList())))
+        val d = run(rules, cards(user(changes = listOf(change(10, 15, "homeassistant", "Homework"), change(11, -5, "app"))))).deliveries.single()
+        assertEquals("Alex's time changed", d.title)
+        assertEquals("15 min added because the Homework chore was marked completed.\n5 min taken away manually by a parent.\nAlex now has 1 h left today.", d.text)
+    }
     @Test
     fun usedAllTimeKeepsItsAddTimeButtonsAndIsClearedWhenTimeIsAdded() {
         val rules = listOf(rule(NotifCatalog.Ids.HM_ALL_USED))

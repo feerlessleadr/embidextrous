@@ -277,3 +277,7 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 
 ## 2026-10-15: 0.10.1 and Hall Monitor 2.4.1.0 published
 - Hall Monitor 2.4.1.0 (tag `v2.4.1.0` on `3072528`, CodeQL green): `HallMonitor.dll` 229,376 bytes, SHA-256 `51503dd8b525aabad97bd68756542c272c3b889eece389cda558a3814138dc61`. Embidextrous 0.10.1 (tag `v0.10.1` on `c448c07`, CI and CodeQL green): `Embidextrous-0.10.1.apk` 2,559,910 bytes, SHA-256 `019a6d5c2a683262f16f8c3d7eff3ec17a3e8ae57855d701b8a60b9081626b17`. Fixes the stale "93%" alert after a server restart (see the entry above). Published files not re-tested; no live restart check.
+
+## 2026-11-03: reasons for time changes (not released)
+- Built: `TimeChange` model, `RecentTimeChanges` on `UserStatus`, engine announces added and taken-away time with a reason, manual add/Undo send `Source: "app"`. 6 new engine tests; the whole unit test suite passes.
+- **Not verified:** nothing has run against a real plugin 2.5.0.0 yet, and no emulator run. The Home Assistant side is not changed yet, so chore adds still arrive without a reason (they would read "added by a Home Assistant automation" only once Home Assistant sends `Source: homeassistant`).

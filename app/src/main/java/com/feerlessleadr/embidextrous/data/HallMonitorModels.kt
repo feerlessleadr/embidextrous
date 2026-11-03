@@ -28,6 +28,20 @@ data class LimitStatus(
     @SerialName("PercentUsed") val percentUsed: Int = 0,
 )
 
+/** One change of extra time as the plugin reports it (plugin 2.5, ApiLevel 7): positive minutes when time was added, negative when it was taken away. */
+@Serializable
+data class TimeChange(
+    /** Always grows, also across plugin restarts, so "newer than the last one I saw" works. */
+    @SerialName("Id") val id: Long = 0L,
+    @SerialName("AtUtc") val atUtc: String? = null,
+    @SerialName("Minutes") val minutes: Int = 0,
+    @SerialName("Kind") val kind: String = "",
+    /** "app", "plugin", "homeassistant", "other" or "unknown" (the caller did not say). */
+    @SerialName("Source") val source: String = "unknown",
+    /** A short reason the caller gave, such as a chore name. Empty when none. */
+    @SerialName("Reason") val reason: String = "",
+)
+
 /** One limited user as the plugin reports it (a row of `Public/Status`, or of the live push). Newer fields are optional. */
 @Serializable
 data class UserStatus(
@@ -56,6 +70,8 @@ data class UserStatus(
     /** Plugin 2.2 and newer: every enabled limit with its allowance, what was counted and the per cent used. Null from an older plugin, which reports only the closest limit above. */
     @SerialName("Limits") val limits: List<LimitStatus>? = null,
     @SerialName("ApiLevel") val apiLevel: Int? = null,
+    /** Plugin 2.5 and newer: the latest extra-time changes with why each happened. Null from an older plugin. */
+    @SerialName("RecentTimeChanges") val recentTimeChanges: List<TimeChange>? = null,
 ) {
     /** True unless the plugin says this user's limit is switched off. */
     val enabled: Boolean get() = isEnabled != false
@@ -196,6 +212,9 @@ object WatchText {
 
 /** The most minutes the plugin accepts in one request (30 days). */
 const val MAX_MINUTES = 43200
+
+/** What the app tells the plugin as the source of a manual add or take-away, so notifications can say a parent did it. */
+const val SOURCE_APP = "app"
 
 /** The "-30 min" button: how many minutes to take away. */
 object TakeAway {

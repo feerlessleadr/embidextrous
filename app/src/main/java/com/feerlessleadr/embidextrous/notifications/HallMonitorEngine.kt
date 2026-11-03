@@ -1,5 +1,6 @@
 package com.feerlessleadr.embidextrous.notifications
 
+import com.feerlessleadr.embidextrous.data.TimeChange
 import com.feerlessleadr.embidextrous.data.UserCard
 import com.feerlessleadr.embidextrous.data.UserStatus
 import com.feerlessleadr.embidextrous.data.WatchText
@@ -10,6 +11,7 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.math.abs
 
 /** What one look at Hall Monitor's status produced: notifications to show, keys of notifications to remove, and the state to keep. */
 data class HallMonitorResult(val deliveries: List<NotifDelivery>, val clears: List<String>, val state: Map<String, String>)
@@ -27,7 +29,7 @@ class HallMonitorEngine(private val zone: ZoneId = ZoneId.systemDefault()) {
     private var problemFired = false
     private var lastLinkTrouble = false
 
-    private data class Seen(val timedOut: Boolean, val playing: Boolean, val block: String, val creditSeconds: Double)
+    private data class Seen(val timedOut: Boolean, val playing: Boolean, val block: String, val creditSeconds: Double, val changeId: Long)
 
     @Synchronized
     fun update(
@@ -89,7 +91,11 @@ class HallMonitorEngine(private val zone: ZoneId = ZoneId.systemDefault()) {
             if (user.userId.isEmpty()) continue
             val name = user.username.ifEmpty { "A user" }
             val end = user.activeTimeOutEnd(now)
-            val seen = Seen(end != null, user.nowPlaying != null, user.block(now), user.creditSecondsDaily)
+            // The newest time change seen so far; a plugin restart empties its list, so an empty list keeps the old number.
+            val newestChange = user.recentTimeChanges?.maxOfOrNull { it.id }
+            val knownChange = previous[user.userId]?.changeId
+            val changeId = if (newestChange != null) maxOf(newestChange, knownChange ?: newestChange) else knownChange ?: 0L
+            val seen = Seen(end != null, user.nowPlaying != null, user.block(now), user.creditSecondsDaily, changeId)
             val before = previous.put(user.userId, seen)
             if (before == null || firstLook) continue
             if (!before.timedOut && seen.timedOut) {
@@ -107,9 +113,18 @@ class HallMonitorEngine(private val zone: ZoneId = ZoneId.systemDefault()) {
                 val what = listOfNotNull(np?.itemName?.takeIf { it.isNotEmpty() }, np?.deviceName?.takeIf { it.isNotEmpty() }?.let { "on $it" }).joinToString(" ")
                 fire(deliveries, rulesFor(NotifCatalog.Ids.HM_STARTED), user, NotifCatalog.Ids.HM_STARTED, "started|${user.userId}", "$name started watching", what.ifEmpty { "Something started playing." })
             }
-            val added = seen.creditSeconds - before.creditSeconds
-            if (added >= 60.0) {
-                fire(deliveries, rulesFor(NotifCatalog.Ids.HM_EXTRA_TIME), user, NotifCatalog.Ids.HM_EXTRA_TIME, "extra|${user.userId}", "$name was given more time", extraTimeText(user, added))
+            val recent = user.recentTimeChanges
+            if (recent != null) {
+                // Plugin 2.5 and newer says exactly what changed and why. Removals need it: the credit also falls on every reset, which is not news.
+                val fresh = recent.filter { it.id > before.changeId }
+                if (fresh.isNotEmpty()) {
+                    fire(deliveries, rulesFor(NotifCatalog.Ids.HM_EXTRA_TIME), user, NotifCatalog.Ids.HM_EXTRA_TIME, "extra|${user.userId}", timeChangeTitle(name, fresh), timeChangeText(user, fresh))
+                }
+            } else {
+                val added = seen.creditSeconds - before.creditSeconds
+                if (added >= 60.0) {
+                    fire(deliveries, rulesFor(NotifCatalog.Ids.HM_EXTRA_TIME), user, NotifCatalog.Ids.HM_EXTRA_TIME, "extra|${user.userId}", "$name was given more time", extraTimeText(user, added))
+                }
             }
         }
         // A user who is gone from the list no longer needs to be remembered.
@@ -220,7 +235,51 @@ class HallMonitorEngine(private val zone: ZoneId = ZoneId.systemDefault()) {
             }
         }
 
-        /** The body of an extra-time alert: what was added and what is left now. */
+        /** The title for new time changes: added, taken away, or both. */
+        fun timeChangeTitle(name: String, changes: List<TimeChange>): String {
+            val added = changes.any { it.minutes > 0 }
+            val removed = changes.any { it.minutes < 0 }
+            return when {
+                added && removed -> "$name's time changed"
+                removed -> "$name had time taken away"
+                else -> "$name was given more time"
+            }
+        }
+
+        /** One line saying how much time moved and why, from who or what made the change. */
+        fun timeChangeLine(change: TimeChange): String {
+            val amount = span(abs(change.minutes) * 60.0)
+            val reason = change.reason.trim()
+            val manual = change.source == "app" || change.source == "plugin"
+            val home = change.source == "homeassistant"
+            return if (change.minutes > 0) when {
+                home && reason.isNotEmpty() -> "$amount added because the $reason chore was marked completed."
+                home -> "$amount added by a Home Assistant automation."
+                manual -> "$amount added manually by a parent."
+                reason.isNotEmpty() -> "$amount added: $reason."
+                else -> "$amount added."
+            } else when {
+                home && reason.isNotEmpty() -> "$amount taken away: $reason."
+                home -> "$amount taken away by a Home Assistant automation."
+                manual -> "$amount taken away manually by a parent."
+                reason.isNotEmpty() -> "$amount taken away: $reason."
+                else -> "$amount taken away."
+            }
+        }
+
+        /** The body for new time changes: a line for each, then what is left now. */
+        fun timeChangeText(user: UserStatus, changes: List<TimeChange>): String {
+            val lines = changes.map { timeChangeLine(it) }
+            val left = user.remainingSeconds
+            val tail = if (left >= 0) "${user.username.ifEmpty { "This user" }} now has ${span(left)} left ${WatchText.periodPhrase(user.periodLabel)}." else ""
+            return when {
+                tail.isEmpty() -> lines.joinToString("\n")
+                lines.size == 1 -> "${lines[0]} $tail"
+                else -> lines.joinToString("\n") + "\n" + tail
+            }
+        }
+
+        /** The body of an extra-time alert from an older plugin: what was added and what is left now. */
         fun extraTimeText(user: UserStatus, addedSeconds: Double): String {
             val left = user.remainingSeconds
             val tail = if (left >= 0) " ${user.username.ifEmpty { "This user" }} now has ${span(left)} left ${WatchText.periodPhrase(user.periodLabel)}." else ""
