@@ -281,3 +281,7 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 ## 2026-11-03: reasons for time changes (not released)
 - Built: `TimeChange` model, `RecentTimeChanges` on `UserStatus`, engine announces added and taken-away time with a reason, manual add/Undo send `Source: "app"`. 6 new engine tests; the whole unit test suite passes.
 - **Not verified:** nothing has run against a real plugin 2.5.0.0 yet, and no emulator run. The Home Assistant side is not changed yet, so chore adds still arrive without a reason (they would read "added by a Home Assistant automation" only once Home Assistant sends `Source: homeassistant`).
+
+### Live check, 2026-11-03 (plugin 2.5.0.0 on the test server)
+- Real plugin on the test Emby server: regression suite 74 of 74; a new live script (7 add/take-away calls with and without Source and Reason, from the Public routes and the plugin page's routes) 12 of 12: the push itself carries each reason right after the call, odd sources become `other`, reasons are one line and capped at 80, credit still adds up. A real pushed status was captured (`app/src/test/resources/hall-monitor-2.5-real-push.json`) and the app's parser and engine turn it into the expected notification text (unit test).
+- **Not done:** no emulator run, so the notification itself was not seen on a screen; the Home Assistant change is committed in the ha repo but not pushed or tried against Home Assistant.
