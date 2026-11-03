@@ -19,6 +19,7 @@ Kotlin / Jetpack Compose / Material 3 / OkHttp Android app (package `com.feerles
 | 0.9.1 | 587bb0e | 2,471,990 | 1045c2c7a06a82ac689590dca5b83c18061ece8a39d0dc7c472b8f3c3210944f | fix: no alert for a limit already used up when a rule is added or switched on; correct text at 100%; correct Settings path in the alert |
 | 0.10.0 | f600b70 | 2,559,910 | 63db4c7a94f6f6928a9bbf8339a7a446afd37abaf571abd449a7073e5df39911 | notifications rebuilt: Settings > Notifications with a section per service, quiet hours, pause, test; push first; +30 / -30 buttons; needs Hall Monitor 2.3.0.0 for -30 below the limit |
 | 0.10.1 | c448c07 | 2,559,910 | 019a6d5c2a683262f16f8c3d7eff3ec17a3e8ae57855d701b8a60b9081626b17 | fix: no stale percent or "used all" alert from the first status after Hall Monitor was unreachable; recommends Hall Monitor 2.4.1.0 |
+| 0.11.0 | 6a30de9 | 2,576,294 | 20295b011e86d315f7e07f6b8b41b87449dc3c759d7d639aefe44678258a0b0e | feature: time notifications say why (chore marked done in Home Assistant, or a parent) and announce time taken away; needs Hall Monitor 2.5.0.0 for reasons |
 Release routine (only on "publish it"): notes `docs/releases/vX.Y.Z.md` committed first; CI and both CodeQL jobs green on that commit; `git tag -a vX.Y.Z`; push; the Release workflow builds and signs; report size and digest. Version name comes from the tag (`-PappVersion`).
 
 ## 2. Navigation
