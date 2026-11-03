@@ -50,3 +50,22 @@ Append-only, newest at the bottom. Never rewrite an entry; to reverse one, add a
 - **Decision:** Tag and release only when the owner says "publish it". Order: release plugins first when the app depends on them, notes in `docs/releases/vX.Y.Z.md` committed first, CI and both CodeQL jobs green on that exact commit, then tag.
 - **Rationale:** Owner control over public artifacts.
 - **Impact:** Do not tag or push tags otherwise. Ordinary commits may be pushed (standing permission).
+
+### 2026-11-03, Time-change notifications come from the plugin's change list, not from the credit total
+- **Context:** The engine used to compare `creditSecondsDaily` between statuses and announce a rise of 60 s or more. The credit alone cannot say why it moved, and it also falls on resets, so a drop cannot be told from a take-away.
+- **Options considered:** Keep diffing the credit and guess the cause; add a reason field per user; read an explicit change list from the plugin.
+- **Decision:** Read `recentTimeChanges` (plugin 2.5.0.0, ApiLevel 7). The engine remembers the newest change id per user and announces each newer change. Take-aways are announced only from the list. Against an older plugin (list absent) the old credit-diff path stays for added time, without a reason. The first status after a start only records the newest id, so nothing old is replayed.
+- **Rationale:** The app is push-based (the plugin pushes full status on every change), so the reason arrives with the new time and no polling was added. The app never receives "what changed" events, only successive full statuses.
+- **Impact:** Needs plugin 2.5.0.0 for reasons and take-away alerts. Wording is in `HallMonitorEngine.kt` (`timeChangeTitle`, `timeChangeText`, `timeChangeLine`). Contract in `docs/push-contract.md` and `docs/decisions.md`. Tests: `HallMonitorEngineTest`, `LiveMessagesTest`, resource `hall-monitor-2.5-real-push.json` (a real push captured from plugin 2.5.0.0).
+
+### 2026-11-03, One alert rule for added and taken-away time, new wording
+- **Context:** The owner wanted reductions notified too (the app's "-30 min", Undo, and Home Assistant's trade script) and wanted the reason in the text.
+- **Options considered:** A second rule for reductions; widen the existing rule.
+- **Decision:** Widen `HM_EXTRA_TIME` (id unchanged, title now "Time was added or taken away") so the owner's existing switch carries over. Text, as approved: "15 min added because the Feed Chloe chore was marked completed.", "30 min added manually by a parent.", "30 min taken away: Traded for play time.", "5 min taken away manually by a parent.", each followed by "<name> now has <time> left today." Titles: "was given more time", "had time taken away", "'s time changed". No parent name and no app-versus-plugin-page distinction in the text. The app's own +30, -30 and Undo send `Source: "app"`. The lock-screen version stays generic.
+- **Rationale:** Owner's wording choices, 2026-11-03; no new switch to find.
+- **Impact:** `NotifCatalog.kt`, `HallMonitorClient.kt` (`SOURCE_APP`). Chore label text comes from Home Assistant (see `C:\dev\ha\DECISIONS.md`).
+
+### 2026-11-03, Released 0.11.0 after an emulator check
+- **Context:** The reasons feature was only unit tested and checked against a captured real push. The owner asked for an emulator run before anything went out, then "publish everything".
+- **Decision:** Ran the debug build on a private emulator against the test server with plugin 2.5.0.0, a throw-away admin and child, and the rule switched on. All four texts matched. Then tagged `v0.11.0` on 6a30de9 after `test` and both CodeQL jobs were green.
+- **Impact:** `Embidextrous-0.11.0.apk`, 2,576,294 bytes, SHA-256 `20295b011e86d315f7e07f6b8b41b87449dc3c759d7d639aefe44678258a0b0e`. Row added to `docs/HANDOFF.md`. Still never run on a real phone.
