@@ -341,6 +341,64 @@ class ApiClient(
         send("POST", "$hpBase/Apply", buildJsonObject { put("Confirm", true) }.toString())
     }
 
+    // ----- Label Maker (music ingest plugin; its admin API, called with the signed-in administrator's token; docs/API.md in the plugin repo) -----
+
+    private val lmBase get() = "$server/emby/LabelMaker"
+
+    suspend fun lmInfo(): LmInfo = LabelMakerParser.info(get("$lmBase/Info"))
+
+    suspend fun lmStatus(): LmStatus = LabelMakerParser.status(get("$lmBase/Status"))
+
+    /** One page of albums, newest change first. [states] is a list of the plugin's state names (empty for all). */
+    suspend fun lmAlbums(states: List<String>, laneId: String, text: String, start: Int, limit: Int): Pair<Int, List<LmAlbum>> {
+        val b = "$lmBase/Albums".toHttpUrl().newBuilder()
+        if (states.isNotEmpty()) b.addQueryParameter("State", states.joinToString(","))
+        if (laneId.isNotEmpty()) b.addQueryParameter("Lane", laneId)
+        if (text.isNotEmpty()) b.addQueryParameter("Text", text)
+        b.addQueryParameter("Start", start.coerceAtLeast(0).toString())
+        b.addQueryParameter("Limit", limit.coerceIn(1, 100).toString())
+        return LabelMakerParser.albums(get(b.build().toString()))
+    }
+
+    suspend fun lmAlbum(id: String): LmAlbumDetail = LabelMakerParser.detail(get("$lmBase/Albums/${seg(id)}"))
+
+    suspend fun lmRun() {
+        send("POST", "$lmBase/Run", "")
+    }
+
+    suspend fun lmPause(paused: Boolean) {
+        send("POST", "$lmBase/Pause", buildJsonObject { put("Paused", paused) }.toString())
+    }
+
+    suspend fun lmDryRun(dryRun: Boolean) {
+        send("POST", "$lmBase/DryRun", buildJsonObject { put("DryRun", dryRun) }.toString())
+    }
+
+    private fun lmEditionBody(releaseId: String, onDuplicate: String): String = buildJsonObject {
+        put("ReleaseId", releaseId)
+        if (onDuplicate.isNotEmpty()) put("OnDuplicate", onDuplicate)
+    }.toString()
+
+    /** What using this edition would do. Changes nothing. [onDuplicate] is "", "KeepBoth", "Replace" or "SkipExisting". */
+    suspend fun lmPreview(id: String, releaseId: String, onDuplicate: String): LmPreview =
+        LabelMakerParser.preview(send("POST", "$lmBase/Albums/${seg(id)}/Preview", lmEditionBody(releaseId, onDuplicate)))
+
+    suspend fun lmApply(id: String, releaseId: String, onDuplicate: String): LmActionResult =
+        LabelMakerParser.action(send("POST", "$lmBase/Albums/${seg(id)}/Apply", lmEditionBody(releaseId, onDuplicate)))
+
+    suspend fun lmSearch(id: String, artist: String, album: String): LmSearchResult =
+        LabelMakerParser.search(send("POST", "$lmBase/Albums/${seg(id)}/Search", buildJsonObject { put("Artist", artist); put("Album", album) }.toString()))
+
+    /** A pasted MusicBrainz release link, release-group link or bare id. */
+    suspend fun lmResolve(id: String, text: String): LmSearchResult =
+        LabelMakerParser.search(send("POST", "$lmBase/Albums/${seg(id)}/Resolve", buildJsonObject { put("Text", text) }.toString()))
+
+    /** [action] is one of KeepTags, Skip, Recheck, Discard, Restore, Undo, Split. */
+    suspend fun lmAction(id: String, action: String): LmActionResult {
+        require(action in LM_ACTIONS) { "Unknown Label Maker action." }
+        return LabelMakerParser.action(send("POST", "$lmBase/Albums/${seg(id)}/$action", ""))
+    }
+
     // Ends this session on the server, so the token stops working there. Best effort: the caller ignores failure.
     suspend fun logout() {
         send("POST", "$server/emby/Sessions/Logout", "")
@@ -593,6 +651,7 @@ class ApiClient(
         private val JSON = "application/json; charset=utf-8".toMediaType()
         const val SMARTLISTS_PLUGIN_ID = "7f0b8a52-6c1d-4b57-9a2e-5d3b0c4e91a8"
         private val SEGMENT = Regex("[A-Za-z0-9._-]+")
+        private val LM_ACTIONS = setOf("KeepTags", "Skip", "Recheck", "Discard", "Restore", "Undo", "Split")
 
         fun defaultHttpClient(): OkHttpClient = OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)

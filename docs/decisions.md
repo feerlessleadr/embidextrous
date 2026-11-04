@@ -124,3 +124,9 @@ A running log of what was decided about the app, when and why. Newest at the bot
 - **Reductions are included (owner)** under the same rule, which is now called "Time was added or taken away" (same id, so a rule the owner already switched on keeps working). With an older plugin the rule behaves as before: added time only, no reason.
 - **Take-aways are announced only from the plugin's change list**, never from the credit falling: the credit also falls on every reset, which is not news.
 - **Manual add and Undo from this app send `Source: "app"`**; nothing else changes in those calls.
+
+## 2026-11-03: Label Maker tab (Library > Label Maker)
+- **Scope (version 1):** status, review and quick switches, as decided on 2026-10-13. Review of one album happens in a bottom sheet; the plugin's own sentences (`Reason`, `Message`, `Problems`, `Notes`) are shown as they come, so the wording stays in one place. No track mapping, lane editing or thresholds in the app: they stay on the plugin's Emby page. Full record with reasons: `DECISIONS.md` at the repo root.
+- **Live status:** the plugin's `LabelMakerStatusStart` channel (plugin 0.1.11.0) through a new push topic, held only while the tab is on screen. Its start message carries only the token after the interval (no event number), so it is flagged `statusToken` and not `eventsPlugin`; that keeps `AlertService` from subscribing to it. Plugins without `statuspush` are polled every 20 seconds.
+- **Gate:** plugin 0.1.8.0 or newer. Calls: `GET Info`, `Status`, `Albums`, `Albums/{Id}`; `POST Run`, `Pause`, `DryRun`, `Albums/{Id}/Preview|Apply|Search|Resolve|KeepTags|Skip|Recheck|Discard|Restore|Undo|Split`. Album ids go through `ApiClient.seg` like every server id.
+- **A person's choice is carried out even in dry run** (the plugin's rule); the preview and the Keep my tags dialog say so.

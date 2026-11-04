@@ -21,6 +21,8 @@ enum class EmbyTopic(
     val interval: String?,
     /** For a plugin's event subscription: the plugin name, whose start message also carries the last event number the app has seen (docs/push-contract.md). */
     val eventsPlugin: String? = null,
+    /** For a plugin's status channel: the start message is "initial delay,interval,<access token>" (no event number), answered with the plugin's whole status. */
+    val statusToken: Boolean = false,
 ) {
     Sessions("Sessions", "SessionsStart", "SessionsStop", "0,1500"),
     ScheduledTasks("ScheduledTasksInfo", "ScheduledTasksInfoStart", "ScheduledTasksInfoStop", "0,1000"),
@@ -32,6 +34,9 @@ enum class EmbyTopic(
     HallPassEvents("HallPassEvents", "HallPassEventsStart", "HallPassEventsStop", "0,30000", "HallPass"),
     SmartListsEvents("SmartListsEvents", "SmartListsEventsStart", "SmartListsEventsStop", "0,30000", "SmartLists"),
     PluginManagerEvents("GitHubRepoPluginInstallEvents", "GitHubRepoPluginInstallEventsStart", "GitHubRepoPluginInstallEventsStop", "0,30000", "GitHubRepoPluginInstall"),
+
+    // The Label Maker tab's live status (plugin 0.1.11.0 and newer; an older plugin ignores the start message and the tab asks now and then instead).
+    LabelMakerStatus("LabelMakerStatus", "LabelMakerStatusStart", "LabelMakerStatusStop", "0,30000", statusToken = true),
 }
 
 /** One message from Emby: its type and its data (null when there was none). */
@@ -49,7 +54,11 @@ object EmbyMessages {
      */
     fun start(topic: EmbyTopic, afterSeq: Long? = null, token: String? = null): String? = topic.startMessage?.let {
         // Nothing seen yet is an EMPTY value (the plugin then only reports where its log stands); a 0 would replay the whole log.
-        val data = if (topic.eventsPlugin != null && token != null) "${topic.interval},${afterSeq?.takeIf { it > 0 } ?: ""},$token" else topic.interval
+        val data = when {
+            topic.eventsPlugin != null && token != null -> "${topic.interval},${afterSeq?.takeIf { it > 0 } ?: ""},$token"
+            topic.statusToken && token != null -> "${topic.interval},$token"
+            else -> topic.interval
+        }
         buildJsonObject {
             put("MessageType", it)
             put("Data", data)

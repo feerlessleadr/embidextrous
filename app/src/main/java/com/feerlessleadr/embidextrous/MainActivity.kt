@@ -66,6 +66,8 @@ import com.feerlessleadr.embidextrous.server.LiveScreen
 import com.feerlessleadr.embidextrous.server.PluginManagerTab
 import com.feerlessleadr.embidextrous.hallpass.HallPassTab
 import com.feerlessleadr.embidextrous.hallpass.HallPassViewModel
+import com.feerlessleadr.embidextrous.labelmaker.LabelMakerTab
+import com.feerlessleadr.embidextrous.labelmaker.LabelMakerViewModel
 import com.feerlessleadr.embidextrous.server.PluginManagerViewModel
 import com.feerlessleadr.embidextrous.server.PluginsTab
 import com.feerlessleadr.embidextrous.server.ServerHeader
@@ -172,6 +174,7 @@ private fun SignedIn(container: AppContainer, session: Session) {
     val pluginVm: PluginManagerViewModel = viewModel(key = "plugins-$token", factory = viewModelFactory { initializer { PluginManagerViewModel(container) } })
     val tracearrVm: TracearrViewModel = viewModel(key = "tracearr-$token", factory = viewModelFactory { initializer { TracearrViewModel(container) } })
     val hallPassVm: HallPassViewModel = viewModel(key = "hallpass-$token", factory = viewModelFactory { initializer { HallPassViewModel(container) } })
+    val labelMakerVm: LabelMakerViewModel = viewModel(key = "labelmaker-$token", factory = viewModelFactory { initializer { LabelMakerViewModel(container) } })
 
     // The tabs follow the phone's profile; Smart Lists also needs an administrator account (the SmartLists plugin demands one).
     val profile by container.settings.profile.collectAsStateWithLifecycle()
@@ -297,6 +300,7 @@ private fun SignedIn(container: AppContainer, session: Session) {
                             )
                             add(SubTab("libraries", "Libraries") { LibrariesScreen(toolsVm) })
                             add(SubTab("hallpass", "Hall Pass") { HallPassTab(hallPassVm) })
+                            add(SubTab("labelmaker", "Label Maker") { LabelMakerTab(labelMakerVm) })
                             if (BuildConfig.DEBUG) add(SubTab("tags", "Tags") { ComingSoon(Icons.Filled.Sell, "Bulk tag editing", "Edit tags for many items at once, including music.") })
                         },
                         selectedKey = librarySection,

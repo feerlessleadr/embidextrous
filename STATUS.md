@@ -3,19 +3,21 @@
 Snapshot written 2026-11-03 (overwrite, do not append). Detailed history: `docs/status.md` (dated log), `docs/HANDOFF.md` (consolidated picture).
 
 ## State
-- Latest release: **v0.11.0** (2026-11-03, reasons for time changes). Signed APK `Embidextrous-0.11.0.apk` on GitHub releases, installed with Obtainium. Before it: v0.10.1 (2026-10-15).
-- Branch `main` is in sync with `origin/main` (the release notes and the HANDOFF row were pushed after the tag).
-- Tabs built: Home, Watching (Hall Monitor, Activity), Library (Smart lists, Libraries, Hall Pass), Server (Live, Tasks, Activity, Devices, Plugins), Settings > Notifications (a section per service, quiet hours, test).
-- Unit tests: all pass (`./gradlew.bat test --offline`).
+- Latest release: **v0.11.0** (2026-11-03, reasons for time changes). Signed APK on GitHub releases, installed with Obtainium.
+- Branch **`feat/label-maker-tab`** (cut from `main` at 8013139, NOT committed yet): the Label Maker tab (Library > Label Maker) plus the README fix. `main` is untouched and in sync with origin.
+- Tabs built: Home, Watching (Hall Monitor, Activity), Library (Smart lists, Libraries, Hall Pass, **Label Maker**), Server (Live, Tasks, Activity, Devices, Plugins), Settings > Notifications.
+- Unit tests: all pass (`./gradlew.bat test --offline`), including 12 new ones in `LabelMakerTest`.
 
 ## Done this session
-- Time-change notifications say why (chore marked done in Home Assistant, or a parent) and announce time taken away. Needs Hall Monitor plugin 2.5.0.0 (ApiLevel 7). Older plugins keep the old added-time wording without a reason.
-- Checked on a private emulator against the test server (four texts verified), and against a real push captured from plugin 2.5.0.0. Details in `DECISIONS.md` and `hall-monitor-emby/docs/reason-for-time-changes.md`.
+- README: status line now 0.11.0; the Notifications row no longer says "not released"; a Label Maker row was added.
+- Label Maker tab: status card (counts, dry run switch with a confirm when turning it off, Pause, Check inbox now), filters and lane chips, album list, album sheet (best match, editions, search by hand, pasted link, preview, duplicate choices, file, Keep my tags, Skip, Check again, Discard/Restore, Undo, Split). Live status by the plugin's status channel (new push topic `LabelMakerStatus`), polling every 20 s for a plugin without `statuspush`. Gate: plugin 0.1.8.0. Decisions: `DECISIONS.md`.
+- Checked on a private emulator against the real plugin v0.1.11.0 (private Emby instance, albums in six states): status, filters, review, preview, keep both, undo, discard/restore, live push (a REST Pause showed in the app in 4.5 s), dark theme. It found four UI problems (sheet hid the snackbar, a misleading "No edition fits" on a Waiting album, stale hand-search results after Restore, identical-looking editions); all four are fixed in code.
 
 ## Next steps
-1. Owner: install the app update (Obtainium), after the plugin update and Emby restart, and the HA pull.
-2. Label Maker tab: not started in the app. The plugin (`C:\dev\label-maker-emby`) offers the `LabelMakerEvents` and `LabelMakerStatus` channels; the app only has notification catalog entries. Spec: Label Maker `docs/NOTIFICATIONS.md` section 13 and `docs/HANDOFF.md`.
-3. Fix stale README line "Status: 0.8.0 released" (README.md line 8).
+1. Owner: review the branch, then say "commit" (and whether to merge to `main`). A release needs "publish it" (it would be 0.12.0: write `docs/releases/v0.12.0.md`, bump the version, wait for CI and CodeQL).
+2. Owner: tell the Label Maker session that the app now uses the status channel (`NOTIFICATIONS.md` section 13).
+3. Re-run the emulator check for the four fixes, plus what was not checked (below).
+4. Later: manual track mapping in the review sheet (plugin `Mapping` field), a Home card for albums needing review.
 
 ## Known issues
 - Two stray tracked files in the repo root, `gqfs3jwdpc` and `xv0zkbd91n` (about 100 bytes each, only a scratchpad path). Ask the owner before removing them.
@@ -24,9 +26,11 @@ Snapshot written 2026-11-03 (overwrite, do not append). Detailed history: `docs/
 - The README and HANDOFF still point at `C:\dev\watching-eye` as the Hall Monitor reference. That folder is deprecated: the live plugin source is `C:\dev\hall-monitor-emby`.
 
 ## Not verified
-- Anything on a real phone: lock screen alerts, quiet hours, the 15-minute backup poll job firing, weekly or monthly limit alerts, dark theme of newer screens, swipe-review feel, Apply with dry run off, the new reason texts.
+- The four Label Maker UI fixes on a device (built and unit tested only).
+- Label Maker: the "not installed" and "too old" cards, the 20 s polling fallback, whether the push topic is released when leaving the tab, Replace and File only the new files, Skip, a notification tap opening the tab.
+- Anything on a real phone: lock screen alerts, quiet hours, the backup poll job, weekly or monthly limit alerts, dark theme of newer screens, swipe-review feel, Apply with dry run off, the reason texts, the whole Label Maker tab.
 - Tracearr alerts against a real Tracearr; the "Smart lists timer stopped" alert.
 
 ## Manual steps for the owner
 - Release signing key lives on the owner's other machine (see `C:\dev\embidextrous-keys\CLAUDE.md`). GitHub secrets `SIGNING_*` are the owner's.
-- Say "publish it" to release.
+- Say "commit" to commit the branch, "publish it" to release.
