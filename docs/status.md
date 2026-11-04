@@ -292,3 +292,8 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 - Checked on a private emulator (AVD on its own port, deleted afterwards) against the real plugin v0.1.11.0 (SHA-256 matched) in a private throw-away Emby instance with two lanes and albums in six states. Worked: tab, status card, dry run dialog, pause and resume, filters and lane chips, best match, candidates, preview, duplicate choices (Keep both filed with "(2)" names), hand search, a pasted release-group id, Undo, Discard and Restore, the list updating behind the sheet, dark theme. Live updates: `LabelMakerStatus` arrived by push and a REST Pause appeared in the app in 4.5 seconds without a refresh.
 - Found and fixed afterwards (code only, not re-checked on the emulator): the tab's snackbar was hidden behind the album sheet (the sheet now has its own); a Waiting album said "No edition fits" (now says it has not been matched yet); hand-search results stayed after Restore, Check again or Undo (cleared); editions with the same title looked identical (the first 8 characters of the release id are shown).
 - Not verified: the gate cards, the polling fallback, release of the push topic when leaving the tab, Replace, File only the new files, Skip, a notification tap, a real phone.
+
+## 2026-11-03: 0.12.0 released
+
+- `v0.12.0` tagged on 16165e3 (main) after `test` and both CodeQL jobs were green. The Release workflow published `Embidextrous-0.12.0.apk`, 2,625,446 bytes, SHA-256 a80e0f61b3b81ed322ed35456a6b4b1eafa9801cc8c26918bc460b29c398172c (GitHub's recorded digest).
+- Not re-checked after release: the four UI fixes on an emulator, the gate cards, the polling fallback, Replace and File only the new files, Skip, a notification tap, anything on a real phone.
