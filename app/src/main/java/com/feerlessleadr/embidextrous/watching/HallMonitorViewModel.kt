@@ -47,19 +47,11 @@ class HallMonitorViewModel(private val container: AppContainer) : ViewModel() {
 
     // ---- actions: each one tells the person how it went ------------------------------------------------------
 
+    // No success message or Undo for add and take-away: the card's countdown shows the change, and a toast at the bottom of the
+    // screen covered the +/- buttons. Failures still show a message.
     fun extend(user: UserStatus, minutes: Int) = run("Add time") {
         if (!validMinutes(minutes)) return@run
         repository.act { extend(user.userId, minutes) }
-        _events.emit(
-            WatchEvent("Added $minutes min for ${user.username}", undoLabel = "UNDO") {
-                try {
-                    repository.act { reduce(user.userId, minutes) }
-                    _events.emit(WatchEvent("Undone for ${user.username}"))
-                } catch (e: ApiException) {
-                    _events.emit(WatchEvent(e.message.orEmpty(), isError = true))
-                }
-            },
-        )
     }
 
     /**
@@ -78,16 +70,6 @@ class HallMonitorViewModel(private val container: AppContainer) : ViewModel() {
         }
         if (!validMinutes(minutes)) return@run
         repository.act { reduce(user.userId, minutes) }
-        _events.emit(
-            WatchEvent("Took $minutes min from ${user.username}", undoLabel = "UNDO") {
-                try {
-                    repository.act { extend(user.userId, minutes) }
-                    _events.emit(WatchEvent("Gave back $minutes min to ${user.username}"))
-                } catch (e: ApiException) {
-                    _events.emit(WatchEvent(e.message.orEmpty(), isError = true))
-                }
-            },
-        )
     }
 
     fun timeOut(user: UserStatus, minutes: Int) = run("Time-out") {

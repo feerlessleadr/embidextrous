@@ -297,3 +297,6 @@ Compared the old Watching Eye app with this one and fixed what was missing:
 
 - `v0.12.0` tagged on 16165e3 (main) after `test` and both CodeQL jobs were green. The Release workflow published `Embidextrous-0.12.0.apk`, 2,625,446 bytes, SHA-256 a80e0f61b3b81ed322ed35456a6b4b1eafa9801cc8c26918bc460b29c398172c (GitHub's recorded digest).
 - Not re-checked after release: the four UI fixes on an emulator, the gate cards, the polling fallback, Replace and File only the new files, Skip, a notification tap, anything on a real phone.
+
+## 2026-11-27: Hall Monitor add and take-away: no bottom toast
+- Removed the success message and Undo from Add and Take away (`HallMonitorViewModel.kt`), so the bottom snackbar no longer covers the buttons. Decision in `docs/decisions.md` (2026-11-27). Unit tests pass (`./gradlew.bat test --offline`). Not checked on an emulator or a real phone.

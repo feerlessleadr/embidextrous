@@ -130,3 +130,9 @@ A running log of what was decided about the app, when and why. Newest at the bot
 - **Live status:** the plugin's `LabelMakerStatusStart` channel (plugin 0.1.11.0) through a new push topic, held only while the tab is on screen. Its start message carries only the token after the interval (no event number), so it is flagged `statusToken` and not `eventsPlugin`; that keeps `AlertService` from subscribing to it. Plugins without `statuspush` are polled every 20 seconds.
 - **Gate:** plugin 0.1.8.0 or newer. Calls: `GET Info`, `Status`, `Albums`, `Albums/{Id}`; `POST Run`, `Pause`, `DryRun`, `Albums/{Id}/Preview|Apply|Search|Resolve|KeepTags|Skip|Recheck|Discard|Restore|Undo|Split`. Album ids go through `ApiClient.seg` like every server id.
 - **A person's choice is carried out even in dry run** (the plugin's rule); the preview and the Keep my tags dialog say so.
+
+## 2026-11-27: no success message or Undo when Hall Monitor time is added or taken away
+- **Why (owner):** the bottom snackbar after Add or Take away covered the card's buttons, so the owner could not add or remove time for the next user until it went away.
+- **Decision:** the Hall Monitor add and take-away actions show no success message and no Undo. The card's countdown and minutes already show the change. Failures still show a message at the bottom (a rare case the owner did not ask to change).
+- **Consequence:** Undo for add and take-away is gone from the app; to reverse a change, use the other button (Add or Take away) or the plugin page. Other Hall Monitor actions (time out, reset, stop, bedtime) keep their messages.
+- **Impact:** `app/.../watching/HallMonitorViewModel.kt` only. Not checked on a real phone. If the owner wants the message elsewhere (top of the screen), that is a later change.

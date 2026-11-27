@@ -3,8 +3,8 @@
 Snapshot written 2026-11-03 (overwrite, do not append). Detailed history: `docs/status.md` (dated log), `docs/HANDOFF.md` (consolidated picture).
 
 ## State
-- Latest release: **v0.12.0** (2026-11-03, the Label Maker tab). Signed APK `Embidextrous-0.12.0.apk` (2,625,446 bytes) on GitHub releases, installed with Obtainium. Before it: v0.11.0 (reasons for time changes).
-- `main` holds everything (v0.12.0 is tagged on 16165e3; a later docs-only commit records the release). The branch `feat/label-maker-tab` is merged and can be deleted.
+- Latest release: **v0.12.1** (2026-11-27, no bottom message or Undo when Hall Monitor time is added or taken away). Before it: v0.12.0 (2026-11-03, the Label Maker tab). Signed APK `Embidextrous-0.12.0.apk` (2,625,446 bytes) on GitHub releases, installed with Obtainium. Before it: v0.11.0 (reasons for time changes).
+- `main` holds everything (v0.12.0 is tagged on 16165e3; a later docs-only commit records the release). The branch `feat/label-maker-tab` was merged and then deleted (local and origin).
 - Tabs built: Home, Watching (Hall Monitor, Activity), Library (Smart lists, Libraries, Hall Pass, Label Maker), Server (Live, Tasks, Activity, Devices, Plugins), Settings > Notifications.
 - Unit tests: all pass (`./gradlew.bat test --offline`), including 12 in `LabelMakerTest`.
 
@@ -14,11 +14,14 @@ Snapshot written 2026-11-03 (overwrite, do not append). Detailed history: `docs/
 - Checked on a private emulator against the real plugin v0.1.11.0: worked, with four small UI problems that were fixed afterwards.
 - Released as 0.12.0: merged straight to `main` (no `gh` for a pull request), CI and both CodeQL jobs green on 16165e3, then tagged.
 
+## In progress
+Nothing. The working tree has only this uncommitted STATUS.md edit (branch deletion note). Open question for the owner: whether the two stray root files (see Known issues) may be removed.
+
 ## Next steps
 1. Owner: update the app with Obtainium and the Label Maker plugin to 0.1.11.0; try the tab against the real inbox (dry run is on by default) and report what looks wrong.
 2. Owner: tell the Label Maker session that the app now uses its status channel (`NOTIFICATIONS.md` section 13) and that the tab is released.
 3. Re-run an emulator check of the four post-check UI fixes and the unchecked items (below).
-4. Later: manual track mapping in the review sheet (plugin `Mapping` field), a Home card for albums needing review, delete the merged branch.
+4. Later: manual track mapping in the review sheet (plugin `Mapping` field), a Home card for albums needing review.
 
 ## Known issues
 - Two stray tracked files in the repo root, `gqfs3jwdpc` and `xv0zkbd91n` (about 100 bytes each, only a scratchpad path). Ask the owner before removing them.
