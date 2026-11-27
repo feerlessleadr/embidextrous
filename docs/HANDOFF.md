@@ -21,6 +21,7 @@ Kotlin / Jetpack Compose / Material 3 / OkHttp Android app (package `com.feerles
 | 0.10.1 | c448c07 | 2,559,910 | 019a6d5c2a683262f16f8c3d7eff3ec17a3e8ae57855d701b8a60b9081626b17 | fix: no stale percent or "used all" alert from the first status after Hall Monitor was unreachable; recommends Hall Monitor 2.4.1.0 |
 | 0.11.0 | 6a30de9 | 2,576,294 | 20295b011e86d315f7e07f6b8b41b87449dc3c759d7d639aefe44678258a0b0e | feature: time notifications say why (chore marked done in Home Assistant, or a parent) and announce time taken away; needs Hall Monitor 2.5.0.0 for reasons |
 | 0.12.0 | 16165e3 | 2,625,446 | a80e0f61b3b81ed322ed35456a6b4b1eafa9801cc8c26918bc460b29c398172c | feature: Library > Label Maker tab (status and quick switches, review of albums that need a decision, duplicate choices, undo); needs Label Maker 0.1.8.0 (0.1.11.0 for live updates) |
+| 0.12.1 | 5238986 | 2,625,446 | 625b9ce25912eb91a5e93a67da03862fe52d60be76db575a92582cf972df4e57 | fix: Hall Monitor add and take-away show no bottom message or Undo (the message covered the buttons); failures still show a message |
 Release routine (only on "publish it"): notes `docs/releases/vX.Y.Z.md` committed first; CI and both CodeQL jobs green on that commit; `git tag -a vX.Y.Z`; push; the Release workflow builds and signs; report size and digest. Version name comes from the tag (`-PappVersion`).
 
 ## 2. Navigation
